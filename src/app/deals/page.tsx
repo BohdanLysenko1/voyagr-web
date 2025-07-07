@@ -1,0 +1,8 @@
+export default function DealsPage() {
+  return (
+    <div className="p-8">
+      <h1 className="text-3xl font-bold text-primary">Deals</h1>
+      <p className="mt-4">Deals page coming soon...</p>
+    </div>
+  );
+}
