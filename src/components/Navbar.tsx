@@ -9,19 +9,19 @@ export default function Navbar() {
         </Link>
         <div className="flex space-x-6">
           <div className="relative">
-            <button className="hover:text-gray-300">Dropdown 1</button>
+            <button className="hover:text-gray-300">Continents</button>
           </div>
           <div className="relative">
-            <button className="hover:text-gray-300">Dropdown 2</button>
+            <button className="hover:text-gray-300">Deals</button>
           </div>
           <div className="relative">
-            <button className="hover:text-gray-300">Dropdown 3</button>
+            <button className="hover:text-gray-300">Favorites</button>
           </div>
           <div className="relative">
-            <button className="hover:text-gray-300">Dropdown 4</button>
+            <button className="hover:text-gray-300">Reserved</button>
           </div>
           <div className="relative">
-            <button className="hover:text-gray-300">Dropdown 5</button>
+            <button className="hover:text-gray-300">AI</button>
           </div>
         </div>
       </div>
