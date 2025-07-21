@@ -1,0 +1,41 @@
+/* Event Type Colors */
+.event-departure {
+  background-color: #8EF0B9;
+}
+
+.event-arrival {
+  background-color: #A8C8FF;
+}
+
+.event-event {
+  background-color: #FFE39A;
+}
+
+.event-urgent {
+  background-color: #FFB3AE;
+}
+
+.event-meeting {
+  background-color: #D6B7FF;
+}
+
+/* Text colors for contrast */
+.text-departure {
+  color: #059669;
+}
+
+.text-arrival {
+  color: #2563EB;
+}
+
+.text-event {
+  color: #D97706;
+}
+
+.text-urgent {
+  color: #DC2626;
+}
+
+.text-meeting {
+  color: #7C3AED;
+}
