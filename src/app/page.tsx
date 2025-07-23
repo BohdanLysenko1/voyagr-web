@@ -13,21 +13,21 @@ const features: Feature[] = [
   {
     title: "AI Itineraries.",
     description: "Let our smart AI generate and book the perfect trip for you - no stress.",
-    imageSrc: "/AIModal.jpg",
+    imageSrc: "/images/AIModal.jpg",
     imageAlt: "AI Modal Picture",
     href: "/ai"
   },
   {
     title: "Unbeatable Deals.",
     description: "Grab exclusive prices for flights and accomodations worldwide, every day.",
-    imageSrc: "/DealsModalPic.jpg",
+    imageSrc: "/images/DealsModalPic.jpg",
     imageAlt: "Deals Modal Picture",
     href: "/deals"
   },
   {
     title: "Travel & Share.",
     description: "Post, save, or revisit your adventures - Voyagr is part trip tool, part social feed.",
-    imageSrc: "/TravelModalPic.jpg",
+    imageSrc: "/images/TravelModalPic.jpg",
     imageAlt: "Travel Modal Picture",
     href: "/profile"
   },
@@ -59,7 +59,7 @@ export default function Home() {
     <div className="flex flex-col items-center">
       <div className="relative w-full h-screen">
         <Image
-          src="/HomeHeroImage.jpg"
+          src="/images/HomeHeroImage.jpg"
           alt="Hero Image"
           fill
           className="object-cover"

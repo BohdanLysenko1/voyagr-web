@@ -16,7 +16,7 @@ export default function Navbar() {
             }}
           >
             <Image
-              src="/LogoNavBar.png"
+              src="/images/LogoNavBar.png"
               alt="Voyagr Logo"
               width={380}
               height={110}
