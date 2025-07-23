@@ -1,7 +1,7 @@
 export default function Footer() {
   return (
     <footer className="bg-white pt-8">
-      <hr className="border-gray-200 mb-8" />
+      <hr className="border-gray-200 mb-8 mx-8" />
       <div className="container mx-auto flex justify-end">
         <div className="grid grid-cols-3 gap-16">
           <div>
