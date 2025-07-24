@@ -1,40 +1,36 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import { UserIcon, HomeIcon } from 'lucide-react';
 
 export default function Navbar() {
   return (
     <nav className="bg-primary text-white p-4">
-      <div className="flex items-center w-full pr-5">
-        <Link href="/">
-          <div
-            style={{
-              width: 400,
-              height: 70,
-              overflow: "hidden",
-              display: "flex",
-              alignItems: "center"
-            }}
-          >
-            <Image
-              src="/images/LogoNavBar.png"
-              alt="Voyagr Logo"
-              width={380}
-              height={110}
-              style={{ objectFit: "cover", marginTop: "1.5rem", marginLeft: "-5rem"}}
-            />
-          </div>
-        </Link>
-        <div className="flex space-x-6 ml-auto">
-          <div className="relative">
-            <Link href="/">
-              <button className="hover:text-gray-300 text-lg">Home</button>
-            </Link>
-          </div>
+      <div className="flex items-center w-full relative pr-5">
+        {/* Left: Logo */}
+          <Link href="/">
+            <div
+              style={{
+                width: 400,
+                height: 70,
+                overflow: "hidden",
+                display: "flex",
+                alignItems: "center"
+              }}
+            >
+              <Image
+                src="/images/LogoNavBar.png"
+                alt="Voyagr Logo"
+                width={380}
+                height={110}
+                style={{ objectFit: "cover", marginTop: "1.5rem", marginLeft: "-5rem"}}
+              />
+            </div>
+          </Link>
+
+        {/* Center: Tabs */}
+        <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 flex space-x-6 z-10">
           <div className="relative group">
-            <button
-              className="hover:text-gray-300 text-lg">
-              Continents
-            </button>
+            <button className="hover:text-gray-300 text-lg">Continents</button>
             <div
               className="absolute left-0 mt-2 w-48 rounded-lg shadow-lg z-10 opacity-0 group-hover:opacity-100 invisible group-hover:visible transition-all duration-20"
               style={{ backgroundColor: "#5271FF" }}
@@ -62,13 +58,9 @@ export default function Navbar() {
                 </Link>
               </div>
             </div>
-
           </div>
           <div className="relative group">
-            <button
-              className="hover:text-gray-300 text-lg">
-              Deals
-            </button>
+            <button className="hover:text-gray-300 text-lg">Deals</button>
             <div
               className="absolute left-0 mt-2 w-48 rounded-lg shadow-lg z-10 opacity-0 group-hover:opacity-100 invisible group-hover:visible transition-all duration-200"
               style={{ backgroundColor: "#5271FF" }}
@@ -77,13 +69,7 @@ export default function Navbar() {
                 <Link href="/deals" passHref className="block px-5 py-2 hover:bg-blue-600 hover:text-white"> Deals
                 </Link>
                 <div className="self-center w-4/5 h-px bg-white my-1" />
-                <Link href="/deals/flights" passHref className="block px-5 py-2 hover:bg-blue-600 hover:text-white"> Flights
-                </Link>
-                <div className="self-center w-4/5 h-px bg-white my-1" />
-                <Link href="/deals/hotels" passHref className="block px-5 py-2 hover:bg-blue-600 hover:text-white"> Hotels
-                </Link>
-                <div className="self-center w-4/5 h-px bg-white my-1" />
-                <Link href="/deals/packages" passHref className="block px-5 py-2 hover:bg-blue-600 hover:text-white"> Packages
+                <Link href="/deals/searchdeals" passHref className="block px-5 py-2 hover:bg-blue-600 hover:text-white"> Search Deals
                 </Link>
               </div>
             </div>
@@ -103,10 +89,19 @@ export default function Navbar() {
               <button className="hover:text-gray-300 text-lg">AI</button>
             </Link>
           </div>
+        </div>
+        {/* Right: Icons */}
+        <div className="flex items-center ml-auto space-x-6 z-20">
+          <div className="relative">
+            <Link href="/">
+              <button className="hover:text-gray-300 text-lg">
+                <HomeIcon className="w-6 h-6" />
+              </button>
+            </Link>
+          </div>
           <div className="relative group">
-            <button
-              className="hover:text-gray-300 text-lg">
-              Profile
+            <button className="hover:text-gray-300 text-lg">
+              <UserIcon className="w-6 h-6" />
             </button>
             <div
               className="absolute right-0 mt-2 w-40 rounded-lg shadow-lg z-10 opacity-0 group-hover:opacity-100 invisible group-hover:visible transition-all duration-200"

@@ -17,16 +17,16 @@ const dummyTrips: Trip[] = [
     id: '1',
     country: 'Argentina',
     dates: 'August 19 - August 27',
-    image: '/images/ReservedPageArgentina.png',
-    flagImage: '/images/FlagArgentina.png',
+    image: '/images/ReservedPage/ReservedPageArgentina.png',
+    flagImage: '/images/ReservedPage/FlagArgentina.png',
     bgColor: 'from-gray-800 to-gray-600'
   },
   {
     id: '2',
     country: 'France',
     dates: 'September 7 - September 18',
-    image: '/images/ReservedPageFrance1.png',
-    flagImage: '/images/FlagParis.png',
+    image: '/images/ReservedPage/ReservedPageFrance1.png',
+    flagImage: '/images/ReservedPage/FlagParis.png',
     bgColor: 'from-blue-800 to-blue-600'
   }
 ];
