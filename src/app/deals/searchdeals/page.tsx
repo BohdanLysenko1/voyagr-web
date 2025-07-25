@@ -4,7 +4,6 @@ import { Search, ArrowUpDown } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import SearchDealCard, { SearchDeal } from '@/components/DealsPage/SearchDeals';
 
-// Sample deals data
 const sampleDeals: SearchDeal[] = [
   {
     id: 1,
@@ -230,7 +229,6 @@ export default function SearchDealsPage() {
       return matchesSearch && matchesType && matchesContinent;
     });
 
-    // Sort the filtered results
     filtered.sort((a, b) => {
       switch (sortBy) {
         case 'price-low':
@@ -261,7 +259,6 @@ export default function SearchDealsPage() {
           <p className="text-lg md:text-xl text-gray-600">Find the perfect deal for your next adventure</p>
         </div>
 
-        {/* Search Bar */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
           <div className="relative mb-4">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -274,9 +271,7 @@ export default function SearchDealsPage() {
             />
           </div>
 
-          {/* Filters Row */}
           <div className="flex flex-wrap items-center gap-4">
-            {/* Type Filter */}
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-gray-700">Type:</span>
               <select
@@ -291,7 +286,6 @@ export default function SearchDealsPage() {
               </select>
             </div>
 
-            {/* Continent Filter */}
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-gray-700">Continent:</span>
               <select
@@ -305,7 +299,6 @@ export default function SearchDealsPage() {
               </select>
             </div>
 
-            {/* Sort */}
             <div className="flex items-center gap-2">
               <ArrowUpDown className="w-4 h-4 text-gray-500" />
               <span className="text-sm font-medium text-gray-700">Sort by:</span>
@@ -322,7 +315,6 @@ export default function SearchDealsPage() {
           </div>
         </div>
 
-        {/* Results Count */}
         <div className="mb-6">
           <p className="text-gray-600 text-lg">
             Showing {filteredAndSortedDeals.length} {filteredAndSortedDeals.length === 1 ? 'deal' : 'deals'}
@@ -330,7 +322,6 @@ export default function SearchDealsPage() {
           </p>
         </div>
 
-        {/* Deal Cards Grid */}
         {filteredAndSortedDeals.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredAndSortedDeals.map(deal => (
