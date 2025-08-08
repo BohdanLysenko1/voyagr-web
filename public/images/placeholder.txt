@@ -1,0 +1,10 @@
+# Placeholder Images Directory
+
+This directory contains placeholder images for the profile page:
+
+- alex-profile.jpg - User profile avatar
+- default-avatar.png - Fallback avatar
+- casa-lucia.jpg - Post images
+- default-post.jpg - Fallback post image
+
+In a real application, these would be actual images uploaded by users or provided by a content management system.
