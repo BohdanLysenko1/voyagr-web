@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import { MapPin, User, Plane, Route, Globe, MapPin as LocationIcon, Camera, Star, Trophy, TrendingUp } from 'lucide-react';
-import LoadingSpinner from './LoadingSpinner';
+import { MapPin, User, Globe, Trophy, TrendingUp, Camera } from 'lucide-react';
+import ProfileStats from './ProfileStats';
+import ProfileActions from './ProfileActions';
 
 interface ProfileHeaderProps {
   user?: {
@@ -15,15 +15,11 @@ interface ProfileHeaderProps {
 }
 
 export default function ProfileHeader({ user }: ProfileHeaderProps) {
-  const [imageLoading, setImageLoading] = useState(false);
-  const [imageError, setImageError] = useState(false);
-
   const defaultUser = {
     name: 'Alex Johnson',
     title: 'Gold Traveler',
     bio: 'Gold Traveler | Explorer at heart | Product designer by day, wanderer by weekend 🌟 | Obsessed with local coffee shops & hidden trails 🏔️☕ | Currently: Working remotely from Lisbon | 📍 Follow my journey',
-    location: 'Lisbon, Portugal',
-    avatar: '/images/avatar.jpg'
+    location: 'Lisbon, Portugal'
   };
 
   const userData = user || defaultUser;
@@ -42,31 +38,19 @@ export default function ProfileHeader({ user }: ProfileHeaderProps) {
             {/* Left Section: Enhanced Avatar with Status */}
             <div className="flex-shrink-0 w-full lg:w-auto flex flex-col items-center lg:items-start">
               <div className="relative">
-                {/* Avatar Container */}
-                <div className="relative w-32 h-32 md:w-40 lg:w-48 md:h-40 lg:h-48 rounded-full overflow-hidden bg-gray-100 shadow-lg cursor-pointer group/avatar">
-                  {imageLoading && !imageError && (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <LoadingSpinner size="sm" />
+                {/* Avatar Container with hover camera overlay */}
+                <div className="relative w-32 h-32 md:w-40 lg:w-48 md:h-40 lg:h-48 rounded-full bg-blue-100 shadow-lg flex items-center justify-center overflow-hidden group/avatar cursor-pointer">
+                  <User className="w-20 h-20 text-blue-600" />
+                  {/* Hover overlay */}
+                  <div
+                    className="absolute inset-0 rounded-full bg-black/35 opacity-0 group-hover/avatar:opacity-100 transition-opacity duration-200 flex items-center justify-center"
+                    aria-hidden="true"
+                    title="Change profile picture"
+                  >
+                    <div className="flex items-center justify-center w-10 h-10 rounded-full bg-white/80 shadow">
+                      <Camera className="w-5 h-5 text-gray-800" />
                     </div>
-                  )}
-                  {imageError ? (
-                    <div className="w-full h-full flex items-center justify-center bg-blue-100">
-                      <User className="w-20 h-20 text-blue-600" />
-                    </div>
-                  ) : (
-                    <img
-                      src={userData.avatar}
-                      alt={userData.name}
-                      className="w-full h-full object-cover opacity-100"
-                      onError={() => {
-                        setImageError(true);
-                      }}
-                    />
-                  )}
-                  
-                  {/* Hover Overlay */}
-                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/avatar:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                    <Camera className="w-8 h-8 md:w-10 lg:w-12 md:h-10 lg:h-12 text-white" />
+                    <span className="sr-only">Change profile picture</span>
                   </div>
                 </div>
 
@@ -78,16 +62,14 @@ export default function ProfileHeader({ user }: ProfileHeaderProps) {
                     { label: 'Europe', icon: '🇪🇺', progress: 45, color: 'from-slate-400 to-slate-600' }
                   ].map((item, index) => (
                     <div key={index} className="group/progress">
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-sm font-semibold text-gray-800 flex items-center drop-shadow-sm">
-                          <span className="mr-3 text-lg">{item.icon}</span>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-semibold text-gray-700">
+                          <span className="mr-2">{item.icon}</span>
                           {item.label}
                         </span>
-                        <span className="text-sm font-bold text-gray-800 bg-white/60 px-3 py-1 rounded-full backdrop-blur-sm border border-white/50">
-                          {item.progress}%
-                        </span>
+                        <span className="text-sm font-bold text-gray-700">{item.progress}%</span>
                       </div>
-                      <div className="w-full bg-white/40 border border-white/50 rounded-full h-2 overflow-hidden">
+                      <div className="relative h-3 bg-gradient-to-r from-slate-200 to-slate-300 rounded-full overflow-hidden border border-white/50 shadow-inner">
                         <div 
                           className={`h-full bg-gradient-to-r ${item.color} rounded-full shadow-lg transition-all duration-1000 ease-out transform group-hover/progress:scale-x-105`}
                           style={{ width: `${item.progress}%` }}
@@ -149,35 +131,10 @@ export default function ProfileHeader({ user }: ProfileHeaderProps) {
             {/* Right Section: Enhanced Stats & Buttons */}
             <div className="flex flex-col space-y-6 lg:space-y-8 w-full lg:w-auto">
               {/* Enhanced Stats Cards */}
-              <div className="grid grid-cols-2 lg:grid-cols-2 gap-3 lg:gap-4">
-                {[
-                  { icon: Plane, value: '42', label: 'Voyages', color: 'from-slate-600 to-slate-700', iconColor: 'text-slate-200' },
-                  { icon: Route, value: '432K', label: 'Miles', color: 'from-slate-700 to-slate-800', iconColor: 'text-slate-200' },
-                  { icon: Globe, value: '35', label: 'Countries', color: 'from-slate-600 to-slate-700', iconColor: 'text-slate-200' },
-                  { icon: LocationIcon, value: '38', label: 'Cities', color: 'from-slate-700 to-slate-800', iconColor: 'text-slate-200' }
-                ].map((stat, index) => (
-                  <div key={index} className={`bg-gradient-to-br ${stat.color} p-3 lg:p-4 rounded-2xl text-center transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-xl group/stat backdrop-blur-md bg-white/10 border border-white/20`}>
-                    <stat.icon className={`w-6 lg:w-8 h-6 lg:h-8 ${stat.iconColor} mx-auto mb-2 group-hover/stat:scale-110 transition-transform duration-300`} />
-                    <div className="text-xl lg:text-2xl font-black text-white mb-1">{stat.value}</div>
-                    <div className="text-xs text-white/80 font-semibold uppercase tracking-wide">{stat.label}</div>
-                  </div>
-                ))}
-              </div>
+              <ProfileStats />
 
               {/* Enhanced Action Buttons */}
-              <div className="flex flex-col space-y-3 lg:space-y-4 w-full max-w-sm lg:w-64 mx-auto lg:mx-0">
-                <button className="group relative bg-gradient-to-r from-slate-700 to-slate-800 hover:from-slate-800 hover:to-slate-900 text-white font-bold py-3 lg:py-4 px-6 lg:px-8 rounded-2xl transition-all duration-300 flex items-center justify-center text-base lg:text-lg shadow-lg hover:shadow-xl transform hover:scale-105 hover:-translate-y-1 backdrop-blur-md bg-white/10 border border-white/20">
-                  <Route className="w-5 lg:w-6 h-5 lg:h-6 mr-2 lg:mr-3 group-hover:rotate-12 transition-transform duration-300" />
-                  My Trips
-                  <div className="absolute inset-0 bg-white/20 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                </button>
-                
-                <button className="group relative bg-gradient-to-r from-slate-800 to-slate-900 hover:from-slate-900 hover:to-black text-white font-bold py-3 lg:py-4 px-6 lg:px-8 rounded-2xl transition-all duration-300 flex items-center justify-center text-base lg:text-lg shadow-lg hover:shadow-xl transform hover:scale-105 hover:-translate-y-1 backdrop-blur-md bg-white/10 border border-white/20">
-                  <MapPin className="w-5 lg:w-6 h-5 lg:h-6 mr-2 lg:mr-3 group-hover:bounce transition-all duration-300" />
-                  My Journey
-                  <div className="absolute inset-0 bg-white/20 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                </button>
-              </div>
+              <ProfileActions className="w-full max-w-sm lg:w-64 mx-auto lg:mx-0" />
             </div>
           </div>
         </div>

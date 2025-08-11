@@ -14,6 +14,16 @@ export class DateUtils {
 
   static parseDate(dateString: string): Date | null {
     try {
+      // Handle ISO-like date-only strings (YYYY-MM-DD) as LOCAL dates to avoid UTC offset issues
+      // new Date('YYYY-MM-DD') interprets as UTC in JS, which can shift to previous day in some timezones
+      const match = /^\d{4}-\d{2}-\d{2}$/.test(dateString);
+      if (match) {
+        const [y, m, d] = dateString.split('-').map(Number);
+        const local = new Date(y, m - 1, d); // Local midnight
+        return isNaN(local.getTime()) ? null : local;
+      }
+
+      // Fallback to native parsing for other formats
       const date = new Date(dateString);
       return isNaN(date.getTime()) ? null : date;
     } catch {

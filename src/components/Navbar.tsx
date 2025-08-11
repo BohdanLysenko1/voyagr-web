@@ -111,7 +111,7 @@ export default function Navbar() {
                 <Link href="/profile" passHref className="block px-5 py-2 hover:bg-blue-600 hover:text-white"> Profile
                 </Link>
                 <div className="self-center w-4/5 h-px bg-white my-1" />
-                <Link href="/myjourney" passHref className="block px-5 py-2 hover:bg-blue-600 hover:text-white"> My Journey
+                <Link href="/myjourney" prefetch={false} className="block px-5 py-2 hover:bg-blue-600 hover:text-white"> My Journey
                 </Link>
                 <div className="self-center w-4/5 h-px bg-white my-1" />
                 <Link href="/settings" passHref className="block px-5 py-2 hover:bg-blue-600 hover:text-white"> Settings

@@ -1,4 +1,4 @@
-import { Plane, MapPin, Calendar, AlertTriangle, Users } from 'lucide-react';
+import { Plane, PlaneTakeoff, PlaneLanding, MapPin, Calendar, AlertTriangle, Users } from 'lucide-react';
 import { EventType } from '@/types/calendar';
 
 export const EVENT_TYPE_CONFIG = {
@@ -6,14 +6,14 @@ export const EVENT_TYPE_CONFIG = {
     color: 'event-departure',
     textColor: 'text-departure',
     label: 'Departure',
-    icon: Plane,
+    icon: PlaneTakeoff,
     location: 'Terminal A, Gate 12'
   },
   arrival: {
     color: 'event-arrival',
     textColor: 'text-arrival',
     label: 'Arrival',
-    icon: Plane,
+    icon: PlaneLanding,
     location: 'Terminal B, Gate 8'
   },
   event: {

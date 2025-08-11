@@ -31,4 +31,205 @@ export class CalendarService {
   private cache: Map<string, { data: any; timestamp: number; ttl: number }> = new Map();
 
   constructor(config: CalendarServiceConfig = {}) {
-    this.config = {\n      baseUrl: process.env.NEXT_PUBLIC_API_URL || '/api',\n      timeout: 10000,\n      ...config\n    };\n    \n    // Listen for online/offline status\n    if (typeof window !== 'undefined') {\n      this.isOnline = navigator.onLine;\n      window.addEventListener('online', () => { this.isOnline = true; });\n      window.addEventListener('offline', () => { this.isOnline = false; });\n    }\n  }\n\n  private async makeRequest<T>(\n    endpoint: string,\n    options: RequestInit = {}\n  ): Promise<ApiResponse<T>> {\n    const url = `${this.config.baseUrl}${endpoint}`;\n    const cacheKey = `${options.method || 'GET'}_${url}_${JSON.stringify(options.body || {})}`;\n    \n    // Check cache first for GET requests\n    if ((!options.method || options.method === 'GET') && this.cache.has(cacheKey)) {\n      const cached = this.cache.get(cacheKey)!;\n      if (Date.now() - cached.timestamp < cached.ttl) {\n        return { data: cached.data, success: true };\n      }\n      this.cache.delete(cacheKey);\n    }\n\n    // Return cached data if offline\n    if (!this.isOnline) {\n      if (this.cache.has(cacheKey)) {\n        const cached = this.cache.get(cacheKey)!;\n        return { data: cached.data, success: true, message: 'Offline - showing cached data' };\n      }\n      throw new Error('No internet connection and no cached data available');\n    }\n\n    try {\n      const controller = new AbortController();\n      const timeoutId = setTimeout(() => controller.abort(), this.config.timeout!);\n\n      const response = await fetch(url, {\n        ...options,\n        signal: controller.signal,\n        headers: {\n          'Content-Type': 'application/json',\n          ...(this.config.apiKey && { 'Authorization': `Bearer ${this.config.apiKey}` }),\n          ...options.headers\n        }\n      });\n\n      clearTimeout(timeoutId);\n\n      if (!response.ok) {\n        const errorData = await response.json().catch(() => ({ message: 'Request failed' }));\n        return {\n          data: null as T,\n          success: false,\n          message: errorData.message || `HTTP ${response.status}`,\n          errors: errorData.errors || []\n        };\n      }\n\n      const result = await response.json();\n      \n      // Cache successful GET requests\n      if (!options.method || options.method === 'GET') {\n        this.cache.set(cacheKey, {\n          data: result.data || result,\n          timestamp: Date.now(),\n          ttl: 5 * 60 * 1000 // 5 minutes\n        });\n      }\n\n      return result;\n    } catch (error) {\n      if (error instanceof Error && error.name === 'AbortError') {\n        throw new Error('Request timeout');\n      }\n      throw error;\n    }\n  }\n\n  async getEvents(params: {\n    startDate?: string;\n    endDate?: string;\n    type?: string;\n    page?: number;\n    limit?: number;\n  } = {}): Promise<ApiResponse<PaginatedResponse<CalendarEvent>>> {\n    const queryParams = new URLSearchParams();\n    Object.entries(params).forEach(([key, value]) => {\n      if (value !== undefined) {\n        queryParams.append(key, String(value));\n      }\n    });\n\n    const endpoint = `/calendar/events${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;\n    return this.makeRequest<PaginatedResponse<CalendarEvent>>(endpoint);\n  }\n\n  async getEvent(id: string): Promise<ApiResponse<CalendarEvent>> {\n    return this.makeRequest<CalendarEvent>(`/calendar/events/${id}`);\n  }\n\n  async createEvent(event: Omit<CalendarEvent, 'id'>): Promise<ApiResponse<CalendarEvent>> {\n    const validationErrors = EventUtils.validateEvent(event);\n    if (validationErrors.length > 0) {\n      return {\n        data: null as any,\n        success: false,\n        message: 'Validation failed',\n        errors: validationErrors\n      };\n    }\n\n    return this.makeRequest<CalendarEvent>('/calendar/events', {\n      method: 'POST',\n      body: JSON.stringify(event)\n    });\n  }\n\n  async updateEvent(id: string, event: Partial<CalendarEvent>): Promise<ApiResponse<CalendarEvent>> {\n    const validationErrors = EventUtils.validateEvent(event);\n    if (validationErrors.length > 0) {\n      return {\n        data: null as any,\n        success: false,\n        message: 'Validation failed',\n        errors: validationErrors\n      };\n    }\n\n    return this.makeRequest<CalendarEvent>(`/calendar/events/${id}`, {\n      method: 'PUT',\n      body: JSON.stringify(event)\n    });\n  }\n\n  async deleteEvent(id: string): Promise<ApiResponse<void>> {\n    return this.makeRequest<void>(`/calendar/events/${id}`, {\n      method: 'DELETE'\n    });\n  }\n\n  async deleteMultipleEvents(ids: string[]): Promise<ApiResponse<void>> {\n    return this.makeRequest<void>('/calendar/events/bulk-delete', {\n      method: 'POST',\n      body: JSON.stringify({ ids })\n    });\n  }\n\n  // Mock data methods for development\n  async getMockEvents(): Promise<CalendarEvent[]> {\n    // This can be replaced with actual API calls\n    const mockEvents: CalendarEvent[] = [\n      {\n        id: '1',\n        title: 'Flight to Paris',\n        type: 'departure',\n        date: '2025-08-15',\n        time: '10:00 AM'\n      },\n      {\n        id: '2', \n        title: 'Hotel Check-in',\n        type: 'arrival',\n        date: '2025-08-15',\n        time: '3:00 PM'\n      },\n      {\n        id: '3',\n        title: 'Important Meeting',\n        type: 'urgent',\n        date: '2025-08-16',\n        time: '9:00 AM'\n      }\n    ];\n    \n    // Simulate network delay\n    await new Promise(resolve => setTimeout(resolve, 500));\n    return mockEvents;\n  }\n\n  // Utility methods\n  clearCache(): void {\n    this.cache.clear();\n  }\n\n  isOffline(): boolean {\n    return !this.isOnline;\n  }\n\n  getCacheSize(): number {\n    return this.cache.size;\n  }\n}\n\n// Singleton instance\nexport const calendarService = new CalendarService();
+    this.config = {
+      baseUrl: process.env.NEXT_PUBLIC_API_URL || '/api',
+      timeout: 10000,
+      ...config,
+    };
+
+    // Listen for online/offline status
+    if (typeof window !== 'undefined') {
+      this.isOnline = navigator.onLine;
+      window.addEventListener('online', () => { this.isOnline = true; });
+      window.addEventListener('offline', () => { this.isOnline = false; });
+    }
+  }
+
+  private async makeRequest<T>(
+    endpoint: string,
+    options: RequestInit = {}
+  ): Promise<ApiResponse<T>> {
+    const url = `${this.config.baseUrl}${endpoint}`;
+    const cacheKey = `${options.method || 'GET'}_${url}_${JSON.stringify(options.body || {})}`;
+
+    // Check cache first for GET requests
+    if ((!options.method || options.method === 'GET') && this.cache.has(cacheKey)) {
+      const cached = this.cache.get(cacheKey)!;
+      if (Date.now() - cached.timestamp < cached.ttl) {
+        return { data: cached.data, success: true };
+      }
+      this.cache.delete(cacheKey);
+    }
+
+    // Return cached data if offline
+    if (!this.isOnline) {
+      if (this.cache.has(cacheKey)) {
+        const cached = this.cache.get(cacheKey)!;
+        return { data: cached.data, success: true, message: 'Offline - showing cached data' };
+      }
+      throw new Error('No internet connection and no cached data available');
+    }
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), this.config.timeout!);
+
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(this.config.apiKey && { 'Authorization': `Bearer ${this.config.apiKey}` }),
+          ...options.headers
+        }
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Request failed' }));
+        return {
+          data: null as T,
+          success: false,
+          message: errorData.message || `HTTP ${response.status}`,
+          errors: errorData.errors || []
+        };
+      }
+
+      const result = await response.json();
+
+      // Cache successful GET requests
+      if (!options.method || options.method === 'GET') {
+        this.cache.set(cacheKey, {
+          data: result.data || result,
+          timestamp: Date.now(),
+          ttl: 5 * 60 * 1000 // 5 minutes
+        });
+      }
+
+      return result;
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error('Request timeout');
+      }
+      throw error;
+    }
+  }
+
+  async getEvents(params: {
+    startDate?: string;
+    endDate?: string;
+    type?: string;
+    page?: number;
+    limit?: number;
+  } = {}): Promise<ApiResponse<PaginatedResponse<CalendarEvent>>> {
+    const queryParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined) {
+        queryParams.append(key, String(value));
+      }
+    });
+
+    const endpoint = `/calendar/events${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    return this.makeRequest<PaginatedResponse<CalendarEvent>>(endpoint);
+  }
+
+  async getEvent(id: string): Promise<ApiResponse<CalendarEvent>> {
+    return this.makeRequest<CalendarEvent>(`/calendar/events/${id}`);
+  }
+
+  async createEvent(event: Omit<CalendarEvent, 'id'>): Promise<ApiResponse<CalendarEvent>> {
+    const validationErrors = EventUtils.validateEvent(event);
+    if (validationErrors.length > 0) {
+      return {
+        data: null as any,
+        success: false,
+        message: 'Validation failed',
+        errors: validationErrors
+      };
+    }
+
+    return this.makeRequest<CalendarEvent>('/calendar/events', {
+      method: 'POST',
+      body: JSON.stringify(event)
+    });
+  }
+
+  async updateEvent(id: string, event: Partial<CalendarEvent>): Promise<ApiResponse<CalendarEvent>> {
+    const validationErrors = EventUtils.validateEvent(event);
+    if (validationErrors.length > 0) {
+      return {
+        data: null as any,
+        success: false,
+        message: 'Validation failed',
+        errors: validationErrors
+      };
+    }
+
+    return this.makeRequest<CalendarEvent>(`/calendar/events/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(event)
+    });
+  }
+
+  async deleteEvent(id: string): Promise<ApiResponse<void>> {
+    return this.makeRequest<void>(`/calendar/events/${id}`, {
+      method: 'DELETE'
+    });
+  }
+
+  async deleteMultipleEvents(ids: string[]): Promise<ApiResponse<void>> {
+    return this.makeRequest<void>('/calendar/events/bulk-delete', {
+      method: 'POST',
+      body: JSON.stringify({ ids })
+    });
+  }
+
+  // Mock data methods for development
+  async getMockEvents(): Promise<CalendarEvent[]> {
+    // This can be replaced with actual API calls
+    const mockEvents: CalendarEvent[] = [
+      {
+        id: '1',
+        title: 'Flight to Paris',
+        type: 'departure',
+        date: '2025-08-15',
+        time: '10:00 AM'
+      },
+      {
+        id: '2',
+        title: 'Hotel Check-in',
+        type: 'arrival',
+        date: '2025-08-15',
+        time: '3:00 PM'
+      },
+      {
+        id: '3',
+        title: 'Important Meeting',
+        type: 'urgent',
+        date: '2025-08-16',
+        time: '9:00 AM'
+      }
+    ];
+
+    // Simulate network delay
+    await new Promise(resolve => setTimeout(resolve, 500));
+    return mockEvents;
+  }
+
+  // Utility methods
+  clearCache(): void {
+    this.cache.clear();
+  }
+
+  isOffline(): boolean {
+    return !this.isOnline;
+  }
+
+  getCacheSize(): number {
+    return this.cache.size;
+  }
+}
+
+// Singleton instance
+export const calendarService = new CalendarService();
