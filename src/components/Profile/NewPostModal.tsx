@@ -1,8 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useMemo } from 'react';
-import { X, Upload, MapPin, Image as ImageIcon, Tag, Search } from 'lucide-react';
-// @ts-ignore - cities.json doesn't have TypeScript definitions
+import { X, Upload, MapPin, Tag, Search } from 'lucide-react';
 import cities from 'cities.json';
 
 interface City {
@@ -301,10 +300,11 @@ const NewPostModal: React.FC<NewPostModalProps> = ({ isOpen, onClose, onSubmit }
             <div className="space-y-4">
               {imagePreview ? (
                 <div className="relative">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={imagePreview}
                     alt="Preview"
-                    className="w-full h-48 object-cover rounded-xl border border-gray-300"
+                    className="w-full h-48 object-cover rounded-lg"
                   />
                   <button
                     type="button"

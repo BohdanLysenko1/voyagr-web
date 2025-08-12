@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { ChevronDown, Plus, Heart, MessageCircle, Eye } from 'lucide-react';
+import { ChevronDown, Plus, Eye } from 'lucide-react';
 import PostCard from './PostCard';
 import NewPostModal from './NewPostModal';
 
@@ -130,16 +130,15 @@ export default function SocialSection({ posts }: SocialSectionProps) {
   useEffect(() => {
     if (posts && posts.length > 0) {
       setAllPosts(posts);
-    } else {
-      setAllPosts(defaultPosts);
     }
+
   }, [posts]);
-  
+
   // Filter posts based on active filter
   const filteredPosts = activeFilter === 'your-posts' 
     ? allPosts.filter(post => post.isUserPost) // Filter by user's posts
     : allPosts; // Show all posts
-  
+
   const [visiblePosts, setVisiblePosts] = useState(6);
 
   const handleLoadMore = () => {
@@ -154,7 +153,7 @@ export default function SocialSection({ posts }: SocialSectionProps) {
   };
 
   // Handle new post creation
-  const handleCreatePost = async (postData: any) => {
+  const handleCreatePost = (postData: any) => {
     try {
       // Create new post object
       const newPost: Post = {
@@ -162,7 +161,7 @@ export default function SocialSection({ posts }: SocialSectionProps) {
         title: postData.title,
         description: postData.description,
         location: postData.location || 'Unknown Location',
-        image: postData.image ? URL.createObjectURL(postData.image) : 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDQwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMDAgMTUwTDE3NSAxMjVIMTI1VjE3NUgxNzVMMjAwIDE1MFoiIGZpbGw9IiM5Q0EzQUYiLz4KPHBhdGggZD0iTTI3NSAxMjVIMjI1VjE3NUgyNzVWMTI1WiIgZmlsbD0iIzlDQTNBRiIvPgo8L3N2Zz4K', // Use SVG placeholder
+        image: postData.image ? URL.createObjectURL(postData.image) : 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDQwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMDAgMTUwTDE3NSAxMjVIMTI1VjE3NUgxNzVMMjAwIDE1MFoiIGZpbGw9IiM5Q0EzQUYiLz4KPHBhdGggZD0iTTI3NSAxMjVIMjI1VjE3NUgyNzVWMTI1WiIgZmlsbD0iIzlDQTNBRiIvPgo8L3N2Zz4K',
         likes: 0,
         comments: 0,
         views: 0,
