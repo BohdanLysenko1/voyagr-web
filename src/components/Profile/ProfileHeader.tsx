@@ -1,6 +1,7 @@
 'use client';
 
-import { MapPin, User, Globe, Trophy, TrendingUp, Camera } from 'lucide-react';
+import { useState } from 'react';
+import { MapPin, User, Globe, Trophy, TrendingUp, Camera, Edit3, Check, X } from 'lucide-react';
 import ProfileStats from './ProfileStats';
 import ProfileActions from './ProfileActions';
 
@@ -23,6 +24,26 @@ export default function ProfileHeader({ user }: ProfileHeaderProps) {
   };
 
   const userData = user || defaultUser;
+  const [isEditingBio, setIsEditingBio] = useState(false);
+  const [bioText, setBioText] = useState(userData.bio);
+  const [tempBioText, setTempBioText] = useState(userData.bio);
+
+  const handleEditBio = () => {
+    setTempBioText(bioText);
+    setIsEditingBio(true);
+  };
+
+  const handleSaveBio = () => {
+    setBioText(tempBioText);
+    setIsEditingBio(false);
+    // Here you would typically save to backend/database
+    console.log('Bio saved:', tempBioText);
+  };
+
+  const handleCancelBio = () => {
+    setTempBioText(bioText);
+    setIsEditingBio(false);
+  };
 
   return (
     <div className="relative overflow-hidden rounded-3xl mb-8 group">
@@ -102,15 +123,59 @@ export default function ProfileHeader({ user }: ProfileHeaderProps) {
                 </div>
               </div>
 
-              {/* Bio Text with Better Typography */}
-              <div className="bg-white/30 backdrop-blur-sm rounded-2xl p-4 lg:p-6 border border-white/50">
-                <div className="text-gray-800 text-sm lg:text-base leading-relaxed space-y-2 font-medium">
-                  <p className="text-base lg:text-lg">✨ <span className="font-semibold">Explorer at heart</span> | Product designer by day</p>
-                  <p>🌟 Wanderer by weekend</p>
-                  <p>☕ Obsessed with local coffee shops & hidden trails 🏔️</p>
-                  <p>📍 Currently: <span className="font-semibold text-slate-700">Working remotely from Lisbon</span></p>
-                  <p>🚀 Follow my journey around the world</p>
-                </div>
+              {/* Bio Text with Edit Functionality */}
+              <div className="bg-white/30 backdrop-blur-sm rounded-2xl p-4 lg:p-6 border border-white/50 relative group/bio">
+                {!isEditingBio ? (
+                  <>
+                    {/* Display Mode */}
+                    <div className="text-gray-800 text-sm lg:text-base leading-relaxed font-medium">
+                      <p className="whitespace-pre-wrap">{bioText}</p>
+                    </div>
+                    {/* Edit Button */}
+                    <button
+                      onClick={handleEditBio}
+                      className="absolute top-3 right-3 p-2 rounded-full bg-white/50 hover:bg-white/70 transition-all duration-200 opacity-0 group-hover/bio:opacity-100 focus:opacity-100"
+                      aria-label="Edit bio"
+                    >
+                      <Edit3 className="w-4 h-4 text-gray-700" />
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    {/* Edit Mode */}
+                    <div className="space-y-4">
+                      <textarea
+                        value={tempBioText}
+                        onChange={(e) => setTempBioText(e.target.value)}
+                        className="w-full p-3 rounded-xl border border-gray-300 bg-white/70 backdrop-blur-sm text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all duration-200 resize-none"
+                        rows={4}
+                        placeholder="Tell us about yourself..."
+                        maxLength={500}
+                      />
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-gray-600">
+                          {tempBioText.length}/500 characters
+                        </span>
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={handleCancelBio}
+                            className="flex items-center space-x-1 px-3 py-2 rounded-lg border border-gray-300 bg-white/70 text-gray-700 hover:bg-white/90 transition-colors duration-200"
+                          >
+                            <X className="w-4 h-4" />
+                            <span className="text-sm">Cancel</span>
+                          </button>
+                          <button
+                            onClick={handleSaveBio}
+                            className="flex items-center space-x-1 px-3 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors duration-200"
+                          >
+                            <Check className="w-4 h-4" />
+                            <span className="text-sm">Save</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Enhanced Achievement Badges */}

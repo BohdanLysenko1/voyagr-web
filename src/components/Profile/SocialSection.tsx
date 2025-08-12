@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { ChevronDown, Plus, Heart, MessageCircle, Eye } from 'lucide-react';
 import PostCard from './PostCard';
+import NewPostModal from './NewPostModal';
 
 interface Post {
   id: string;
@@ -24,6 +25,8 @@ interface SocialSectionProps {
 export default function SocialSection({ posts }: SocialSectionProps) {
   const [activeFilter, setActiveFilter] = useState<'your-posts' | 'all'>('your-posts');
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isNewPostModalOpen, setIsNewPostModalOpen] = useState(false);
+  const [allPosts, setAllPosts] = useState<Post[]>(posts || []);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown when clicking outside
@@ -123,12 +126,19 @@ export default function SocialSection({ posts }: SocialSectionProps) {
     }
   ];
 
-  const postsData = posts || defaultPosts;
+  // Update allPosts when props change
+  useEffect(() => {
+    if (posts && posts.length > 0) {
+      setAllPosts(posts);
+    } else {
+      setAllPosts(defaultPosts);
+    }
+  }, [posts]);
   
   // Filter posts based on active filter
   const filteredPosts = activeFilter === 'your-posts' 
-    ? postsData.filter(post => post.isUserPost) // Filter by user's posts
-    : postsData; // Show all posts
+    ? allPosts.filter(post => post.isUserPost) // Filter by user's posts
+    : allPosts; // Show all posts
   
   const [visiblePosts, setVisiblePosts] = useState(6);
 
@@ -141,6 +151,41 @@ export default function SocialSection({ posts }: SocialSectionProps) {
     setActiveFilter(filter);
     setVisiblePosts(6); // Reset to show 6 posts
     setIsFilterOpen(false);
+  };
+
+  // Handle new post creation
+  const handleCreatePost = async (postData: any) => {
+    try {
+      // Create new post object
+      const newPost: Post = {
+        id: Date.now().toString(), // Simple ID generation
+        title: postData.title,
+        description: postData.description,
+        location: postData.location || 'Unknown Location',
+        image: postData.image ? URL.createObjectURL(postData.image) : 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgdmlld0JveD0iMCAwIDQwMCAzMDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI0MDAiIGhlaWdodD0iMzAwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMDAgMTUwTDE3NSAxMjVIMTI1VjE3NUgxNzVMMjAwIDE1MFoiIGZpbGw9IiM5Q0EzQUYiLz4KPHBhdGggZD0iTTI3NSAxMjVIMjI1VjE3NUgyNzVWMTI1WiIgZmlsbD0iIzlDQTNBRiIvPgo8L3N2Zz4K', // Use SVG placeholder
+        likes: 0,
+        comments: 0,
+        views: 0,
+        publishedDate: new Date(postData.publishDate).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric'
+        }),
+        isUserPost: true
+      };
+
+      // Add to posts array
+      setAllPosts(prev => [newPost, ...prev]);
+      
+      // Switch to "Your Posts" filter to show the new post
+      setActiveFilter('your-posts');
+      setVisiblePosts(6);
+      
+      console.log('New post created:', newPost);
+    } catch (error) {
+      console.error('Error creating post:', error);
+      throw error;
+    }
   };
 
   return (
@@ -165,7 +210,8 @@ export default function SocialSection({ posts }: SocialSectionProps) {
               onKeyDown={handleKeyDown}
               aria-expanded={isFilterOpen}
               aria-haspopup="true"
-              className="flex items-center space-x-2 text-gray-800 hover:text-gray-600 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:ring-offset-transparent rounded-lg px-3 py-2 bg-white/40 backdrop-blur-md border border-white/50 drop-shadow-md"
+              className="flex items-center space-x-2 text-gray-800 hover:text-gray-700 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-offset-2 rounded-full px-4 py-3 shadow-md hover:shadow-lg transform hover:scale-105"
+              style={{ backgroundColor: '#D6DDEB' }}
             >
               <span className="text-lg font-semibold">
                 {activeFilter === 'your-posts' ? 'Your Posts' : 'All'}
@@ -209,12 +255,15 @@ export default function SocialSection({ posts }: SocialSectionProps) {
 
           {/* New Post Button */}
           <button 
-            className="group relative flex items-center space-x-2 bg-gradient-to-r from-slate-700 to-slate-800 hover:from-slate-800 hover:to-slate-900 text-white px-6 py-3 rounded-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2 focus:ring-offset-transparent shadow-lg hover:shadow-xl transform hover:scale-105 hover:-translate-y-1 backdrop-blur-md bg-white/10 border border-white/20"
+            onClick={() => setIsNewPostModalOpen(true)}
+            className="group relative flex items-center space-x-3 px-6 py-4 rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-offset-2 shadow-md hover:shadow-lg transform hover:scale-105"
+            style={{ backgroundColor: '#D6DDEB' }}
             aria-label="Create a new post"
           >
-            <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
-            <span className="font-semibold">New Post</span>
-            <div className="absolute inset-0 bg-white/20 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            <div className="w-6 h-6 rounded-full border-2 border-gray-800 flex items-center justify-center">
+              <Plus className="w-4 h-4 text-gray-800 group-hover:rotate-90 transition-transform duration-300" />
+            </div>
+            <span className="font-medium text-gray-800 text-lg">New Post</span>
           </button>
         </div>
 
@@ -240,6 +289,13 @@ export default function SocialSection({ posts }: SocialSectionProps) {
           </div>
         )}
       </div>
+      
+      {/* New Post Modal */}
+      <NewPostModal
+        isOpen={isNewPostModalOpen}
+        onClose={() => setIsNewPostModalOpen(false)}
+        onSubmit={handleCreatePost}
+      />
     </div>
   );
 }
