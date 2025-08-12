@@ -153,7 +153,7 @@ export default function SocialSection({ posts }: SocialSectionProps) {
   };
 
   // Handle new post creation
-  const handleCreatePost = (postData: any) => {
+  const handleCreatePost = (postData: {title: string; description: string; location: string; image?: File; publishDate: string; tags: string[]}) => {
     try {
       // Create new post object
       const newPost: Post = {
