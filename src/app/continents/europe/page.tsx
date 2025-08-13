@@ -1,9 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import ContinentCard from '@/components/ContinentCard';
-import { Compass, Star, ChevronLeft, ChevronRight, Link } from 'lucide-react';
+import { Compass, Star, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const EuropePage = () => {
   const [currentPackageSet, setCurrentPackageSet] = useState(0);
