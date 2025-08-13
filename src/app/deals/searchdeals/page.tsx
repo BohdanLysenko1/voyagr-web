@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, Suspense } from 'react';
 import { Search, ArrowUpDown } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import SearchDealCard, { SearchDeal } from '@/components/DealsPage/SearchDeals';
@@ -190,7 +190,8 @@ const sortOptions = [
 
 
 
-export default function SearchDealsPage() {
+// Separate component that uses useSearchParams
+function SearchDealsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -252,7 +253,7 @@ export default function SearchDealsPage() {
   };
 
   return (
-    <main className="bg-gray-50 min-h-screen">
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="text-center mb-8">
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-2">Search Travel Deals</h1>
@@ -355,6 +356,15 @@ export default function SearchDealsPage() {
           </div>
         )}
       </div>
-    </main>
+    </div>
+  );
+}
+
+// Main component with Suspense boundary
+export default function SearchDealsPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex items-center justify-center"><div className="text-lg text-gray-600">Loading search results...</div></div>}>
+      <SearchDealsContent />
+    </Suspense>
   );
 }
