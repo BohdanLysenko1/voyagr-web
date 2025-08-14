@@ -1,7 +1,7 @@
-import React from 'react';
+import React, {useState} from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Plane, Hotel, Package, MapPin } from 'lucide-react';
+import { Plane, Hotel, Package, MapPin, Heart } from 'lucide-react';
 
 export interface SearchDeal {
   id: number;
@@ -23,6 +23,8 @@ interface SearchDealCardProps {
 }
 
 const SearchDealCard: React.FC<SearchDealCardProps> = ({ deal, onDealClick }) => {
+  const [isSaved, setIsSaved] = useState(false);
+
   const getTypeIcon = (type: string) => {
     switch (type) {
       case 'flight': return <Plane className="w-4 h-4" />;
@@ -38,6 +40,10 @@ const SearchDealCard: React.FC<SearchDealCardProps> = ({ deal, onDealClick }) =>
     }
   };
 
+  const toggleSave = () => {
+    setIsSaved((prev) => !prev);
+  }
+
   return (
     <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
       <div className="relative h-48">
@@ -51,8 +57,15 @@ const SearchDealCard: React.FC<SearchDealCardProps> = ({ deal, onDealClick }) =>
           {getTypeIcon(deal.type)}
           <span className="text-xs font-medium capitalize">{deal.type}</span>
         </div>
+
+        <button className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm rounded-full p-1 hover:bg-white transition-colors" onClick={toggleSave} aria-label={isSaved ? 'Unsave deal' : 'Save deal'}>
+          <Heart
+            className={`w-5 h-5 ${isSaved ? 'fill-red-500 text-red-500' : 'text-gray-600'}`}
+          />
+        </button>
+        
         {deal.originalPrice && (
-          <div className="absolute top-3 right-3 bg-red-500 text-white rounded-full px-2 py-1">
+          <div className="absolute bottom-3 right-3 bg-red-500 text-white rounded-full px-2 py-1">
             <span className="text-xs font-bold">
               {Math.round(((deal.originalPrice - deal.price) / deal.originalPrice) * 100)}% OFF
             </span>
