@@ -1,7 +1,8 @@
-import React, {useState} from 'react';
+import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Plane, Hotel, Package, MapPin, Heart } from 'lucide-react';
+import { useFavorites } from '@/contexts/FavoritesContext';
 
 export interface SearchDeal {
   id: number;
@@ -23,7 +24,7 @@ interface SearchDealCardProps {
 }
 
 const SearchDealCard: React.FC<SearchDealCardProps> = ({ deal, onDealClick }) => {
-  const [isSaved, setIsSaved] = useState(false);
+  const { isFavorite, toggleFavorite } = useFavorites();
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -40,9 +41,10 @@ const SearchDealCard: React.FC<SearchDealCardProps> = ({ deal, onDealClick }) =>
     }
   };
 
-  const toggleSave = () => {
-    setIsSaved((prev) => !prev);
-  }
+  const handleToggleFavorite = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    toggleFavorite(deal);
+  };
 
   return (
     <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
@@ -58,9 +60,13 @@ const SearchDealCard: React.FC<SearchDealCardProps> = ({ deal, onDealClick }) =>
           <span className="text-xs font-medium capitalize">{deal.type}</span>
         </div>
 
-        <button className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm rounded-full p-1 hover:bg-white transition-colors" onClick={toggleSave} aria-label={isSaved ? 'Unsave deal' : 'Save deal'}>
+        <button 
+          className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm rounded-full p-1 hover:bg-white transition-colors" 
+          onClick={handleToggleFavorite} 
+          aria-label={isFavorite(deal.id) ? 'Unsave deal' : 'Save deal'}
+        >
           <Heart
-            className={`w-5 h-5 ${isSaved ? 'fill-red-500 text-red-500' : 'text-gray-600'}`}
+            className={`w-5 h-5 ${isFavorite(deal.id) ? 'fill-red-500 text-red-500' : 'text-gray-600'}`}
           />
         </button>
         
