@@ -4,6 +4,7 @@ import { Search, ArrowUpDown, Heart } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import SearchDealCard, { SearchDeal } from '@/components/DealsPage/SearchDeals';
 import { useFavorites } from '@/contexts/FavoritesContext';
+import DealModal from '@/components/DealsPage/DealModal';
 
 const locationToContinentMap: { [key: string]: string } = {
   'Paris, France': 'Europe',
@@ -38,6 +39,8 @@ export default function FavoritesPage() {
   const [selectedType, setSelectedType] = useState<'all' | 'flight' | 'hotel' | 'package'>('all');
   const [selectedContinent, setSelectedContinent] = useState('All Locations');
   const [sortBy, setSortBy] = useState('price-low');
+  const [selectedDeal, setSelectedDeal] = useState<SearchDeal | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const filteredAndSortedFavorites = useMemo(() => {
     let filtered = favorites.filter(deal => {
@@ -69,8 +72,14 @@ export default function FavoritesPage() {
     return filtered;
   }, [favorites, searchQuery, selectedType, selectedContinent, sortBy]);
 
-  const handleDealClick = (deal: SearchDeal) => {
-    router.push(`/deals/${deal.type}s/${deal.id}`);
+  const handleViewDeal = (deal: SearchDeal) => {
+    setSelectedDeal(deal);
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedDeal(null);
   };
 
   if (favorites.length === 0) {
@@ -101,7 +110,9 @@ export default function FavoritesPage() {
     <main className="bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="text-center mb-8">
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-2">Your Favorites</h1>
+          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-2">
+            Your Favorites
+          </h1>
           <p className="text-lg md:text-xl text-gray-600">
             {favorites.length} saved {favorites.length === 1 ? 'deal' : 'deals'} for your next adventure
           </p>
@@ -176,7 +187,7 @@ export default function FavoritesPage() {
               <SearchDealCard 
                 key={deal.id} 
                 deal={deal} 
-                onDealClick={handleDealClick}
+                onViewDeal={handleViewDeal}
               />
             ))}
           </div>
@@ -203,6 +214,13 @@ export default function FavoritesPage() {
           </div>
         )}
       </div>
+
+      {/* Deal Modal */}
+      <DealModal
+        open={isModalOpen}
+        onClose={closeModal}
+        deal={selectedDeal}
+      />
     </main>
   );
 }

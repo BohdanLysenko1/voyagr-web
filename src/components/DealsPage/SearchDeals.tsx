@@ -21,9 +21,10 @@ export interface SearchDeal {
 interface SearchDealCardProps {
   deal: SearchDeal;
   onDealClick?: (deal: SearchDeal) => void;
+  onViewDeal?: (deal: SearchDeal) => void;
 }
 
-const SearchDealCard: React.FC<SearchDealCardProps> = ({ deal, onDealClick }) => {
+const SearchDealCard: React.FC<SearchDealCardProps> = ({ deal, onDealClick, onViewDeal }) => {
   const { isFavorite, toggleFavorite } = useFavorites();
 
   const getTypeIcon = (type: string) => {
@@ -41,6 +42,12 @@ const SearchDealCard: React.FC<SearchDealCardProps> = ({ deal, onDealClick }) =>
     }
   };
 
+  const handleViewDeal = () => {
+    if (onViewDeal) {
+      onViewDeal(deal);
+    }
+  };
+
   const handleToggleFavorite = (e: React.MouseEvent) => {
     e.stopPropagation();
     toggleFavorite(deal);
@@ -53,6 +60,7 @@ const SearchDealCard: React.FC<SearchDealCardProps> = ({ deal, onDealClick }) =>
           src={deal.image}
           alt={deal.title}
           fill
+          sizes="(max-width: 768px) 100vw, (max-width:1200px) 50vw, 300px"
           className="object-cover"
         />
         <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm rounded-full px-2 py-1 flex items-center gap-1">
@@ -118,14 +126,12 @@ const SearchDealCard: React.FC<SearchDealCardProps> = ({ deal, onDealClick }) =>
               <span className="text-sm text-gray-500">/{deal.duration}</span>
             )}
           </div>
-          <Link href={`/deals/${deal.type}s/${deal.id}`}>
-            <button 
-              className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-              onClick={handleClick}
-            >
-              View Deal
-            </button>
-          </Link>
+          <button 
+            className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            onClick={handleViewDeal}
+          >
+            View Deal
+          </button>
         </div>
       </div>
     </div>

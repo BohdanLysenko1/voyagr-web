@@ -14,36 +14,32 @@ export default function ContactUsPage() {
                 <h1 className="text-xl font-bold mb-4">
                     By Phone
                 </h1>
-                <p className="text-lg text-gray-600 leading-relaxed">
-                    <ol className="list-disc list-outside ml-6 space-y-3">
-                        <li>
-                            <strong>Customer Service Department:</strong> (###) ### - ####
-                        </li>
-                        <li>
-                            <strong>IT Help Desk Department:</strong> (###) ### - ####
-                        </li>
-                        <li>
-                            <strong>Accoutning Department:</strong> (###) ### - ####
-                        </li>
-                    </ol>
-                    <br/>
-                </p>
+                <ol className="text-lg text-gray-600 leading-relaxed list-disc list-outside ml-6 space-y-3">
+                    <li>
+                        <strong>Customer Service Department:</strong> (###) ### - ####
+                    </li>
+                    <li>
+                        <strong>IT Help Desk Department:</strong> (###) ### - ####
+                    </li>
+                    <li>
+                        <strong>Accoutning Department:</strong> (###) ### - ####
+                    </li>
+                </ol>
+                <br/>
                 <h1 className="text-xl font-bold mb-4">
                     By Email
                 </h1>
-                <p className="text-lg text-gray-600 leading-relaxed">
-                    <ol className="list-disc list-outside ml-6 space-y-3">
-                        <li>
-                            <strong>Customer Service Department:</strong> customerService@voyagr.com
-                        </li>
-                        <li>
-                            <strong>IT Help Desk Department:</strong> itHelp@voyagr.com
-                        </li>
-                        <li>
-                            <strong>Accounting Department:</strong> accounting@voyagr.com
-                        </li>
-                    </ol>
-                </p>
+                <ol className="text-lg text-gray-600 leading-relaxed list-disc list-outside ml-6 space-y-3">
+                    <li>
+                        <strong>Customer Service Department:</strong> customerService@voyagr.com
+                    </li>
+                    <li>
+                        <strong>IT Help Desk Department:</strong> itHelp@voyagr.com
+                    </li>
+                    <li>
+                        <strong>Accounting Department:</strong> accounting@voyagr.com
+                    </li>
+                </ol>
             </section>
         </main>
     )
