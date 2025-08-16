@@ -180,6 +180,7 @@ const EuropePage = () => {
                   price={pkg.price}
                   description={pkg.description}
                   image={pkg.image}
+                  //TODO: Change this to open modal with package details and link instead of redirection
                   onNavigate={() => handleDealSearch('europe-package')}
                 />
               ))}

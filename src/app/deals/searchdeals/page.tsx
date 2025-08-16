@@ -3,6 +3,7 @@ import React, { useState, useMemo, useEffect, Suspense } from 'react';
 import { Search, ArrowUpDown } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import SearchDealCard, { SearchDeal } from '@/components/DealsPage/SearchDeals';
+import DealModal from '@/components/DealsPage/DealModal';
 
 const sampleDeals: SearchDeal[] = [
   {
@@ -199,6 +200,8 @@ function SearchDealsContent() {
   const [selectedType, setSelectedType] = useState<'all' | 'flight' | 'hotel' | 'package'>('all');
   const [selectedContinent, setSelectedContinent] = useState('All Locations');
   const [sortBy, setSortBy] = useState('price-low');
+  const [selectedDeal, setSelectedDeal] = useState<SearchDeal | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
     const typeParam = searchParams.get('type');
@@ -248,8 +251,14 @@ function SearchDealsContent() {
     return filtered;
   }, [searchQuery, selectedType, selectedContinent, sortBy]);
 
-  const handleDealClick = (deal: SearchDeal) => {
-    router.push(`/deals/${deal.type}s/${deal.id}`);
+  const handleViewDeal = (deal: SearchDeal) => {
+    setSelectedDeal(deal);
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedDeal(null);
   };
 
   return (
@@ -329,7 +338,7 @@ function SearchDealsContent() {
               <SearchDealCard 
                 key={deal.id} 
                 deal={deal} 
-                onDealClick={handleDealClick}
+                onViewDeal={handleViewDeal}
               />
             ))}
           </div>
@@ -356,6 +365,13 @@ function SearchDealsContent() {
           </div>
         )}
       </div>
+
+      {/* Deal Modal */}
+      <DealModal
+        open={isModalOpen}
+        onClose={closeModal}
+        deal={selectedDeal}
+      />
     </div>
   );
 }

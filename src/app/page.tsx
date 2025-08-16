@@ -43,6 +43,9 @@ function FeatureCard({ title, description, imageSrc, imageAlt, href }: Feature) 
               src={imageSrc}
               alt={imageAlt}
               fill
+              sizes="(max-width: 768 px) 100vw,
+              (max-width: 1024px) 50vw,
+              33vw"
               className="object-cover rounded-[20px]"
             />
           </div>
@@ -62,6 +65,7 @@ export default function Home() {
           src="/images/HomePage/HomeHeroImage.jpg"
           alt="Hero Image"
           fill
+          sizes="100vw"
           className="object-cover"
           priority
         />

@@ -1,6 +1,8 @@
+import Link from "next/link";
+
 export default function Footer() {
   return (
-    <footer className="bg-white pt-8">
+    <footer className="bg-white pt-8 mt-auto">
       <hr className="border-gray-200 mb-8 mx-8" />
       <div className="container mx-auto flex justify-end">
         <div className="grid grid-cols-3 gap-16">
@@ -8,10 +10,10 @@ export default function Footer() {
             <h3 className="font-bold mb-2">Company</h3>
             <ul className="space-y-1 text-gray-500">
               <li>
-                <a href="#" className="hover:text-gray-700 text-sm">About</a>
+                <Link href="/about" className="hover:text-gray-700 text-sm">About</Link>
               </li>
               <li>
-                <a href="#" className="hover:text-gray-700 text-sm">Careers</a>
+                <Link href="/contact" className="hover:text-gray-700 text-sm">Contact Us</Link>             
               </li>
             </ul>
           </div>
@@ -19,13 +21,10 @@ export default function Footer() {
             <h3 className="font-bold text-base mb-2">Product</h3>
             <ul className="space-y-1 text-gray-500">
               <li>
-                <a href="#" className="hover:text-gray-700 text-sm">How it Works</a>
+                <Link href="/howItWorks" className="hover:text-gray-700 text-sm">How It Works</Link>
               </li>
               <li>
                 <a href="#" className="hover:text-gray-700 text-sm">Pricing</a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-gray-700 text-sm">FAQ</a>
               </li>
             </ul>
           </div>
@@ -34,9 +33,6 @@ export default function Footer() {
             <ul className="space-y-1 text-gray-500">
               <li>
                 <a href="#" className="hover:text-gray-700 text-sm">Trips Feed</a>
-              </li>
-              <li>
-                <a href="#" className="hover:text-gray-700 text-sm">Stories</a>
               </li>
               <li>
                 <a href="#" className="hover:text-gray-700 text-sm">Ambassadors</a>

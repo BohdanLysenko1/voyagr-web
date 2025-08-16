@@ -1,7 +1,8 @@
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Plane, Hotel, Package, MapPin } from 'lucide-react';
+import { Plane, Hotel, Package, MapPin, Heart } from 'lucide-react';
+import { useFavorites } from '@/contexts/FavoritesContext';
 
 export interface SearchDeal {
   id: number;
@@ -20,9 +21,12 @@ export interface SearchDeal {
 interface SearchDealCardProps {
   deal: SearchDeal;
   onDealClick?: (deal: SearchDeal) => void;
+  onViewDeal?: (deal: SearchDeal) => void;
 }
 
-const SearchDealCard: React.FC<SearchDealCardProps> = ({ deal, onDealClick }) => {
+const SearchDealCard: React.FC<SearchDealCardProps> = ({ deal, onDealClick, onViewDeal }) => {
+  const { isFavorite, toggleFavorite } = useFavorites();
+
   const getTypeIcon = (type: string) => {
     switch (type) {
       case 'flight': return <Plane className="w-4 h-4" />;
@@ -38,6 +42,17 @@ const SearchDealCard: React.FC<SearchDealCardProps> = ({ deal, onDealClick }) =>
     }
   };
 
+  const handleViewDeal = () => {
+    if (onViewDeal) {
+      onViewDeal(deal);
+    }
+  };
+
+  const handleToggleFavorite = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    toggleFavorite(deal);
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 overflow-hidden">
       <div className="relative h-48">
@@ -45,14 +60,26 @@ const SearchDealCard: React.FC<SearchDealCardProps> = ({ deal, onDealClick }) =>
           src={deal.image}
           alt={deal.title}
           fill
+          sizes="(max-width: 768px) 100vw, (max-width:1200px) 50vw, 300px"
           className="object-cover"
         />
         <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm rounded-full px-2 py-1 flex items-center gap-1">
           {getTypeIcon(deal.type)}
           <span className="text-xs font-medium capitalize">{deal.type}</span>
         </div>
+
+        <button 
+          className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm rounded-full p-1 hover:bg-white transition-colors" 
+          onClick={handleToggleFavorite} 
+          aria-label={isFavorite(deal.id) ? 'Unsave deal' : 'Save deal'}
+        >
+          <Heart
+            className={`w-5 h-5 ${isFavorite(deal.id) ? 'fill-red-500 text-red-500' : 'text-gray-600'}`}
+          />
+        </button>
+        
         {deal.originalPrice && (
-          <div className="absolute top-3 right-3 bg-red-500 text-white rounded-full px-2 py-1">
+          <div className="absolute bottom-3 right-3 bg-red-500 text-white rounded-full px-2 py-1">
             <span className="text-xs font-bold">
               {Math.round(((deal.originalPrice - deal.price) / deal.originalPrice) * 100)}% OFF
             </span>
@@ -99,14 +126,12 @@ const SearchDealCard: React.FC<SearchDealCardProps> = ({ deal, onDealClick }) =>
               <span className="text-sm text-gray-500">/{deal.duration}</span>
             )}
           </div>
-          <Link href={`/deals/${deal.type}s/${deal.id}`}>
-            <button 
-              className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-              onClick={handleClick}
-            >
-              View Deal
-            </button>
-          </Link>
+          <button 
+            className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            onClick={handleViewDeal}
+          >
+            View Deal
+          </button>
         </div>
       </div>
     </div>
