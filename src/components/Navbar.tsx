@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   UserIcon, 
   HomeIcon, 
@@ -22,6 +22,9 @@ export default function Navbar() {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
+  const navRef = useRef<HTMLDivElement>(null);
+  const notificationRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -30,6 +33,40 @@ export default function Navbar() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (navRef.current && !navRef.current.contains(event.target as Node)) {
+        setActiveDropdown(null);
+      }
+    };
+
+    if (activeDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [activeDropdown]);
+
+  // Close notification modal when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
+        setIsNotificationModalOpen(false);
+      }
+    };
+
+    if (isNotificationModalOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isNotificationModalOpen]);
 
   const continents = [
     { label: 'Africa', href: '/continents/africa' },
@@ -46,6 +83,34 @@ export default function Navbar() {
     { label: 'Search Deals', href: '/deals/searchdeals' },
   ];
 
+  // Sample notification data
+  const notifications = [
+    {
+      id: 1,
+      title: 'New Deal Alert!',
+      message: 'Amazing 50% off flights to Europe this weekend only',
+      time: '2 minutes ago',
+      type: 'deal',
+      unread: true
+    },
+    {
+      id: 2,
+      title: 'Trip Reminder',
+      message: 'Your flight to Tokyo departs in 3 days',
+      time: '1 hour ago',
+      type: 'reminder',
+      unread: true
+    },
+    {
+      id: 3,
+      title: 'Welcome to Voyagr!',
+      message: 'Complete your profile to get personalized recommendations',
+      time: '1 day ago',
+      type: 'welcome',
+      unread: false
+    }
+  ];
+
   return (
     <>
       <nav className={`
@@ -56,21 +121,30 @@ export default function Navbar() {
         }
       `}>
         <div className="max-w-7xl mx-auto px-6">
-          <div className="flex items-center justify-between h-20">
+          <div ref={navRef} className="flex items-center justify-between h-20">
             
             {/* Logo */}
-            <Link href="/" className="flex items-center">
-              <Image
-                src="/images/LogoNavBar.png"
-                alt="Voyagr"
-                width={100}
-                height={20}
-                className={`
-                  object-contain hover:scale-105 transition-all duration-300
-                  ${isScrolled ? 'brightness-50 contrast-125' : 'brightness-100'}
-                `}
-                priority
-              />
+            <Link href="/" className="flex items-center group">
+              <div className="relative">
+                <Image
+                  src="/images/LogoNavBar.png"
+                  alt="Voyagr"
+                  width={100}
+                  height={20}
+                  className={`
+                    object-contain transition-all duration-300
+                    group-hover:scale-105 group-active:scale-95
+                    ${isScrolled ? 'brightness-50 contrast-125' : 'brightness-100'}
+                  `}
+                  priority
+                />
+                {/* Cool ripple effect on click only */}
+                <div className="absolute inset-0 rounded-lg opacity-0 group-active:opacity-40 group-active:animate-pulse bg-gradient-to-r from-primary/50 to-purple-500/50 transition-opacity duration-150 pointer-events-none" />
+                {/* Shine effect on hover - fixed to prevent artifacts */}
+                <div className="absolute inset-0 overflow-hidden rounded-lg pointer-events-none">
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -skew-x-12 transform -translate-x-full opacity-0 group-hover:translate-x-full group-hover:opacity-100 transition-all duration-700" />
+                </div>
+              </div>
             </Link>
 
             {/* Desktop Navigation */}
@@ -185,7 +259,7 @@ export default function Navbar() {
             <div className="flex items-center space-x-3">
               
               {/* Search */}
-              <button className={`
+              <Link href="/deals/searchdeals" className={`
                 p-3 rounded-xl transition-all duration-300 group
                 ${isScrolled 
                   ? 'text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/10 hover:to-purple-500/10' 
@@ -193,19 +267,102 @@ export default function Navbar() {
                 }
               `}>
                 <SearchIcon className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
-              </button>
+              </Link>
 
               {/* Notifications */}
-              <button className={`
-                p-3 rounded-xl transition-all duration-300 group relative
-                ${isScrolled 
-                  ? 'text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/10 hover:to-purple-500/10' 
-                  : 'text-white/90 hover:text-white hover:bg-white/10'
-                }
-              `}>
-                <BellIcon className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse" />
-              </button>
+              <div className="relative">
+                <button 
+                  onClick={() => setIsNotificationModalOpen(!isNotificationModalOpen)}
+                  className={`
+                    p-3 rounded-xl transition-all duration-300 group relative
+                    ${isScrolled 
+                      ? 'text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/10 hover:to-purple-500/10' 
+                      : 'text-white/90 hover:text-white hover:bg-white/10'
+                    }
+                    ${isNotificationModalOpen ? (isScrolled ? 'text-primary bg-gradient-to-r from-primary/10 to-purple-500/10' : 'text-white bg-white/15') : ''}
+                  `}
+                >
+                  <BellIcon className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
+                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse" />
+                </button>
+
+                {/* Notification Modal */}
+                {isNotificationModalOpen && (
+                  <div 
+                    ref={notificationRef}
+                    className="absolute right-0 top-full mt-3 w-96 max-w-[90vw] bg-white/95 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl overflow-hidden"
+                  >
+                    {/* Header */}
+                    <div className="p-4 border-b border-gray-200/50 bg-gradient-to-r from-primary/5 to-purple-500/5">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-bold text-gray-800">Notifications</h3>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-gray-500">{notifications.filter(n => n.unread).length} unread</span>
+                          <button 
+                            onClick={() => setIsNotificationModalOpen(false)}
+                            className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+                          >
+                            <XIcon className="w-4 h-4 text-gray-500" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Notifications List */}
+                    <div className="max-h-96 overflow-y-auto">
+                      {notifications.map((notification) => (
+                        <div 
+                          key={notification.id}
+                          className={`
+                            p-4 border-b border-gray-100/50 hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 
+                            transition-all duration-200 cursor-pointer group
+                            ${notification.unread ? 'bg-blue-50/50' : ''}
+                          `}
+                        >
+                          <div className="flex items-start gap-3">
+                            {/* Notification Icon */}
+                            <div className={`
+                              w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-1
+                              ${notification.type === 'deal' ? 'bg-green-100 text-green-600' : 
+                                notification.type === 'reminder' ? 'bg-blue-100 text-blue-600' : 
+                                'bg-purple-100 text-purple-600'}
+                            `}>
+                              {notification.type === 'deal' ? <TagIcon className="w-4 h-4" /> :
+                               notification.type === 'reminder' ? <BellIcon className="w-4 h-4" /> :
+                               <SparklesIcon className="w-4 h-4" />}
+                            </div>
+
+                            {/* Content */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h4 className="font-semibold text-gray-800 text-sm group-hover:text-primary transition-colors">
+                                  {notification.title}
+                                </h4>
+                                {notification.unread && (
+                                  <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0" />
+                                )}
+                              </div>
+                              <p className="text-gray-600 text-sm mb-2 line-clamp-2">
+                                {notification.message}
+                              </p>
+                              <span className="text-xs text-gray-500">
+                                {notification.time}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Footer */}
+                    <div className="p-3 bg-gray-50/50 border-t border-gray-200/50">
+                      <button className="w-full text-center text-sm text-primary hover:text-primary/80 font-medium transition-colors">
+                        View All Notifications
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {/* Home */}
               <Link href="/" className={`
