@@ -290,7 +290,8 @@ export default function Navbar() {
                 {isNotificationModalOpen && (
                   <div 
                     ref={notificationRef}
-                    className="absolute right-0 top-full mt-3 w-96 max-w-[90vw] bg-white/95 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl overflow-hidden"
+                    className="absolute right-0 top-full mt-3 w-96 max-w-[90vw] sm:max-w-[400px] bg-white/95 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl overflow-hidden z-50
+                    max-sm:fixed max-sm:inset-x-4 max-sm:top-20 max-sm:right-auto max-sm:w-auto max-sm:max-w-none"
                   >
                     {/* Header */}
                     <div className="p-4 border-b border-gray-200/50 bg-gradient-to-r from-primary/5 to-purple-500/5">
@@ -309,7 +310,7 @@ export default function Navbar() {
                     </div>
 
                     {/* Notifications List */}
-                    <div className="max-h-96 overflow-y-auto">
+                    <div className="max-h-96 max-sm:max-h-[60vh] overflow-y-auto">
                       {notifications.map((notification) => (
                         <div 
                           key={notification.id}
@@ -334,15 +335,15 @@ export default function Navbar() {
 
                             {/* Content */}
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-1">
-                                <h4 className="font-semibold text-gray-800 text-sm group-hover:text-primary transition-colors">
+                              <div className="flex items-start gap-2 mb-1">
+                                <h4 className="font-semibold text-gray-800 text-sm group-hover:text-primary transition-colors flex-1">
                                   {notification.title}
                                 </h4>
                                 {notification.unread && (
-                                  <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0" />
+                                  <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0 mt-1" />
                                 )}
                               </div>
-                              <p className="text-gray-600 text-sm mb-2 line-clamp-2">
+                              <p className="text-gray-600 text-sm mb-2 break-words">
                                 {notification.message}
                               </p>
                               <span className="text-xs text-gray-500">
@@ -439,18 +440,88 @@ export default function Navbar() {
               </button>
             </div>
             <div className="p-6 space-y-4">
-              <Link href="/favorites" className="flex items-center gap-3 p-3 text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 rounded-lg transition-all duration-300" onClick={() => setIsMobileMenuOpen(false)}>
-                <HeartIcon className="w-5 h-5" />
-                <span className="font-semibold">Favorites</span>
-              </Link>
-              <Link href="/reserved" className="flex items-center gap-3 p-3 text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 rounded-lg transition-all duration-300" onClick={() => setIsMobileMenuOpen(false)}>
-                <BookmarkIcon className="w-5 h-5" />
-                <span className="font-semibold">Reserved</span>
-              </Link>
-              <Link href="/ai" className="flex items-center gap-3 p-3 text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 rounded-lg transition-all duration-300" onClick={() => setIsMobileMenuOpen(false)}>
-                <SparklesIcon className="w-5 h-5" />
-                <span className="font-semibold">AI Assistant</span>
-              </Link>
+              {/* Explore Section */}
+              <div className="space-y-2">
+                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide px-3">Explore</h3>
+                {continents.map((continent) => (
+                  <Link 
+                    key={continent.href}
+                    href={continent.href} 
+                    className="flex items-center gap-3 p-3 text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 rounded-lg transition-all duration-300" 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <GlobeIcon className="w-5 h-5" />
+                    <span className="font-semibold">{continent.label}</span>
+                  </Link>
+                ))}
+              </div>
+
+              {/* Deals Section */}
+              <div className="space-y-2 pt-4 border-t border-gray-200/50">
+                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide px-3">Deals</h3>
+                {deals.map((deal) => (
+                  <Link 
+                    key={deal.href}
+                    href={deal.href} 
+                    className="flex items-center gap-3 p-3 text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 rounded-lg transition-all duration-300" 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <TagIcon className="w-5 h-5" />
+                    <span className="font-semibold">{deal.label}</span>
+                  </Link>
+                ))}
+              </div>
+
+              {/* Quick Actions */}
+              <div className="space-y-2 pt-4 border-t border-gray-200/50">
+                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide px-3">Quick Actions</h3>
+                <Link href="/deals/searchdeals" className="flex items-center gap-3 p-3 text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 rounded-lg transition-all duration-300" onClick={() => setIsMobileMenuOpen(false)}>
+                  <SearchIcon className="w-5 h-5" />
+                  <span className="font-semibold">Search Deals</span>
+                </Link>
+                <button 
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    setIsNotificationModalOpen(true);
+                  }}
+                  className="flex items-center gap-3 p-3 text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 rounded-lg transition-all duration-300 w-full text-left"
+                >
+                  <BellIcon className="w-5 h-5" />
+                  <span className="font-semibold">Notifications</span>
+                  {notifications.filter(n => n.unread).length > 0 && (
+                    <div className="w-2 h-2 bg-red-500 rounded-full ml-auto" />
+                  )}
+                </button>
+                <Link href="/" className="flex items-center gap-3 p-3 text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 rounded-lg transition-all duration-300" onClick={() => setIsMobileMenuOpen(false)}>
+                  <HomeIcon className="w-5 h-5" />
+                  <span className="font-semibold">Home</span>
+                </Link>
+              </div>
+
+              {/* Personal Section */}
+              <div className="space-y-2 pt-4 border-t border-gray-200/50">
+                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide px-3">Personal</h3>
+                <Link href="/favorites" className="flex items-center gap-3 p-3 text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 rounded-lg transition-all duration-300" onClick={() => setIsMobileMenuOpen(false)}>
+                  <HeartIcon className="w-5 h-5" />
+                  <span className="font-semibold">Favorites</span>
+                </Link>
+                <Link href="/reserved" className="flex items-center gap-3 p-3 text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 rounded-lg transition-all duration-300" onClick={() => setIsMobileMenuOpen(false)}>
+                  <BookmarkIcon className="w-5 h-5" />
+                  <span className="font-semibold">Reserved</span>
+                </Link>
+                <Link href="/myjourney" className="flex items-center gap-3 p-3 text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 rounded-lg transition-all duration-300" onClick={() => setIsMobileMenuOpen(false)}>
+                  <GlobeIcon className="w-5 h-5" />
+                  <span className="font-semibold">My Journey</span>
+                </Link>
+                <Link href="/ai" className="flex items-center gap-3 p-3 text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 rounded-lg transition-all duration-300" onClick={() => setIsMobileMenuOpen(false)}>
+                  <SparklesIcon className="w-5 h-5" />
+                  <span className="font-semibold">AI Assistant</span>
+                </Link>
+                <Link href="/settings" className="flex items-center gap-3 p-3 text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 rounded-lg transition-all duration-300" onClick={() => setIsMobileMenuOpen(false)}>
+                  <UserIcon className="w-5 h-5" />
+                  <span className="font-semibold">Settings</span>
+                </Link>
+              </div>
             </div>
           </div>
         </div>
