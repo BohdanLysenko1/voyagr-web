@@ -15,7 +15,8 @@ import {
   BookmarkIcon,
   SparklesIcon,
   SearchIcon,
-  BellIcon
+  BellIcon,
+  SettingsIcon
 } from 'lucide-react';
 
 export default function Navbar() {
@@ -404,7 +405,7 @@ export default function Navbar() {
                       <span className="font-semibold">My Journey</span>
                     </Link>
                     <Link href="/settings" className="flex items-center gap-4 p-4 rounded-xl text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 transition-all duration-300" onClick={() => setActiveDropdown(null)}>
-                      <SparklesIcon className="w-4 h-4 text-gray-400" />
+                      <SettingsIcon className="w-4 h-4 text-gray-400" />
                       <span className="font-semibold">Settings</span>
                     </Link>
                   </div>
@@ -532,7 +533,7 @@ export default function Navbar() {
                   <span className="font-semibold">AI Assistant</span>
                 </Link>
                 <Link href="/settings" className="flex items-center gap-3 p-3 text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 rounded-lg transition-all duration-300" onClick={() => setIsMobileMenuOpen(false)}>
-                  <UserIcon className="w-5 h-5" />
+                  <SettingsIcon className="w-5 h-5" />
                   <span className="font-semibold">Settings</span>
                 </Link>
               </div>
