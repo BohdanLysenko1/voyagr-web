@@ -23,6 +23,7 @@ export default function Navbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
+  const [isContinentsExpanded, setIsContinentsExpanded] = useState(false);
   const navRef = useRef<HTMLDivElement>(null);
   const notificationRef = useRef<HTMLDivElement>(null);
 
@@ -432,28 +433,41 @@ export default function Navbar() {
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-black/60 via-primary/20 to-purple-900/40 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
-          <div className="absolute right-0 top-0 h-full w-80 max-w-[85vw] bg-white/95 backdrop-blur-xl border-l border-white/20">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200/50">
+          <div className="absolute right-0 top-0 h-full w-80 max-w-[85vw] bg-white/95 backdrop-blur-xl border-l border-white/20 flex flex-col">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200/50 flex-shrink-0">
               <h2 className="text-xl font-bold bg-gradient-to-r from-gray-800 to-primary bg-clip-text text-transparent">Menu</h2>
               <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 rounded-full hover:bg-gray-100 transition-colors">
                 <XIcon className="w-6 h-6 text-gray-600" />
               </button>
             </div>
-            <div className="p-6 space-y-4">
-              {/* Explore Section */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              {/* Continents Section */}
               <div className="space-y-2">
-                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide px-3">Explore</h3>
-                {continents.map((continent) => (
-                  <Link 
-                    key={continent.href}
-                    href={continent.href} 
-                    className="flex items-center gap-3 p-3 text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 rounded-lg transition-all duration-300" 
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
+                <button 
+                  onClick={() => setIsContinentsExpanded(!isContinentsExpanded)}
+                  className="flex items-center justify-between w-full p-3 text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 rounded-lg transition-all duration-300"
+                >
+                  <div className="flex items-center gap-3">
                     <GlobeIcon className="w-5 h-5" />
-                    <span className="font-semibold">{continent.label}</span>
-                  </Link>
-                ))}
+                    <span className="font-semibold">Continents</span>
+                  </div>
+                  <ChevronDownIcon className={`w-4 h-4 transition-transform duration-200 ${isContinentsExpanded ? 'rotate-180' : ''}`} />
+                </button>
+                
+                {isContinentsExpanded && (
+                  <div className="ml-8 space-y-1">
+                    {continents.map((continent) => (
+                      <Link 
+                        key={continent.href}
+                        href={continent.href} 
+                        className="flex items-center gap-3 p-2 text-gray-600 hover:text-primary hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 rounded-lg transition-all duration-300" 
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        <span className="text-sm">{continent.label}</span>
+                      </Link>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Deals Section */}
