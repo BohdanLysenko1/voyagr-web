@@ -1,126 +1,305 @@
+'use client';
+
 import Link from 'next/link';
 import Image from 'next/image';
-import { UserIcon, HomeIcon } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { 
+  UserIcon, 
+  HomeIcon, 
+  MenuIcon, 
+  XIcon,
+  ChevronDownIcon,
+  GlobeIcon,
+  TagIcon,
+  HeartIcon,
+  BookmarkIcon,
+  SparklesIcon,
+  SearchIcon,
+  BellIcon
+} from 'lucide-react';
 
 export default function Navbar() {
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const continents = [
+    { label: 'Africa', href: '/continents/africa' },
+    { label: 'Asia', href: '/continents/asia' },
+    { label: 'Europe', href: '/continents/europe' },
+    { label: 'North America', href: '/continents/north-america' },
+    { label: 'South America', href: '/continents/south-america' },
+    { label: 'Australia', href: '/continents/australia' },
+    { label: 'Antarctica', href: '/continents/antarctica' },
+  ];
+
+  const deals = [
+    { label: 'All Deals', href: '/deals' },
+    { label: 'Search Deals', href: '/deals/searchdeals' },
+  ];
+
   return (
-    <nav className="bg-primary text-white p-4">
-      <div className="flex items-center w-full relative pr-5">
-        {/* Left: Logo */}
-          <Link href="/">
-            <div
-              style={{
-                width: 400,
-                height: 70,
-                overflow: "hidden",
-                display: "flex",
-                alignItems: "center"
-              }}
-            >
+    <>
+      <nav className={`
+        fixed top-0 left-0 right-0 z-40 transition-all duration-700
+        ${isScrolled 
+          ? 'bg-white/90 backdrop-blur-xl border-b border-white/20 shadow-2xl' 
+          : 'bg-gradient-to-r from-primary via-primary to-purple-600'
+        }
+      `}>
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="flex items-center justify-between h-20">
+            
+            {/* Logo */}
+            <Link href="/" className="flex items-center">
               <Image
                 src="/images/LogoNavBar.png"
-                alt="Voyagr Logo"
-                width={380}
-                height={110}
-                style={{ objectFit: "cover", marginTop: "1.5rem", marginLeft: "-5rem"}}
+                alt="Voyagr"
+                width={100}
+                height={20}
+                className={`
+                  object-contain hover:scale-105 transition-all duration-300
+                  ${isScrolled ? 'brightness-50 contrast-125' : 'brightness-100'}
+                `}
+                priority
               />
-            </div>
-          </Link>
+            </Link>
 
-        {/* Center: Tabs */}
-        <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 flex space-x-6 z-10">
-          <div className="relative group">
-            <button className="hover:text-gray-300 text-lg">Continents</button>
-            <div
-              className="absolute left-0 mt-2 w-48 rounded-lg shadow-lg z-10 opacity-0 group-hover:opacity-100 invisible group-hover:visible transition-all duration-20"
-              style={{ backgroundColor: "#5271FF" }}
-            >
-              <div className="flex flex-col">
-                <Link href="/continents/africa" passHref className="block px-5 py-2 hover:bg-blue-600 hover:text-white"> Africa
-                </Link>
-                <div className="self-center w-4/5 h-px bg-white my-1" />
-                <Link href="/continents/asia" passHref className="block px-5 py-2 hover:bg-blue-600 hover:text-white"> Asia
-                </Link>
-                <div className="self-center w-4/5 h-px bg-white my-1" />
-                <Link href="/continents/europe" passHref className="block px-5 py-2 hover:bg-blue-600 hover:text-white"> Europe
-                </Link>
-                <div className="self-center w-4/5 h-px bg-white my-1" />
-                <Link href="/continents/north-america" passHref className="block px-5 py-2 hover:bg-blue-600 hover:text-white"> North America
-                </Link>
-                <div className="self-center w-4/5 h-px bg-white my-1" />
-                <Link href="/continents/south-america" passHref className="block px-5 py-2 hover:bg-blue-600 hover:text-white"> South America
-                </Link>
-                <div className="self-center w-4/5 h-px bg-white my-1" />
-                <Link href="/continents/australia" passHref className="block px-5 py-2 hover:bg-blue-600 hover:text-white"> Australia
-                </Link>
-                <div className="self-center w-4/5 h-px bg-white my-1" />
-                <Link href="/continents/antarctica" passHref className="block px-5 py-2 hover:bg-blue-600 hover:text-white"> Antarctica
-                </Link>
+            {/* Desktop Navigation */}
+            <div className="hidden lg:flex items-center space-x-2">
+              
+              {/* Explore Dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => setActiveDropdown(activeDropdown === 'explore' ? null : 'explore')}
+                  className={`
+                    flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm transition-all duration-300 group
+                    ${isScrolled 
+                      ? 'text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/10 hover:to-purple-500/10' 
+                      : 'text-white/90 hover:text-white hover:bg-white/10'
+                    }
+                    ${activeDropdown === 'explore' ? (isScrolled ? 'text-primary bg-gradient-to-r from-primary/10 to-purple-500/10' : 'text-white bg-white/15') : ''}
+                  `}
+                >
+                  <GlobeIcon className="w-4 h-4 transition-transform duration-300 group-hover:scale-110" />
+                  <span>Explore</span>
+                  <ChevronDownIcon className={`w-4 h-4 transition-transform duration-300 ${activeDropdown === 'explore' ? 'rotate-180' : ''}`} />
+                </button>
+                
+                {activeDropdown === 'explore' && (
+                  <div className="absolute left-0 top-full mt-3 w-72 bg-white/95 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl p-2">
+                    {continents.map((continent) => (
+                      <Link
+                        key={continent.href}
+                        href={continent.href}
+                        className="flex items-center gap-4 p-4 rounded-xl text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 transition-all duration-300"
+                        onClick={() => setActiveDropdown(null)}
+                      >
+                        <GlobeIcon className="w-4 h-4 text-gray-400" />
+                        <span className="font-semibold">{continent.label}</span>
+                      </Link>
+                    ))}
+                  </div>
+                )}
               </div>
-            </div>
-          </div>
-          <div className="relative group">
-            <button className="hover:text-gray-300 text-lg">Deals</button>
-            <div
-              className="absolute left-0 mt-2 w-48 rounded-lg shadow-lg z-10 opacity-0 group-hover:opacity-100 invisible group-hover:visible transition-all duration-200"
-              style={{ backgroundColor: "#5271FF" }}
-            >
-              <div className="flex flex-col">
-                <Link href="/deals" passHref className="block px-5 py-2 hover:bg-blue-600 hover:text-white"> Deals
-                </Link>
-                <div className="self-center w-4/5 h-px bg-white my-1" />
-                <Link href="/deals/searchdeals" passHref className="block px-5 py-2 hover:bg-blue-600 hover:text-white"> Search Deals
-                </Link>
+
+              {/* Deals Dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => setActiveDropdown(activeDropdown === 'deals' ? null : 'deals')}
+                  className={`
+                    flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm transition-all duration-300 group
+                    ${isScrolled 
+                      ? 'text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/10 hover:to-purple-500/10' 
+                      : 'text-white/90 hover:text-white hover:bg-white/10'
+                    }
+                    ${activeDropdown === 'deals' ? (isScrolled ? 'text-primary bg-gradient-to-r from-primary/10 to-purple-500/10' : 'text-white bg-white/15') : ''}
+                  `}
+                >
+                  <TagIcon className="w-4 h-4 transition-transform duration-300 group-hover:scale-110" />
+                  <span>Deals</span>
+                  <ChevronDownIcon className={`w-4 h-4 transition-transform duration-300 ${activeDropdown === 'deals' ? 'rotate-180' : ''}`} />
+                </button>
+                
+                {activeDropdown === 'deals' && (
+                  <div className="absolute left-0 top-full mt-3 w-72 bg-white/95 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl p-2">
+                    {deals.map((deal) => (
+                      <Link
+                        key={deal.href}
+                        href={deal.href}
+                        className="flex items-center gap-4 p-4 rounded-xl text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 transition-all duration-300"
+                        onClick={() => setActiveDropdown(null)}
+                      >
+                        <TagIcon className="w-4 h-4 text-gray-400" />
+                        <span className="font-semibold">{deal.label}</span>
+                      </Link>
+                    ))}
+                  </div>
+                )}
               </div>
+
+              {/* Direct Links */}
+              <Link href="/favorites" className={`
+                flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm transition-all duration-300 group
+                ${isScrolled 
+                  ? 'text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/10 hover:to-purple-500/10' 
+                  : 'text-white/90 hover:text-white hover:bg-white/10'
+                }
+              `}>
+                <HeartIcon className="w-4 h-4 transition-transform duration-300 group-hover:scale-110" />
+                <span>Favorites</span>
+              </Link>
+
+              <Link href="/reserved" className={`
+                flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm transition-all duration-300 group
+                ${isScrolled 
+                  ? 'text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/10 hover:to-purple-500/10' 
+                  : 'text-white/90 hover:text-white hover:bg-white/10'
+                }
+              `}>
+                <BookmarkIcon className="w-4 h-4 transition-transform duration-300 group-hover:scale-110" />
+                <span>Reserved</span>
+              </Link>
+
+              <Link href="/ai" className={`
+                flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm transition-all duration-300 group
+                ${isScrolled 
+                  ? 'text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/10 hover:to-purple-500/10' 
+                  : 'text-white/90 hover:text-white hover:bg-white/10'
+                }
+              `}>
+                <SparklesIcon className="w-4 h-4 transition-transform duration-300 group-hover:scale-110" />
+                <span>AI Assistant</span>
+              </Link>
             </div>
-          </div>
-          <div className="relative">
-            <Link href="/favorites">
-              <button className="hover:text-gray-300 text-lg">Favorites</button>
-            </Link>
-          </div>
-          <div className="relative">
-            <Link href="/reserved">
-              <button className="hover:text-gray-300 text-lg">Reserved</button>
-            </Link>
-          </div>
-          <div className="relative">
-            <Link href="/ai">
-              <button className="hover:text-gray-300 text-lg">AI</button>
-            </Link>
-          </div>
-        </div>
-        {/* Right: Icons */}
-        <div className="flex items-center ml-auto space-x-6 z-20">
-          <div className="relative">
-            <Link href="/">
-              <button className="hover:text-gray-300 text-lg">
-                <HomeIcon className="w-6 h-6" />
+
+            {/* Right Actions */}
+            <div className="flex items-center space-x-3">
+              
+              {/* Search */}
+              <button className={`
+                p-3 rounded-xl transition-all duration-300 group
+                ${isScrolled 
+                  ? 'text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/10 hover:to-purple-500/10' 
+                  : 'text-white/90 hover:text-white hover:bg-white/10'
+                }
+              `}>
+                <SearchIcon className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
               </button>
-            </Link>
-          </div>
-          <div className="relative group">
-            <button className="hover:text-gray-300 text-lg">
-              <UserIcon className="w-6 h-6" />
-            </button>
-            <div
-              className="absolute right-0 mt-2 w-40 rounded-lg shadow-lg z-10 opacity-0 group-hover:opacity-100 invisible group-hover:visible transition-all duration-200"
-              style={{ backgroundColor: "#5271FF" }}
-            >
-              <div className="flex flex-col">
-                <Link href="/profile" passHref className="block px-5 py-2 hover:bg-blue-600 hover:text-white"> Profile
-                </Link>
-                <div className="self-center w-4/5 h-px bg-white my-1" />
-                <Link href="/myjourney" prefetch={false} className="block px-5 py-2 hover:bg-blue-600 hover:text-white"> My Journey
-                </Link>
-                <div className="self-center w-4/5 h-px bg-white my-1" />
-                <Link href="/settings" passHref className="block px-5 py-2 hover:bg-blue-600 hover:text-white"> Settings
-                </Link>
+
+              {/* Notifications */}
+              <button className={`
+                p-3 rounded-xl transition-all duration-300 group relative
+                ${isScrolled 
+                  ? 'text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/10 hover:to-purple-500/10' 
+                  : 'text-white/90 hover:text-white hover:bg-white/10'
+                }
+              `}>
+                <BellIcon className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse" />
+              </button>
+
+              {/* Home */}
+              <Link href="/" className={`
+                p-3 rounded-xl transition-all duration-300 group
+                ${isScrolled 
+                  ? 'text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/10 hover:to-purple-500/10' 
+                  : 'text-white/90 hover:text-white hover:bg-white/10'
+                }
+              `}>
+                <HomeIcon className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
+              </Link>
+
+              {/* User Menu */}
+              <div className="hidden lg:block relative">
+                <button
+                  onClick={() => setActiveDropdown(activeDropdown === 'user' ? null : 'user')}
+                  className={`
+                    p-3 rounded-xl transition-all duration-300 group
+                    ${isScrolled 
+                      ? 'text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/10 hover:to-purple-500/10' 
+                      : 'text-white/90 hover:text-white hover:bg-white/10'
+                    }
+                    ${activeDropdown === 'user' ? (isScrolled ? 'text-primary bg-gradient-to-r from-primary/10 to-purple-500/10' : 'text-white bg-white/15') : ''}
+                  `}
+                >
+                  <UserIcon className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
+                </button>
+                
+                {activeDropdown === 'user' && (
+                  <div className="absolute right-0 top-full mt-3 w-56 bg-white/95 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl p-2">
+                    <Link href="/profile" className="flex items-center gap-4 p-4 rounded-xl text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 transition-all duration-300" onClick={() => setActiveDropdown(null)}>
+                      <UserIcon className="w-4 h-4 text-gray-400" />
+                      <span className="font-semibold">Profile</span>
+                    </Link>
+                    <Link href="/myjourney" className="flex items-center gap-4 p-4 rounded-xl text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 transition-all duration-300" onClick={() => setActiveDropdown(null)}>
+                      <GlobeIcon className="w-4 h-4 text-gray-400" />
+                      <span className="font-semibold">My Journey</span>
+                    </Link>
+                    <Link href="/settings" className="flex items-center gap-4 p-4 rounded-xl text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 transition-all duration-300" onClick={() => setActiveDropdown(null)}>
+                      <SparklesIcon className="w-4 h-4 text-gray-400" />
+                      <span className="font-semibold">Settings</span>
+                    </Link>
+                  </div>
+                )}
               </div>
+
+              {/* Mobile Menu Button */}
+              <button
+                onClick={() => setIsMobileMenuOpen(true)}
+                className={`
+                  lg:hidden p-3 rounded-xl transition-all duration-300
+                  ${isScrolled 
+                    ? 'text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/10 hover:to-purple-500/10' 
+                    : 'text-white/90 hover:text-white hover:bg-white/10'
+                  }
+                `}
+              >
+                <MenuIcon className="w-6 h-6" />
+              </button>
             </div>
           </div>
         </div>
-      </div>
-    </nav>
+      </nav>
+
+      {/* Mobile Menu */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-black/60 via-primary/20 to-purple-900/40 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
+          <div className="absolute right-0 top-0 h-full w-80 max-w-[85vw] bg-white/95 backdrop-blur-xl border-l border-white/20">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200/50">
+              <h2 className="text-xl font-bold bg-gradient-to-r from-gray-800 to-primary bg-clip-text text-transparent">Menu</h2>
+              <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 rounded-full hover:bg-gray-100 transition-colors">
+                <XIcon className="w-6 h-6 text-gray-600" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <Link href="/favorites" className="flex items-center gap-3 p-3 text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 rounded-lg transition-all duration-300" onClick={() => setIsMobileMenuOpen(false)}>
+                <HeartIcon className="w-5 h-5" />
+                <span className="font-semibold">Favorites</span>
+              </Link>
+              <Link href="/reserved" className="flex items-center gap-3 p-3 text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 rounded-lg transition-all duration-300" onClick={() => setIsMobileMenuOpen(false)}>
+                <BookmarkIcon className="w-5 h-5" />
+                <span className="font-semibold">Reserved</span>
+              </Link>
+              <Link href="/ai" className="flex items-center gap-3 p-3 text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 rounded-lg transition-all duration-300" onClick={() => setIsMobileMenuOpen(false)}>
+                <SparklesIcon className="w-5 h-5" />
+                <span className="font-semibold">AI Assistant</span>
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="h-20" />
+    </>
   );
 }
