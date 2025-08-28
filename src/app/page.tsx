@@ -1,5 +1,11 @@
+"use client"
 import Image from 'next/image';
 import Link from 'next/link';
+import { Search as SearchIcon, ChevronDownIcon } from 'lucide-react';
+import React, {useState, useEffect, useRef} from 'react';
+import { useRouter } from 'next/navigation';
+import {DayPicker} from 'react-day-picker';
+import type {DateRange} from 'react-day-picker';
 
 type Feature = {
   title: string;
@@ -58,6 +64,72 @@ function FeatureCard({ title, description, imageSrc, imageAlt, href }: Feature) 
 }
 
 export default function Home() {
+  const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedContinent, setSelectedContinent] = useState<'all' | 'Africa' | 'Antarctica' | 'Asia' | 'Australia' | 'Europe' | 'North America' | 'South America' > ('all');
+  const [selectedType, setSelectedType] = useState<'all' | 'flight' | 'hotel' | 'package' > ('all');
+  const [activeSearchDropdown, setActiveSearchDropdown] = useState<'continent' | 'type' | 'dates' | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+
+  const continents = [
+    {value: 'all', label: 'All Locations'},
+    {value: 'Africa', label: 'Africa'},
+    {value: 'Antarctica', label: 'Antarctica'},
+    {value: 'Asia', label: 'Asia'},
+    {value: 'Australia', label: 'Australia'},
+    {value: 'Europe', label: 'Europe'},
+    {value: 'North America', label: 'North America'},
+    {value: 'South America', label: 'South America'}
+  ];
+  const dealTypes = [
+    {value: 'all', label: 'All Types' },
+    {value: 'flight', label: 'Flights' },
+    {value: 'hotel', label: 'Hotels' },
+    {value: 'package', label: 'Packages' }
+  ];
+
+  const fmt = (d?: Date) =>
+    d ? d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
+
+  const ymd = (d: Date) => d.toISOString().slice(0, 10);
+
+  //Redirection with prepopulated filters
+  const handleSearch = () => {
+    const params = new URLSearchParams();    
+    if (searchQuery.trim()) {
+      params.append('search', searchQuery.trim());
+    }
+    if (selectedContinent !== 'all') {
+      params.append('continent', selectedContinent);
+    }
+    if (selectedType !== 'all') {
+      params.append('type', selectedType);
+    }
+    if (dateRange?.from){
+      params.append('from', ymd(dateRange.from));
+    }
+    if (dateRange?.to) {
+      params.append('to', ymd(dateRange.to));
+    }
+    router.push(`/deals/searchdeals?${params.toString()}`);
+  };
+
+  //Handle Click outside Modal
+  useEffect(() => {
+    const handleClickOutisde = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)){
+        setActiveSearchDropdown(null);
+      }
+    };
+    if (activeSearchDropdown){
+      document.addEventListener('mousedown', handleClickOutisde);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutisde);
+    };
+  }, [activeSearchDropdown]);
+
   return (
     <div className="flex flex-col items-center">
       <div className="relative w-full h-screen">
@@ -76,9 +148,163 @@ export default function Home() {
           <p className="mt-4 text-lg md:text-xl lg:text-2xl xl:text-4xl drop-shadow-lg max-w-4xl">
             Discover tailored trips, unbeatable deals, and unforgettable journeys.
           </p>
-          <Link href="/ai" className="mt-6 text-[#5271FF] text-xl md:text-2xl lg:text-3xl font-semibold transition-all duration-300 transform hover:scale-110 cursor-pointer">
+          <Link href="/ai" className="mt-6 text-white text-xl md:text-2xl lg:text-3xl font-semibold transition-all duration-300 transform hover:scale-110 cursor-pointer">
             Start Planning Now
           </Link>
+        </div>
+        <div ref={menuRef} className="absolute left-1/2 bottom-52 sm:bottom-52 md:bottom-80 xl:bottom-96 transform -translate-x-1/2 w-full max-w-6xl">
+          <div className="bg-white rounded-lg shadow-lg p-4 pb-2">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-3 mb-3">
+              {/* Search Bar */}
+              <div className="relative">
+                <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input 
+                  type="text"
+                  placeholder="Where to?"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key =="Enter"){
+                      handleSearch();
+                    }
+                  }}
+                />
+              </div>
+
+              {/* Date Picker */}
+              <div className="relative">
+                <button
+                  className="flex items-center justify-between w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  type="button"
+                  onClick={() =>
+                    setActiveSearchDropdown( activeSearchDropdown === 'dates' ? null : 'dates')
+                  }
+                >
+                  <span className="truncate">
+                    {dateRange?.from && dateRange?.to ? `${fmt(dateRange.from)} - ${fmt(dateRange.to)}`: dateRange?.from? `${fmt(dateRange.from)} – ?`: 'Dates'}
+                  </span>
+                  <ChevronDownIcon className={`ml-2 shrink w-4 h-4 transition-transform duration-300 ${activeSearchDropdown === 'dates' ? 'rotate-180' : ''}`} />
+                </button>
+
+                {activeSearchDropdown === 'dates' && (
+                  <div className="absolute top-full mt-1 w-full sm:w-auto sm:max-w-none bg-white border border-gray-300 rounded-lg shadow-lg z-10 p-2">
+                    <DayPicker
+                      mode="range"
+                      selected={dateRange}
+                      disabled={{before: new Date()}}
+                      excludeDisabled
+                      onSelect={(range) => {
+                        setDateRange(range || undefined);
+                        //Only close date picker, when from & to dates are set
+                        if (range && range.from && range.to) {
+                          if (range.from.getTime() !== range.to.getTime()){
+                            setActiveSearchDropdown(null);
+                          }
+                        } 
+                      }}
+                      numberOfMonths={1}
+                      showOutsideDays
+                      fixedWeeks
+                    />
+
+                    <div className="mt-2 flex items-center justify-between px-1">
+                      <button
+                        type="button"
+                        className="text-sm text-gray-600 hover:text-primary"
+                        onClick={() => setDateRange(undefined)}
+                      >
+                        Clear
+                      </button>
+                      <button
+                        type="button"
+                        className="px-3 py-1.5 rounded-md bg-primary text-white hover:bg-[#7C97FF] text-sm"
+                        onClick={() => setActiveSearchDropdown(null)}
+                      >
+                        Done
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Continent Drop-Down menu */}
+              <div className="relative">
+                <button 
+                onClick={() => setActiveSearchDropdown(activeSearchDropdown === 'continent' ? null : 'continent')}
+                className="flex items-center justify-between w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
+                >
+                  <span className="truncate">{continents.find(c => c.value === selectedContinent)?.label}</span>
+                  <ChevronDownIcon className={`ml-2 shrink w-4 h-4 transition-transform duration-300 ${activeSearchDropdown === 'continent' ? 'rotate-180' : ''}`} />
+                </button>
+                {activeSearchDropdown === 'continent' && (
+                  <div className="absolute top-full mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg z-10 max-h-60 overflow-auto">
+                    {continents.map((continent) => (
+                      <button
+                        key={continent.value}
+                        type="button"
+                        onClick={() => {
+                          setActiveSearchDropdown(null);
+                          setSelectedContinent(continent.value as any);
+                        }}
+                        role="option"
+                        aria-selected={selectedContinent === continent.value}
+                        className={[
+                          "w-full text-left px-4 py-2 rounded-xl transition-all duration-300",
+                          "text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5",
+                          selectedContinent === continent.value ? "bg-gray-50 text-primary" : ""
+                        ].join(" ")}
+                      >
+                        <span className="font-semibold">{continent.label}</span>
+                      </button>
+                    ))}
+                  </div>  
+                )}
+              </div>
+
+              {/* Deal Type Drop Down */}
+              <div className="relative">
+              <button 
+                onClick={() => setActiveSearchDropdown(activeSearchDropdown === 'type' ? null : 'type')}
+                className="flex items-center justify-between w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text0base"
+                >
+                  <span className="truncate">{dealTypes.find(t => t.value === selectedType)?.label}</span>
+                  <ChevronDownIcon className={`ml-2 shrink w-4 h-4 transition-transform duration-300 ${activeSearchDropdown === 'type' ? 'rotate-180' : ''}`} />
+                </button>
+                
+                {activeSearchDropdown === 'type' && (
+                  <div className="absolute top-full mt-1 w-full bg-white border border-gray-300 rounded-lg shadow-lg z-10 max-h-60 overflow-auto">
+                    {dealTypes.map((type) => (
+                      <button
+                        key={type.value}
+                        type="button"
+                        onClick={() => {
+                          setActiveSearchDropdown(null);
+                          setSelectedType(type.value as any);
+                        }}
+                        role="option"
+                        aria-selected={selectedType === type.value}
+                        className={
+                          `w-full text-left px-4 py-2 rounded-xl transition-all duration-300 text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5
+                          ${selectedType === type.value ? "bg-gray-50 text-primary" : ""}`
+                        }
+                      >
+                        <span className="font-semibold">{type.label}</span>
+                      </button>
+                    ))}
+                  </div>  
+                )}
+              </div>
+
+              {/*Search Button */}
+              <button 
+              className="w-full px-4 py-2 bg-primary text-white rounded-lg hover:bg-[#7C97FF] transition-colors" 
+              onClick={handleSearch}
+            >
+              Search 
+            </button>
+            </div>
+          </div>
         </div>
       </div>
 

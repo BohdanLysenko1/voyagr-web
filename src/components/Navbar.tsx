@@ -5,7 +5,7 @@ import { UserIcon, HomeIcon } from 'lucide-react';
 export default function Navbar() {
   return (
     <nav className="bg-primary text-white p-4">
-      <div className="flex items-center w-full relative pr-5">
+      <div className="flex items-center w-full relative pr-5"> 
         {/* Left: Logo */}
           <Link href="/">
             <div
@@ -104,8 +104,7 @@ export default function Navbar() {
               <UserIcon className="w-6 h-6" />
             </button>
             <div
-              className="absolute right-0 mt-2 w-40 rounded-lg shadow-lg z-10 opacity-0 group-hover:opacity-100 invisible group-hover:visible transition-all duration-200"
-              style={{ backgroundColor: "#5271FF" }}
+              className="absolute right-0 mt-2 w-40 rounded-lg shadow-lg z-10 opacity-0 group-hover:opacity-100 invisible group-hover:visible transition-all duration-200 bg-primary"
             >
               <div className="flex flex-col">
                 <Link href="/profile" passHref className="block px-5 py-2 hover:bg-blue-600 hover:text-white"> Profile

@@ -4,6 +4,7 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { FavoritesProvider } from "@/contexts/FavoritesContext";
+import 'react-day-picker/dist/style.css';
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",

@@ -11,6 +11,7 @@ const sampleDeals: SearchDeal[] = [
     type: 'flight',
     title: 'NYC → Paris',
     location: 'Paris, France',
+    continent: 'Europe',
     price: 499,
     originalPrice: 699,
     description: 'Direct flights with premium service and flexible dates. Enjoy priority boarding and complimentary checked baggage.',
@@ -24,6 +25,7 @@ const sampleDeals: SearchDeal[] = [
     type: 'hotel',
     title: 'The Plaza Hotel',
     location: 'New York, USA',
+    continent: 'North America',
     price: 299,
     originalPrice: 450,
     description: 'Luxury accommodations in Manhattan with Central Park views. Experience world-class dining and premium spa services.',
@@ -37,6 +39,7 @@ const sampleDeals: SearchDeal[] = [
     type: 'package',
     title: 'Tokyo Adventure Package',
     location: 'Tokyo, Japan',
+    continent: 'Asia',
     price: 1899,
     originalPrice: 2299,
     description: '7-day complete experience with flights, hotel, and guided tours. Includes bullet train pass and cultural experiences.',
@@ -50,6 +53,7 @@ const sampleDeals: SearchDeal[] = [
     type: 'flight',
     title: 'LA → London',
     location: 'London, UK',
+    continent: 'Europe',
     price: 549,
     originalPrice: 799,
     description: 'Premium economy with extra legroom and complimentary meals. Direct flights with award-winning airline service.',
@@ -63,6 +67,7 @@ const sampleDeals: SearchDeal[] = [
     type: 'hotel',
     title: 'Santorini Sunset Resort',
     location: 'Santorini, Greece',
+    continent: 'Europe',
     price: 425,
     originalPrice: 600,
     description: 'Oceanfront luxury resort with infinity pool and breathtaking sunset views. Includes daily breakfast and spa access.',
@@ -76,6 +81,7 @@ const sampleDeals: SearchDeal[] = [
     type: 'package',
     title: 'Bali Wellness Retreat',
     location: 'Bali, Indonesia',
+    continent: 'Asia',
     price: 1599,
     originalPrice: 1899,
     description: '6-day wellness package with luxury accommodations, daily spa treatments, yoga sessions, and healthy organic cuisine.',
@@ -89,6 +95,7 @@ const sampleDeals: SearchDeal[] = [
     type: 'flight',
     title: 'Miami → Barcelona',
     location: 'Barcelona, Spain',
+    continent: 'Europe',
     price: 389,
     originalPrice: 589,
     description: 'Explore the vibrant culture of Barcelona with these discounted direct flights. Flexible booking with free date changes.',
@@ -102,6 +109,7 @@ const sampleDeals: SearchDeal[] = [
     type: 'hotel',
     title: 'Swiss Alpine Lodge',
     location: 'Zermatt, Switzerland',
+    continent: 'Europe',
     price: 520,
     originalPrice: 750,
     description: 'Mountain luxury with Matterhorn views. Ski-in/ski-out access, alpine spa, and traditional Swiss hospitality.',
@@ -115,6 +123,7 @@ const sampleDeals: SearchDeal[] = [
     type: 'package',
     title: 'Egyptian Discovery Tour',
     location: 'Cairo, Egypt',
+    continent: 'Africa',
     price: 1299,
     originalPrice: 1699,
     description: '5-day historical journey including pyramids, museums, and Nile cruise. Expert guides and luxury accommodations included.',
@@ -128,6 +137,7 @@ const sampleDeals: SearchDeal[] = [
     type: 'flight',
     title: 'Seattle → Amsterdam',
     location: 'Amsterdam, Netherlands',
+    continent: 'Europe',
     price: 456,
     originalPrice: 678,
     description: 'Discover Amsterdam with these great flight deals. Includes checked baggage and seat selection.',
@@ -141,6 +151,7 @@ const sampleDeals: SearchDeal[] = [
     type: 'hotel',
     title: 'Dubai Marina Resort',
     location: 'Dubai, UAE',
+    continent: 'Asia',
     price: 380,
     originalPrice: 550,
     description: 'Modern luxury in Dubai Marina with beach access, rooftop pool, and world-class dining options.',
@@ -154,6 +165,7 @@ const sampleDeals: SearchDeal[] = [
     type: 'package',
     title: 'Iceland Northern Lights',
     location: 'Reykjavik, Iceland',
+    continent: 'Europe',
     price: 1799,
     originalPrice: 2199,
     description: '4-day Northern Lights adventure with glacier tours, hot springs, and luxury lodge accommodations.',
@@ -164,23 +176,16 @@ const sampleDeals: SearchDeal[] = [
   }
 ];
 
-const locationToContinentMap: { [key: string]: string } = {
-  'Paris, France': 'Europe',
-  'New York, USA': 'North America',
-  'Tokyo, Japan': 'Asia',
-  'London, UK': 'Europe',
-  'Santorini, Greece': 'Europe',
-  'Bali, Indonesia': 'Asia',
-  'Barcelona, Spain': 'Europe',
-  'Zermatt, Switzerland': 'Europe',
-  'Cairo, Egypt': 'Africa',
-  'Amsterdam, Netherlands': 'Europe',
-  'Dubai, UAE': 'Asia',
-  'Reykjavik, Iceland': 'Europe',
-  'Sydney, New South Wales': 'Australia'
-};
-
-const continents = ['All Locations', ...Array.from(new Set(Object.values(locationToContinentMap)))];
+const continents = [
+  {value: 'all', label: 'All Locations'},
+  {value: 'Africa', label: 'Africa'},
+  {value: 'Antarctica', label: 'Antarctica'},
+  {value: 'Asia', label: 'Asia'},
+  {value: 'Australia', label: 'Australia'},
+  {value: 'Europe', label: 'Europe'},
+  {value: 'North America', label: 'North America'},
+  {value: 'South America', label: 'South America'}
+];
 
 const sortOptions = [
   { value: 'price-low', label: 'Price: Low to High' },
@@ -197,7 +202,7 @@ export default function SearchDealsPage() {
   
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState<'all' | 'flight' | 'hotel' | 'package'>('all');
-  const [selectedContinent, setSelectedContinent] = useState('All Locations');
+  const [selectedContinent, setSelectedContinent] = useState<'all' | 'Africa' | 'Antarctica' | 'Asia' | 'Australia' | 'Europe' | 'North America' | 'South America' > ('all');
   const [sortBy, setSortBy] = useState('price-low');
   const [selectedDeal, setSelectedDeal] = useState<SearchDeal | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -211,8 +216,8 @@ export default function SearchDealsPage() {
       setSelectedType(typeParam as 'flight' | 'hotel' | 'package');
     }
     
-    if (continentParam && continents.includes(continentParam)) {
-      setSelectedContinent(continentParam);
+    if (continentParam && continents.some(c => c.value === continentParam)) {
+      setSelectedContinent(continentParam as any);
     }
     
     if (searchParam) {
@@ -226,8 +231,8 @@ export default function SearchDealsPage() {
                            deal.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
                            deal.description.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesType = selectedType === 'all' || deal.type === selectedType;
-      const dealContinent = locationToContinentMap[deal.location];
-      const matchesContinent = selectedContinent === 'All Locations' || dealContinent === selectedContinent;
+      const matchesContinent = selectedContinent === 'all' || deal.continent === selectedContinent;
+      
       
       return matchesSearch && matchesType && matchesContinent;
     });
@@ -300,10 +305,10 @@ export default function SearchDealsPage() {
               <select
                 className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 value={selectedContinent}
-                onChange={(e) => setSelectedContinent(e.target.value)}
+                onChange={(e) => setSelectedContinent(e.target.value as any)}
               >
                 {continents.map(continent => (
-                  <option key={continent} value={continent}>{continent}</option>
+                  <option key={continent.value} value={continent.value}>{continent.label}</option>
                 ))}
               </select>
             </div>
@@ -354,7 +359,7 @@ export default function SearchDealsPage() {
               onClick={() => {
                 setSearchQuery('');
                 setSelectedType('all');
-                setSelectedContinent('All Locations');
+                setSelectedContinent('all');
                 setSortBy('price-low');
               }}
               className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
