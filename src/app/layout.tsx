@@ -4,6 +4,7 @@ import Script from "next/script";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import MainWrapper from "@/components/MainWrapper";
 import { FavoritesProvider } from "@/contexts/FavoritesContext";
 import 'react-day-picker/dist/style.css';
 
@@ -52,7 +53,7 @@ export default function RootLayout({
       >
         <FavoritesProvider>
           <Navbar />
-          <main className="flex-1 pt-20">{children}</main>
+          <MainWrapper>{children}</MainWrapper>
           <Footer />
         </FavoritesProvider>
       </body>

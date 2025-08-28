@@ -132,7 +132,7 @@ export default function Home() {
 
   return (
     <div className="flex flex-col items-center">
-      <div className="relative w-full h-[calc(100vh-5rem)]">
+      <div className="relative w-full h-screen">
         <Image
           src="/images/HomePage/HomeHeroImage.jpg"
           alt="Hero Image"
@@ -152,7 +152,7 @@ export default function Home() {
             Start Planning Now
           </Link>
         </div>
-        <div ref={menuRef} className="absolute left-1/2 bottom-32 sm:bottom-40 md:bottom-52 xl:bottom-64 transform -translate-x-1/2 w-full max-w-6xl px-4">
+        <div ref={menuRef} className="absolute left-1/2 bottom-16 sm:bottom-20 md:bottom-24 lg:bottom-32 xl:bottom-40 transform -translate-x-1/2 w-full max-w-6xl px-4">
           <div className="bg-white rounded-lg shadow-lg p-4 pb-2">
             <div className="grid grid-cols-1 md:grid-cols-5 gap-3 mb-3">
               {/* Search Bar */}
