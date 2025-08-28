@@ -141,18 +141,15 @@ export default function Home() {
           className="object-cover"
           priority
         />
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center px-4 bg-black/40">
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-white text-center px-4 bg-black/40 -mt-40">
           <h1 className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold drop-shadow-lg max-w-6xl">
             Explore More. Plan Less.
           </h1>
           <p className="mt-4 text-lg md:text-xl lg:text-2xl xl:text-4xl drop-shadow-lg max-w-4xl">
             Discover tailored trips, unbeatable deals, and unforgettable journeys.
           </p>
-          <Link href="/ai" className="mt-6 text-white text-xl md:text-2xl lg:text-3xl font-semibold transition-all duration-300 transform hover:scale-110 cursor-pointer">
-            Start Planning Now
-          </Link>
         </div>
-        <div ref={menuRef} className="absolute left-1/2 bottom-16 sm:bottom-20 md:bottom-24 lg:bottom-32 xl:bottom-40 transform -translate-x-1/2 w-full max-w-6xl px-4">
+        <div ref={menuRef} className="absolute left-1/2 bottom-48 sm:bottom-52 md:bottom-56 lg:bottom-64 xl:bottom-72 transform -translate-x-1/2 w-full max-w-6xl px-4">
           <div className="bg-white rounded-lg shadow-lg p-4 pb-2">
             <div className="grid grid-cols-1 md:grid-cols-5 gap-3 mb-3">
               {/* Search Bar */}
