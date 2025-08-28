@@ -9,6 +9,7 @@ export interface SearchDeal {
   type: 'flight' | 'hotel' | 'package';
   title: string;
   location: string;
+  continent: string;
   price: number;
   originalPrice?: number;
   description: string;

@@ -1,548 +1,125 @@
-'use client';
-
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState, useEffect, useRef } from 'react';
-import { 
-  UserIcon, 
-  HomeIcon, 
-  MenuIcon, 
-  XIcon,
-  ChevronDownIcon,
-  GlobeIcon,
-  TagIcon,
-  HeartIcon,
-  BookmarkIcon,
-  SparklesIcon,
-  SearchIcon,
-  BellIcon,
-  SettingsIcon
-} from 'lucide-react';
+import { UserIcon, HomeIcon } from 'lucide-react';
 
 export default function Navbar() {
-  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
-  const [isContinentsExpanded, setIsContinentsExpanded] = useState(false);
-  const navRef = useRef<HTMLDivElement>(null);
-  const notificationRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (navRef.current && !navRef.current.contains(event.target as Node)) {
-        setActiveDropdown(null);
-      }
-    };
-
-    if (activeDropdown) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [activeDropdown]);
-
-  // Close notification modal when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
-        setIsNotificationModalOpen(false);
-      }
-    };
-
-    if (isNotificationModalOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isNotificationModalOpen]);
-
-  const continents = [
-    { label: 'Africa', href: '/continents/africa' },
-    { label: 'Asia', href: '/continents/asia' },
-    { label: 'Europe', href: '/continents/europe' },
-    { label: 'North America', href: '/continents/north-america' },
-    { label: 'South America', href: '/continents/south-america' },
-    { label: 'Australia', href: '/continents/australia' },
-    { label: 'Antarctica', href: '/continents/antarctica' },
-  ];
-
-  const deals = [
-    { label: 'All Deals', href: '/deals' },
-    { label: 'Search Deals', href: '/deals/searchdeals' },
-  ];
-
-  // Sample notification data
-  const notifications = [
-    {
-      id: 1,
-      title: 'New Deal Alert!',
-      message: 'Amazing 50% off flights to Europe this weekend only',
-      time: '2 minutes ago',
-      type: 'deal',
-      unread: true
-    },
-    {
-      id: 2,
-      title: 'Trip Reminder',
-      message: 'Your flight to Tokyo departs in 3 days',
-      time: '1 hour ago',
-      type: 'reminder',
-      unread: true
-    },
-    {
-      id: 3,
-      title: 'Welcome to Voyagr!',
-      message: 'Complete your profile to get personalized recommendations',
-      time: '1 day ago',
-      type: 'welcome',
-      unread: false
-    }
-  ];
-
   return (
-    <>
-      <nav className={`
-        fixed top-0 left-0 right-0 z-40 transition-all duration-700
-        ${isScrolled 
-          ? 'bg-white/90 backdrop-blur-xl border-b border-white/20 shadow-2xl' 
-          : 'bg-gradient-to-r from-primary via-primary to-purple-600'
-        }
-      `}>
-        <div className="max-w-7xl mx-auto px-6">
-          <div ref={navRef} className="flex items-center justify-between h-20">
-            
-            {/* Logo */}
-            <Link href="/" className="flex items-center group">
-              <div className="relative">
-                <Image
-                  src="/images/LogoNavBar.png"
-                  alt="Voyagr"
-                  width={100}
-                  height={20}
-                  className={`
-                    object-contain transition-all duration-300
-                    group-hover:scale-105 group-active:scale-95
-                    ${isScrolled ? 'brightness-50 contrast-125' : 'brightness-100'}
-                  `}
-                  priority
-                />
-                {/* Cool ripple effect on click only */}
-                <div className="absolute inset-0 rounded-lg opacity-0 group-active:opacity-40 group-active:animate-pulse bg-gradient-to-r from-primary/50 to-purple-500/50 transition-opacity duration-150 pointer-events-none" />
-                {/* Shine effect on hover - fixed to prevent artifacts */}
-                <div className="absolute inset-0 overflow-hidden rounded-lg pointer-events-none">
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -skew-x-12 transform -translate-x-full opacity-0 group-hover:translate-x-full group-hover:opacity-100 transition-all duration-700" />
-                </div>
+    <nav className="bg-primary text-white p-4">
+      <div className="flex items-center w-full relative pr-5"> 
+        {/* Left: Logo */}
+          <Link href="/">
+            <div
+              style={{
+                width: 400,
+                height: 70,
+                overflow: "hidden",
+                display: "flex",
+                alignItems: "center"
+              }}
+            >
+              <Image
+                src="/images/LogoNavBar.png"
+                alt="Voyagr Logo"
+                width={380}
+                height={110}
+                style={{ objectFit: "cover", marginTop: "1.5rem", marginLeft: "-5rem"}}
+              />
+            </div>
+          </Link>
+
+        {/* Center: Tabs */}
+        <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 flex space-x-6 z-10">
+          <div className="relative group">
+            <button className="hover:text-gray-300 text-lg">Continents</button>
+            <div
+              className="absolute left-0 mt-2 w-48 rounded-lg shadow-lg z-10 opacity-0 group-hover:opacity-100 invisible group-hover:visible transition-all duration-20"
+              style={{ backgroundColor: "#5271FF" }}
+            >
+              <div className="flex flex-col">
+                <Link href="/continents/africa" passHref className="block px-5 py-2 hover:bg-blue-600 hover:text-white"> Africa
+                </Link>
+                <div className="self-center w-4/5 h-px bg-white my-1" />
+                <Link href="/continents/asia" passHref className="block px-5 py-2 hover:bg-blue-600 hover:text-white"> Asia
+                </Link>
+                <div className="self-center w-4/5 h-px bg-white my-1" />
+                <Link href="/continents/europe" passHref className="block px-5 py-2 hover:bg-blue-600 hover:text-white"> Europe
+                </Link>
+                <div className="self-center w-4/5 h-px bg-white my-1" />
+                <Link href="/continents/north-america" passHref className="block px-5 py-2 hover:bg-blue-600 hover:text-white"> North America
+                </Link>
+                <div className="self-center w-4/5 h-px bg-white my-1" />
+                <Link href="/continents/south-america" passHref className="block px-5 py-2 hover:bg-blue-600 hover:text-white"> South America
+                </Link>
+                <div className="self-center w-4/5 h-px bg-white my-1" />
+                <Link href="/continents/australia" passHref className="block px-5 py-2 hover:bg-blue-600 hover:text-white"> Australia
+                </Link>
+                <div className="self-center w-4/5 h-px bg-white my-1" />
+                <Link href="/continents/antarctica" passHref className="block px-5 py-2 hover:bg-blue-600 hover:text-white"> Antarctica
+                </Link>
               </div>
+            </div>
+          </div>
+          <div className="relative group">
+            <button className="hover:text-gray-300 text-lg">Deals</button>
+            <div
+              className="absolute left-0 mt-2 w-48 rounded-lg shadow-lg z-10 opacity-0 group-hover:opacity-100 invisible group-hover:visible transition-all duration-200"
+              style={{ backgroundColor: "#5271FF" }}
+            >
+              <div className="flex flex-col">
+                <Link href="/deals" passHref className="block px-5 py-2 hover:bg-blue-600 hover:text-white"> Deals
+                </Link>
+                <div className="self-center w-4/5 h-px bg-white my-1" />
+                <Link href="/deals/searchdeals" passHref className="block px-5 py-2 hover:bg-blue-600 hover:text-white"> Search Deals
+                </Link>
+              </div>
+            </div>
+          </div>
+          <div className="relative">
+            <Link href="/favorites">
+              <button className="hover:text-gray-300 text-lg">Favorites</button>
             </Link>
-
-            {/* Desktop Navigation */}
-            <div className="hidden lg:flex items-center space-x-2">
-              
-              {/* Explore Dropdown */}
-              <div className="relative">
-                <button
-                  onClick={() => setActiveDropdown(activeDropdown === 'explore' ? null : 'explore')}
-                  className={`
-                    flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm transition-all duration-300 group
-                    ${isScrolled 
-                      ? 'text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/10 hover:to-purple-500/10' 
-                      : 'text-white/90 hover:text-white hover:bg-white/10'
-                    }
-                    ${activeDropdown === 'explore' ? (isScrolled ? 'text-primary bg-gradient-to-r from-primary/10 to-purple-500/10' : 'text-white bg-white/15') : ''}
-                  `}
-                >
-                  <GlobeIcon className="w-4 h-4 transition-transform duration-300 group-hover:scale-110" />
-                  <span>Explore</span>
-                  <ChevronDownIcon className={`w-4 h-4 transition-transform duration-300 ${activeDropdown === 'explore' ? 'rotate-180' : ''}`} />
-                </button>
-                
-                {activeDropdown === 'explore' && (
-                  <div className="absolute left-0 top-full mt-3 w-72 bg-white/95 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl p-2">
-                    {continents.map((continent) => (
-                      <Link
-                        key={continent.href}
-                        href={continent.href}
-                        className="flex items-center gap-4 p-4 rounded-xl text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 transition-all duration-300"
-                        onClick={() => setActiveDropdown(null)}
-                      >
-                        <GlobeIcon className="w-4 h-4 text-gray-400" />
-                        <span className="font-semibold">{continent.label}</span>
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Deals Dropdown */}
-              <div className="relative">
-                <button
-                  onClick={() => setActiveDropdown(activeDropdown === 'deals' ? null : 'deals')}
-                  className={`
-                    flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm transition-all duration-300 group
-                    ${isScrolled 
-                      ? 'text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/10 hover:to-purple-500/10' 
-                      : 'text-white/90 hover:text-white hover:bg-white/10'
-                    }
-                    ${activeDropdown === 'deals' ? (isScrolled ? 'text-primary bg-gradient-to-r from-primary/10 to-purple-500/10' : 'text-white bg-white/15') : ''}
-                  `}
-                >
-                  <TagIcon className="w-4 h-4 transition-transform duration-300 group-hover:scale-110" />
-                  <span>Deals</span>
-                  <ChevronDownIcon className={`w-4 h-4 transition-transform duration-300 ${activeDropdown === 'deals' ? 'rotate-180' : ''}`} />
-                </button>
-                
-                {activeDropdown === 'deals' && (
-                  <div className="absolute left-0 top-full mt-3 w-72 bg-white/95 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl p-2">
-                    {deals.map((deal) => (
-                      <Link
-                        key={deal.href}
-                        href={deal.href}
-                        className="flex items-center gap-4 p-4 rounded-xl text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 transition-all duration-300"
-                        onClick={() => setActiveDropdown(null)}
-                      >
-                        <TagIcon className="w-4 h-4 text-gray-400" />
-                        <span className="font-semibold">{deal.label}</span>
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Direct Links */}
-              <Link href="/favorites" className={`
-                flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm transition-all duration-300 group
-                ${isScrolled 
-                  ? 'text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/10 hover:to-purple-500/10' 
-                  : 'text-white/90 hover:text-white hover:bg-white/10'
-                }
-              `}>
-                <HeartIcon className="w-4 h-4 transition-transform duration-300 group-hover:scale-110" />
-                <span>Favorites</span>
-              </Link>
-
-              <Link href="/reserved" className={`
-                flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm transition-all duration-300 group
-                ${isScrolled 
-                  ? 'text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/10 hover:to-purple-500/10' 
-                  : 'text-white/90 hover:text-white hover:bg-white/10'
-                }
-              `}>
-                <BookmarkIcon className="w-4 h-4 transition-transform duration-300 group-hover:scale-110" />
-                <span>Reserved</span>
-              </Link>
-
-              <Link href="/ai" className={`
-                flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm transition-all duration-300 group
-                ${isScrolled 
-                  ? 'text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/10 hover:to-purple-500/10' 
-                  : 'text-white/90 hover:text-white hover:bg-white/10'
-                }
-              `}>
-                <SparklesIcon className="w-4 h-4 transition-transform duration-300 group-hover:scale-110" />
-                <span>AI Assistant</span>
-              </Link>
-            </div>
-
-            {/* Right Actions */}
-            <div className="flex items-center space-x-3">
-              
-              {/* Search */}
-              <Link href="/deals/searchdeals" className={`
-                p-3 rounded-xl transition-all duration-300 group
-                ${isScrolled 
-                  ? 'text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/10 hover:to-purple-500/10' 
-                  : 'text-white/90 hover:text-white hover:bg-white/10'
-                }
-              `}>
-                <SearchIcon className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
-              </Link>
-
-              {/* Notifications */}
-              <div className="relative">
-                <button 
-                  onClick={() => setIsNotificationModalOpen(!isNotificationModalOpen)}
-                  className={`
-                    p-3 rounded-xl transition-all duration-300 group relative
-                    ${isScrolled 
-                      ? 'text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/10 hover:to-purple-500/10' 
-                      : 'text-white/90 hover:text-white hover:bg-white/10'
-                    }
-                    ${isNotificationModalOpen ? (isScrolled ? 'text-primary bg-gradient-to-r from-primary/10 to-purple-500/10' : 'text-white bg-white/15') : ''}
-                  `}
-                >
-                  <BellIcon className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
-                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse" />
-                </button>
-
-                {/* Notification Modal */}
-                {isNotificationModalOpen && (
-                  <div 
-                    ref={notificationRef}
-                    className="absolute right-0 top-full mt-3 w-96 max-w-[90vw] sm:max-w-[400px] bg-white/95 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl overflow-hidden z-50
-                    max-sm:fixed max-sm:inset-x-4 max-sm:top-20 max-sm:right-auto max-sm:w-auto max-sm:max-w-none"
-                  >
-                    {/* Header */}
-                    <div className="p-4 border-b border-gray-200/50 bg-gradient-to-r from-primary/5 to-purple-500/5">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-lg font-bold text-gray-800">Notifications</h3>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-gray-500">{notifications.filter(n => n.unread).length} unread</span>
-                          <button 
-                            onClick={() => setIsNotificationModalOpen(false)}
-                            className="p-1 rounded-full hover:bg-gray-100 transition-colors"
-                          >
-                            <XIcon className="w-4 h-4 text-gray-500" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Notifications List */}
-                    <div className="max-h-96 max-sm:max-h-[60vh] overflow-y-auto">
-                      {notifications.map((notification) => (
-                        <div 
-                          key={notification.id}
-                          className={`
-                            p-4 border-b border-gray-100/50 hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 
-                            transition-all duration-200 cursor-pointer group
-                            ${notification.unread ? 'bg-blue-50/50' : ''}
-                          `}
-                        >
-                          <div className="flex items-start gap-3">
-                            {/* Notification Icon */}
-                            <div className={`
-                              w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-1
-                              ${notification.type === 'deal' ? 'bg-green-100 text-green-600' : 
-                                notification.type === 'reminder' ? 'bg-blue-100 text-blue-600' : 
-                                'bg-purple-100 text-purple-600'}
-                            `}>
-                              {notification.type === 'deal' ? <TagIcon className="w-4 h-4" /> :
-                               notification.type === 'reminder' ? <BellIcon className="w-4 h-4" /> :
-                               <SparklesIcon className="w-4 h-4" />}
-                            </div>
-
-                            {/* Content */}
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-start gap-2 mb-1">
-                                <h4 className="font-semibold text-gray-800 text-sm group-hover:text-primary transition-colors flex-1">
-                                  {notification.title}
-                                </h4>
-                                {notification.unread && (
-                                  <div className="w-2 h-2 bg-primary rounded-full flex-shrink-0 mt-1" />
-                                )}
-                              </div>
-                              <p className="text-gray-600 text-sm mb-2 break-words">
-                                {notification.message}
-                              </p>
-                              <span className="text-xs text-gray-500">
-                                {notification.time}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Footer */}
-                    <div className="p-3 bg-gray-50/50 border-t border-gray-200/50">
-                      <button className="w-full text-center text-sm text-primary hover:text-primary/80 font-medium transition-colors">
-                        View All Notifications
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Home */}
-              <Link href="/" className={`
-                p-3 rounded-xl transition-all duration-300 group
-                ${isScrolled 
-                  ? 'text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/10 hover:to-purple-500/10' 
-                  : 'text-white/90 hover:text-white hover:bg-white/10'
-                }
-              `}>
-                <HomeIcon className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
-              </Link>
-
-              {/* User Menu */}
-              <div className="hidden lg:block relative">
-                <button
-                  onClick={() => setActiveDropdown(activeDropdown === 'user' ? null : 'user')}
-                  className={`
-                    p-3 rounded-xl transition-all duration-300 group
-                    ${isScrolled 
-                      ? 'text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/10 hover:to-purple-500/10' 
-                      : 'text-white/90 hover:text-white hover:bg-white/10'
-                    }
-                    ${activeDropdown === 'user' ? (isScrolled ? 'text-primary bg-gradient-to-r from-primary/10 to-purple-500/10' : 'text-white bg-white/15') : ''}
-                  `}
-                >
-                  <UserIcon className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
-                </button>
-                
-                {activeDropdown === 'user' && (
-                  <div className="absolute right-0 top-full mt-3 w-56 bg-white/95 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl p-2">
-                    <Link href="/profile" className="flex items-center gap-4 p-4 rounded-xl text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 transition-all duration-300" onClick={() => setActiveDropdown(null)}>
-                      <UserIcon className="w-4 h-4 text-gray-400" />
-                      <span className="font-semibold">Profile</span>
-                    </Link>
-                    <Link href="/myjourney" className="flex items-center gap-4 p-4 rounded-xl text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 transition-all duration-300" onClick={() => setActiveDropdown(null)}>
-                      <GlobeIcon className="w-4 h-4 text-gray-400" />
-                      <span className="font-semibold">My Journey</span>
-                    </Link>
-                    <Link href="/settings" className="flex items-center gap-4 p-4 rounded-xl text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 transition-all duration-300" onClick={() => setActiveDropdown(null)}>
-                      <SettingsIcon className="w-4 h-4 text-gray-400" />
-                      <span className="font-semibold">Settings</span>
-                    </Link>
-                  </div>
-                )}
-              </div>
-
-              {/* Mobile Menu Button */}
-              <button
-                onClick={() => setIsMobileMenuOpen(true)}
-                className={`
-                  lg:hidden p-3 rounded-xl transition-all duration-300
-                  ${isScrolled 
-                    ? 'text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/10 hover:to-purple-500/10' 
-                    : 'text-white/90 hover:text-white hover:bg-white/10'
-                  }
-                `}
-              >
-                <MenuIcon className="w-6 h-6" />
-              </button>
-            </div>
+          </div>
+          <div className="relative">
+            <Link href="/reserved">
+              <button className="hover:text-gray-300 text-lg">Reserved</button>
+            </Link>
+          </div>
+          <div className="relative">
+            <Link href="/ai">
+              <button className="hover:text-gray-300 text-lg">AI</button>
+            </Link>
           </div>
         </div>
-      </nav>
-
-      {/* Mobile Menu */}
-      {isMobileMenuOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-black/60 via-primary/20 to-purple-900/40 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)} />
-          <div className="absolute right-0 top-0 h-full w-80 max-w-[85vw] bg-white/95 backdrop-blur-xl border-l border-white/20 flex flex-col">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200/50 flex-shrink-0">
-              <h2 className="text-xl font-bold bg-gradient-to-r from-gray-800 to-primary bg-clip-text text-transparent">Menu</h2>
-              <button onClick={() => setIsMobileMenuOpen(false)} className="p-2 rounded-full hover:bg-gray-100 transition-colors">
-                <XIcon className="w-6 h-6 text-gray-600" />
+        {/* Right: Icons */}
+        <div className="flex items-center ml-auto space-x-6 z-20">
+          <div className="relative">
+            <Link href="/">
+              <button className="hover:text-gray-300 text-lg">
+                <HomeIcon className="w-6 h-6" />
               </button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-6 space-y-4">
-              {/* Continents Section */}
-              <div className="space-y-2">
-                <button 
-                  onClick={() => setIsContinentsExpanded(!isContinentsExpanded)}
-                  className="flex items-center justify-between w-full p-3 text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 rounded-lg transition-all duration-300"
-                >
-                  <div className="flex items-center gap-3">
-                    <GlobeIcon className="w-5 h-5" />
-                    <span className="font-semibold">Continents</span>
-                  </div>
-                  <ChevronDownIcon className={`w-4 h-4 transition-transform duration-200 ${isContinentsExpanded ? 'rotate-180' : ''}`} />
-                </button>
-                
-                {isContinentsExpanded && (
-                  <div className="ml-8 space-y-1">
-                    {continents.map((continent) => (
-                      <Link 
-                        key={continent.href}
-                        href={continent.href} 
-                        className="flex items-center gap-3 p-2 text-gray-600 hover:text-primary hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 rounded-lg transition-all duration-300" 
-                        onClick={() => setIsMobileMenuOpen(false)}
-                      >
-                        <span className="text-sm">{continent.label}</span>
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Deals Section */}
-              <div className="space-y-2 pt-4 border-t border-gray-200/50">
-                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide px-3">Deals</h3>
-                {deals.map((deal) => (
-                  <Link 
-                    key={deal.href}
-                    href={deal.href} 
-                    className="flex items-center gap-3 p-3 text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 rounded-lg transition-all duration-300" 
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    <TagIcon className="w-5 h-5" />
-                    <span className="font-semibold">{deal.label}</span>
-                  </Link>
-                ))}
-              </div>
-
-              {/* Quick Actions */}
-              <div className="space-y-2 pt-4 border-t border-gray-200/50">
-                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide px-3">Quick Actions</h3>
-                <Link href="/deals/searchdeals" className="flex items-center gap-3 p-3 text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 rounded-lg transition-all duration-300" onClick={() => setIsMobileMenuOpen(false)}>
-                  <SearchIcon className="w-5 h-5" />
-                  <span className="font-semibold">Search Deals</span>
+            </Link>
+          </div>
+          <div className="relative group">
+            <button className="hover:text-gray-300 text-lg">
+              <UserIcon className="w-6 h-6" />
+            </button>
+            <div
+              className="absolute right-0 mt-2 w-40 rounded-lg shadow-lg z-10 opacity-0 group-hover:opacity-100 invisible group-hover:visible transition-all duration-200 bg-primary"
+            >
+              <div className="flex flex-col">
+                <Link href="/profile" passHref className="block px-5 py-2 hover:bg-blue-600 hover:text-white"> Profile
                 </Link>
-                <button 
-                  onClick={() => {
-                    setIsMobileMenuOpen(false);
-                    setIsNotificationModalOpen(true);
-                  }}
-                  className="flex items-center gap-3 p-3 text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 rounded-lg transition-all duration-300 w-full text-left"
-                >
-                  <BellIcon className="w-5 h-5" />
-                  <span className="font-semibold">Notifications</span>
-                  {notifications.filter(n => n.unread).length > 0 && (
-                    <div className="w-2 h-2 bg-red-500 rounded-full ml-auto" />
-                  )}
-                </button>
-                <Link href="/" className="flex items-center gap-3 p-3 text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 rounded-lg transition-all duration-300" onClick={() => setIsMobileMenuOpen(false)}>
-                  <HomeIcon className="w-5 h-5" />
-                  <span className="font-semibold">Home</span>
+                <div className="self-center w-4/5 h-px bg-white my-1" />
+                <Link href="/myjourney" passHref className="block px-5 py-2 hover:bg-blue-600 hover:text-white"> My Journey
                 </Link>
-              </div>
-
-              {/* Personal Section */}
-              <div className="space-y-2 pt-4 border-t border-gray-200/50">
-                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide px-3">Personal</h3>
-                <Link href="/favorites" className="flex items-center gap-3 p-3 text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 rounded-lg transition-all duration-300" onClick={() => setIsMobileMenuOpen(false)}>
-                  <HeartIcon className="w-5 h-5" />
-                  <span className="font-semibold">Favorites</span>
-                </Link>
-                <Link href="/reserved" className="flex items-center gap-3 p-3 text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 rounded-lg transition-all duration-300" onClick={() => setIsMobileMenuOpen(false)}>
-                  <BookmarkIcon className="w-5 h-5" />
-                  <span className="font-semibold">Reserved</span>
-                </Link>
-                <Link href="/myjourney" className="flex items-center gap-3 p-3 text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 rounded-lg transition-all duration-300" onClick={() => setIsMobileMenuOpen(false)}>
-                  <GlobeIcon className="w-5 h-5" />
-                  <span className="font-semibold">My Journey</span>
-                </Link>
-                <Link href="/ai" className="flex items-center gap-3 p-3 text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 rounded-lg transition-all duration-300" onClick={() => setIsMobileMenuOpen(false)}>
-                  <SparklesIcon className="w-5 h-5" />
-                  <span className="font-semibold">AI Assistant</span>
-                </Link>
-                <Link href="/settings" className="flex items-center gap-3 p-3 text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 rounded-lg transition-all duration-300" onClick={() => setIsMobileMenuOpen(false)}>
-                  <SettingsIcon className="w-5 h-5" />
-                  <span className="font-semibold">Settings</span>
+                <div className="self-center w-4/5 h-px bg-white my-1" />
+                <Link href="/settings" passHref className="block px-5 py-2 hover:bg-blue-600 hover:text-white"> Settings
                 </Link>
               </div>
             </div>
           </div>
         </div>
-      )}
-
-      <div className="h-20" />
-    </>
+      </div>
+    </nav>
   );
 }
