@@ -32,7 +32,7 @@ export default function Navbar() {
           <div className="relative group">
             <button className="hover:text-gray-300 text-lg">Continents</button>
             <div
-              className="absolute left-0 mt-2 w-48 rounded-lg shadow-lg z-10 opacity-0 group-hover:opacity-100 invisible group-hover:visible transition-all duration-20"
+              className="absolute left-0 mt-2 w-48 rounded-lg shadow-lg z-10 opacity-0 group-hover:opacity-100 invisible group-hover:visible transition-all duration-200"
               style={{ backgroundColor: "#5271FF" }}
             >
               <div className="flex flex-col">
