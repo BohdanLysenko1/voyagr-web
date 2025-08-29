@@ -149,7 +149,7 @@ export default function Home() {
             Discover tailored trips, unbeatable deals, and unforgettable journeys.
           </p>
         </div>
-        <div ref={menuRef} className="absolute left-1/2 bottom-48 sm:bottom-52 md:bottom-56 lg:bottom-64 xl:bottom-72 transform -translate-x-1/2 w-full max-w-6xl px-4">
+        <div ref={menuRef} className="absolute left-1/2 bottom-32 sm:bottom-44 md:bottom-80 lg:bottom-88 xl:bottom-88 transform -translate-x-1/2 w-full max-w-6xl px-4">
           <div className="bg-white rounded-lg shadow-lg p-4 pb-2">
             <div className="grid grid-cols-1 md:grid-cols-5 gap-3 mb-3">
               {/* Search Bar */}
