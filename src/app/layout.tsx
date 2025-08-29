@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import Script from "next/script";
+import 'react-day-picker/style.css';
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import MainWrapper from "@/components/MainWrapper";
 import { FavoritesProvider } from "@/contexts/FavoritesContext";
-import 'react-day-picker/dist/style.css';
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",

@@ -185,8 +185,9 @@ export default function Home() {
                 </button>
 
                 {activeSearchDropdown === 'dates' && (
-                  <div className="absolute top-full mt-1 w-full sm:w-auto sm:max-w-none bg-white border border-gray-300 rounded-lg shadow-lg z-10 p-2">
+                  <div className="absolute top-full mt-1 right-0 inline-block bg-white border border-gray-300 rounded-lg shadow-lg z-10 p-2">
                     <DayPicker
+                      classNames={{ root: 'rdp-root small-rdp' }}
                       mode="range"
                       selected={dateRange}
                       disabled={{before: new Date()}}

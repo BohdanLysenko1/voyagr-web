@@ -21,3 +21,13 @@ body {
     text-wrap: balance;
   }
 }
+
+.small-rdp {
+  --rdp-day-width: 26px;
+  --rdp-day-height: 26px;
+  --rdp-day_button-width: 26px;
+  --rdp-day_button-height: 26px;
+  --rdp-months-gap: 0.5rem;
+  font-size: 11px;
+
+}
