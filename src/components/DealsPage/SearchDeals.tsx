@@ -19,6 +19,177 @@ export interface SearchDeal {
   features: string[];
 }
 
+export const sampleDeals: SearchDeal[] = [
+  {
+    id: 1,
+    type: 'flight',
+    title: 'NYC → Paris',
+    location: 'Paris, France',
+    continent: 'Europe',
+    price: 499,
+    originalPrice: 699,
+    description: 'Direct flights with premium service and flexible dates. Enjoy priority boarding and complimentary checked baggage.',
+    image: '/images/DealsPage/Flights_ParisPic.jpg',
+    rating: 4.8,
+    duration: 'per person',
+    features: ['Direct Flight', 'Checked Bag', 'Flexible Dates', 'Priority Boarding']
+  },
+  {
+    id: 2,
+    type: 'hotel',
+    title: 'The Plaza Hotel',
+    location: 'New York, USA',
+    continent: 'North America',
+    price: 299,
+    originalPrice: 450,
+    description: 'Luxury accommodations in Manhattan with Central Park views. Experience world-class dining and premium spa services.',
+    image: '/images/DealsPage/Hotel_NewYork.jpg',
+    rating: 4.9,
+    duration: 'per night',
+    features: ['Central Park View', 'Spa Access', 'Fine Dining', 'Concierge Service']
+  },
+  {
+    id: 3,
+    type: 'package',
+    title: 'Tokyo Adventure Package',
+    location: 'Tokyo, Japan',
+    continent: 'Asia',
+    price: 1899,
+    originalPrice: 2299,
+    description: '7-day complete experience with flights, hotel, and guided tours. Includes bullet train pass and cultural experiences.',
+    image: '/images/DealsPage/Packages_Tokyo.jpg',
+    rating: 4.7,
+    duration: '7 days',
+    features: ['Flights Included', '4-Star Hotel', 'City Tours', 'Bullet Train Pass', 'Cultural Experiences']
+  },
+  {
+    id: 4,
+    type: 'flight',
+    title: 'LA → London',
+    location: 'London, UK',
+    continent: 'Europe',
+    price: 549,
+    originalPrice: 799,
+    description: 'Premium economy with extra legroom and complimentary meals. Direct flights with award-winning airline service.',
+    image: '/images/DealsPage/Flights_London.jpg',
+    rating: 4.6,
+    duration: 'per person',
+    features: ['Premium Economy', 'Meals Included', 'Extra Legroom', 'Entertainment System']
+  },
+  {
+    id: 5,
+    type: 'hotel',
+    title: 'Santorini Sunset Resort',
+    location: 'Santorini, Greece',
+    continent: 'Europe',
+    price: 425,
+    originalPrice: 600,
+    description: 'Oceanfront luxury resort with infinity pool and breathtaking sunset views. Includes daily breakfast and spa access.',
+    image: '/images/DealsPage/Hotel_Greece.jpg',
+    rating: 4.8,
+    duration: 'per night',
+    features: ['Ocean View', 'Infinity Pool', 'Breakfast Included', 'Spa Access', 'Sunset Views']
+  },
+  {
+    id: 6,
+    type: 'package',
+    title: 'Bali Wellness Retreat',
+    location: 'Bali, Indonesia',
+    continent: 'Asia',
+    price: 1599,
+    originalPrice: 1899,
+    description: '6-day wellness package with luxury accommodations, daily spa treatments, yoga sessions, and healthy organic cuisine.',
+    image: '/images/DealsPage/Packages_Bali.jpg',
+    rating: 4.9,
+    duration: '6 days',
+    features: ['Spa Treatments', 'Daily Yoga', 'Organic Cuisine', 'Meditation Classes', 'Nature Excursions']
+  },
+  {
+    id: 7,
+    type: 'flight',
+    title: 'Miami → Barcelona',
+    location: 'Barcelona, Spain',
+    continent: 'Europe',
+    price: 389,
+    originalPrice: 589,
+    description: 'Explore the vibrant culture of Barcelona with these discounted direct flights. Flexible booking with free date changes.',
+    image: '/images/DealsPage/Packages_BarcelonaPic.jpg',
+    rating: 4.5,
+    duration: 'per person',
+    features: ['Direct Flight', 'Free Date Changes', 'Personal Entertainment', 'Meal Service']
+  },
+  {
+    id: 8,
+    type: 'hotel',
+    title: 'Swiss Alpine Lodge',
+    location: 'Zermatt, Switzerland',
+    continent: 'Europe',
+    price: 520,
+    originalPrice: 750,
+    description: 'Mountain luxury with Matterhorn views. Ski-in/ski-out access, alpine spa, and traditional Swiss hospitality.',
+    image: '/images/DealsPage/Hotel_Switzerland.jpg',
+    rating: 4.7,
+    duration: 'per night',
+    features: ['Matterhorn Views', 'Ski Access', 'Alpine Spa', 'Mountain Dining']
+  },
+  {
+    id: 9,
+    type: 'package',
+    title: 'Egyptian Discovery Tour',
+    location: 'Cairo, Egypt',
+    continent: 'Africa',
+    price: 1299,
+    originalPrice: 1699,
+    description: '5-day historical journey including pyramids, museums, and Nile cruise. Expert guides and luxury accommodations included.',
+    image: '/images/DealsPage/Packages_Egypt.jpg',
+    rating: 4.6,
+    duration: '5 days',
+    features: ['Pyramid Tours', 'Nile Cruise', 'Expert Guides', 'Luxury Hotels', 'Museum Access']
+  },
+  {
+    id: 10,
+    type: 'flight',
+    title: 'Seattle → Amsterdam',
+    location: 'Amsterdam, Netherlands',
+    continent: 'Europe',
+    price: 456,
+    originalPrice: 678,
+    description: 'Discover Amsterdam with these great flight deals. Includes checked baggage and seat selection.',
+    image: '/images/DealsPage/Flights_Amsterdam.jpg',
+    rating: 4.4,
+    duration: 'per person',
+    features: ['Checked Baggage', 'Seat Selection', 'In-flight WiFi', 'Refreshments']
+  },
+  {
+    id: 11,
+    type: 'hotel',
+    title: 'Dubai Marina Resort',
+    location: 'Dubai, UAE',
+    continent: 'Asia',
+    price: 380,
+    originalPrice: 550,
+    description: 'Modern luxury in Dubai Marina with beach access, rooftop pool, and world-class dining options.',
+    image: '/images/DealsPage/Hotel_Dubai.jpg',
+    rating: 4.8,
+    duration: 'per night',
+    features: ['Beach Access', 'Rooftop Pool', 'Marina Views', 'Fine Dining', 'Spa Services']
+  },
+  {
+    id: 12,
+    type: 'package',
+    title: 'Iceland Northern Lights',
+    location: 'Reykjavik, Iceland',
+    continent: 'Europe',
+    price: 1799,
+    originalPrice: 2199,
+    description: '4-day Northern Lights adventure with glacier tours, hot springs, and luxury lodge accommodations.',
+    image: '/images/DealsPage/Packages_Iceland.jpg',
+    rating: 4.9,
+    duration: '4 days',
+    features: ['Northern Lights Tours', 'Glacier Excursions', 'Hot Springs', 'Luxury Lodge', 'Photography Guide']
+  }
+];
+
 interface SearchDealCardProps {
   deal: SearchDeal;
   onDealClick?: (deal: SearchDeal) => void;

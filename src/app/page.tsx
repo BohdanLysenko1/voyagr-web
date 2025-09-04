@@ -112,7 +112,7 @@ export default function Home() {
     if (dateRange?.to) {
       params.append('to', ymd(dateRange.to));
     }
-    router.push(`/deals/searchdeals?${params.toString()}`);
+    router.push(`/deals?${params.toString()}`);
   };
 
   //Handle Click outside Modal

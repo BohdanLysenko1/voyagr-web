@@ -95,7 +95,7 @@ export default function FavoritesPage() {
               You haven't saved any deals yet. Start exploring and save your favorite travel deals!
             </p>
             <button
-              onClick={() => router.push('/deals/searchdeals')}
+              onClick={() => router.push('/deals')}
               className="bg-primary text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition-colors text-lg font-semibold"
             >
               Explore Deals
