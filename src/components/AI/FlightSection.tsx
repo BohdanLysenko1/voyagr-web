@@ -1,14 +1,14 @@
 import { useState } from 'react';
-import { Plane, Star, ChevronDown, ChevronRight, Filter, Sparkles, TrendingUp, Clock } from 'lucide-react';
+import { Plane, Heart, ChevronDown, ChevronRight, Filter, Sparkles, TrendingUp, Clock } from 'lucide-react';
 import { Flight } from '@/types/ai';
-import StarrableItemComponent from './StarrableItem';
+import HeartableItemComponent from './HeartableItem';
 
 interface FlightSectionProps {
   flights: Flight[];
-  onStarToggle: (id: number) => void;
+  onHeartToggle: (id: number) => void;
 }
 
-export default function FlightSection({ flights, onStarToggle }: FlightSectionProps) {
+export default function FlightSection({ flights, onHeartToggle }: FlightSectionProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
   const [aiSuggestions] = useState([
@@ -16,7 +16,7 @@ export default function FlightSection({ flights, onStarToggle }: FlightSectionPr
     { text: "Last-minute flights", icon: Clock, color: "text-orange-600" },
     { text: "AI recommendations", icon: Sparkles, color: "text-purple-600" }
   ]);
-  const starredFlights = flights.filter(flight => flight.starred);
+  const heartedFlights = flights.filter(flight => flight.hearted);
 
   const renderFlightContent = (flight: Flight) => (
     <div className="space-y-1">
@@ -110,18 +110,18 @@ export default function FlightSection({ flights, onStarToggle }: FlightSectionPr
             </div>
           )}
 
-          {/* Starred Flights */}
-          {starredFlights.length > 0 && (
+          {/* Hearted Flights */}
+          {heartedFlights.length > 0 && (
             <div className="pb-3 border-b border-gray-200/50">
-              <p className="text-sm font-semibold text-primary mb-2 flex items-center gap-2">
-                <Star className="w-4 h-4 fill-current" />
-                Starred Flights
+              <p className="text-sm font-semibold text-rose-600 mb-2 flex items-center gap-2">
+                <Heart className="w-4 h-4 fill-current" />
+                Favorite Flights
               </p>
-              {starredFlights.map(flight => (
-                <StarrableItemComponent
+              {heartedFlights.map(flight => (
+                <HeartableItemComponent
                   key={flight.id}
                   item={flight}
-                  onStarToggle={onStarToggle}
+                  onHeartToggle={onHeartToggle}
                   renderContent={renderFlightContent}
                 />
               ))}
@@ -135,10 +135,10 @@ export default function FlightSection({ flights, onStarToggle }: FlightSectionPr
               All Flights
             </p>
             {flights.map(flight => (
-              <StarrableItemComponent
+              <HeartableItemComponent
                 key={flight.id}
                 item={flight}
-                onStarToggle={onStarToggle}
+                onHeartToggle={onHeartToggle}
                 renderContent={renderFlightContent}
               />
             ))}

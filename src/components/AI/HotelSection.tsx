@@ -1,14 +1,14 @@
 import { useState } from 'react';
-import { Building, Star, ChevronDown, ChevronRight, Filter, Sparkles, MapPin, Award, DollarSign } from 'lucide-react';
+import { Building, Heart, ChevronDown, ChevronRight, Filter, Sparkles, MapPin, Award, DollarSign } from 'lucide-react';
 import { Hotel } from '@/types/ai';
-import StarrableItemComponent from './StarrableItem';
+import HeartableItemComponent from './HeartableItem';
 
 interface HotelSectionProps {
   hotels: Hotel[];
-  onStarToggle: (id: number) => void;
+  onHeartToggle: (id: number) => void;
 }
 
-export default function HotelSection({ hotels, onStarToggle }: HotelSectionProps) {
+export default function HotelSection({ hotels, onHeartToggle }: HotelSectionProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
   const [aiRecommendations] = useState([
@@ -16,7 +16,7 @@ export default function HotelSection({ hotels, onStarToggle }: HotelSectionProps
     { text: "Highest rated nearby", icon: Award, color: "text-yellow-600" },
     { text: "Perfect location match", icon: MapPin, color: "text-blue-600" }
   ]);
-  const starredHotels = hotels.filter(hotel => hotel.starred);
+  const heartedHotels = hotels.filter(hotel => hotel.hearted);
 
   const renderHotelContent = (hotel: Hotel) => (
     <div className="space-y-1">
@@ -121,18 +121,18 @@ export default function HotelSection({ hotels, onStarToggle }: HotelSectionProps
             </div>
           )}
 
-          {/* Starred Hotels */}
-          {starredHotels.length > 0 && (
+          {/* Hearted Hotels */}
+          {heartedHotels.length > 0 && (
             <div className="pb-3 border-b border-gray-200/50">
-              <p className="text-sm font-semibold text-primary mb-2 flex items-center gap-2">
-                <Star className="w-4 h-4 fill-current" />
-                Starred Hotels
+              <p className="text-sm font-semibold text-rose-600 mb-2 flex items-center gap-2">
+                <Heart className="w-4 h-4 fill-current" />
+                Favorite Hotels
               </p>
-              {starredHotels.map(hotel => (
-                <StarrableItemComponent
+              {heartedHotels.map(hotel => (
+                <HeartableItemComponent
                   key={hotel.id}
                   item={hotel}
-                  onStarToggle={onStarToggle}
+                  onHeartToggle={onHeartToggle}
                   renderContent={renderHotelContent}
                 />
               ))}
@@ -145,16 +145,14 @@ export default function HotelSection({ hotels, onStarToggle }: HotelSectionProps
               <Building className="w-4 h-4" />
               All Hotels
             </p>
-            <div className="space-y-1 max-h-32 overflow-y-auto">
-              {hotels.map(hotel => (
-                <StarrableItemComponent
-                  key={hotel.id}
-                  item={hotel}
-                  onStarToggle={onStarToggle}
-                  renderContent={renderHotelContent}
-                />
-              ))}
-            </div>
+            {hotels.map(hotel => (
+              <HeartableItemComponent
+                key={hotel.id}
+                item={hotel}
+                onHeartToggle={onHeartToggle}
+                renderContent={renderHotelContent}
+              />
+            ))}
           </div>
         </div>
       )}

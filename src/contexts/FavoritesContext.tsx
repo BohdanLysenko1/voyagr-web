@@ -1,6 +1,9 @@
 "use client"
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { SearchDeal } from '@/components/DealsPage/SearchDeals';
+import { Flight, Hotel, Package } from '@/types/ai';
+
+type AIItem = Flight | Hotel | Package;
 
 interface FavoritesContextType {
   favorites: SearchDeal[];
@@ -8,6 +11,11 @@ interface FavoritesContextType {
   removeFromFavorites: (dealId: number) => void;
   isFavorite: (dealId: number) => boolean;
   toggleFavorite: (deal: SearchDeal) => void;
+  // AI page specific methods
+  addAIItemToFavorites: (item: AIItem, type: 'flight' | 'hotel' | 'package') => void;
+  removeAIItemFromFavorites: (itemId: number) => void;
+  isAIItemFavorite: (itemId: number) => boolean;
+  toggleAIItemFavorite: (item: AIItem, type: 'flight' | 'hotel' | 'package') => void;
 }
 
 const FavoritesContext = createContext<FavoritesContextType | undefined>(undefined);
@@ -69,12 +77,79 @@ export const FavoritesProvider: React.FC<FavoritesProviderProps> = ({ children }
     }
   };
 
+  // AI item conversion to SearchDeal format
+  const convertAIItemToSearchDeal = (item: AIItem, type: 'flight' | 'hotel' | 'package'): SearchDeal => {
+    let title, description, image, price, location;
+    
+    if (type === 'flight') {
+      const flight = item as Flight;
+      title = `Flight`;
+      description = flight.route;
+      image = '/images/AIPage/flight-placeholder.jpg';
+      price = 299; // Default price since not in type
+      location = flight.route;
+    } else if (type === 'hotel') {
+      const hotel = item as Hotel;
+      title = hotel.name;
+      description = `Hotel in ${hotel.location}`;
+      image = '/images/AIPage/hotel-placeholder.jpg';
+      price = 150; // Default price since not in type
+      location = hotel.location;
+    } else {
+      const pkg = item as Package;
+      title = pkg.name;
+      description = pkg.duration;
+      image = '/images/AIPage/package-placeholder.jpg';
+      price = 899; // Default price since not in type
+      location = 'Multiple Destinations';
+    }
+
+    return {
+      id: item.id,
+      type,
+      title,
+      location,
+      continent: 'Unknown', // Could be enhanced with mapping
+      price,
+      description,
+      image,
+      rating: undefined,
+      duration: type === 'package' ? (item as Package).duration : undefined,
+      features: []
+    };
+  };
+
+  const addAIItemToFavorites = (item: AIItem, type: 'flight' | 'hotel' | 'package') => {
+    const searchDeal = convertAIItemToSearchDeal(item, type);
+    addToFavorites(searchDeal);
+  };
+
+  const removeAIItemFromFavorites = (itemId: number) => {
+    removeFromFavorites(itemId);
+  };
+
+  const isAIItemFavorite = (itemId: number) => {
+    return isFavorite(itemId);
+  };
+
+  const toggleAIItemFavorite = (item: AIItem, type: 'flight' | 'hotel' | 'package') => {
+    if (isAIItemFavorite(item.id)) {
+      removeAIItemFromFavorites(item.id);
+    } else {
+      addAIItemToFavorites(item, type);
+    }
+  };
+
   const value: FavoritesContextType = {
     favorites,
     addToFavorites,
     removeFromFavorites,
     isFavorite,
     toggleFavorite,
+    addAIItemToFavorites,
+    removeAIItemFromFavorites,
+    isAIItemFavorite,
+    toggleAIItemFavorite,
   };
 
   return (

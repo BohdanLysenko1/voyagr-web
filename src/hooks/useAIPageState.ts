@@ -34,23 +34,31 @@ export function useAIPageState(): UseAIPageStateReturn {
   };
 }
 
-interface UseStarrableItemsReturn<T> {
+interface UseHeartableItemsReturn<T> {
   items: T[];
-  toggleStar: (id: number) => void;
+  toggleHeart: (id: number) => void;
 }
 
-export function useStarrableItems<T extends { id: number; starred: boolean }>(
+export function useHeartableItems<T extends { id: number; hearted: boolean }>(
   initialItems: T[]
-): UseStarrableItemsReturn<T> {
+): UseHeartableItemsReturn<T> {
   const [items, setItems] = useState<T[]>(initialItems);
 
-  const toggleStar = (id: number) => {
+  const toggleHeart = (id: number) => {
     setItems(prevItems =>
       prevItems.map(item =>
-        item.id === id ? { ...item, starred: !item.starred } : item
+        item.id === id ? { ...item, hearted: !item.hearted } : item
       )
     );
   };
 
-  return { items, toggleStar };
+  return { items, toggleHeart };
+}
+
+// Backward compatibility alias
+export function useStarrableItems<T extends { id: number; hearted: boolean }>(
+  initialItems: T[]
+): { items: T[]; toggleStar: (id: number) => void } {
+  const { items, toggleHeart } = useHeartableItems(initialItems);
+  return { items, toggleStar: toggleHeart };
 }

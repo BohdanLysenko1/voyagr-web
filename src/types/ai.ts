@@ -2,21 +2,21 @@ export interface Flight {
   id: number;
   route: string;
   date: string;
-  starred: boolean;
+  hearted: boolean;
 }
 
 export interface Hotel {
   id: number;
   name: string;
   location: string;
-  starred: boolean;
+  hearted: boolean;
 }
 
 export interface Package {
   id: number;
   name: string;
   duration: string;
-  starred: boolean;
+  hearted: boolean;
 }
 
 export interface SidebarSection {
@@ -27,7 +27,8 @@ export interface SidebarSection {
   iconColor: string;
 }
 
-export type StarrableItem = Flight | Hotel | Package;
+export type HeartableItem = Flight | Hotel | Package;
+export type StarrableItem = HeartableItem; // For backward compatibility
 
 export interface AIPageState {
   inputValue: string;

@@ -1,14 +1,14 @@
 import { useState } from 'react';
-import { Map, Star, ChevronDown, ChevronRight, Filter, Sparkles, Users, Calendar, Compass } from 'lucide-react';
+import { Map, Heart, ChevronDown, ChevronRight, Filter, Sparkles, Users, Calendar, Compass } from 'lucide-react';
 import { Package } from '@/types/ai';
-import StarrableItemComponent from './StarrableItem';
+import HeartableItemComponent from './HeartableItem';
 
 interface PackageSectionProps {
   packages: Package[];
-  onStarToggle: (id: number) => void;
+  onHeartToggle: (id: number) => void;
 }
 
-export default function PackageSection({ packages, onStarToggle }: PackageSectionProps) {
+export default function PackageSection({ packages, onHeartToggle }: PackageSectionProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
   const [aiPersonalizedPackages] = useState([
@@ -16,7 +16,7 @@ export default function PackageSection({ packages, onStarToggle }: PackageSectio
     { text: "Best seasonal timing", icon: Calendar, color: "text-blue-600" },
     { text: "Adventure match", icon: Compass, color: "text-orange-600" }
   ]);
-  const starredPackages = packages.filter(pkg => pkg.starred);
+  const heartedPackages = packages.filter(pkg => pkg.hearted);
 
   const renderPackageContent = (pkg: Package) => (
     <div className="space-y-1">
@@ -121,18 +121,18 @@ export default function PackageSection({ packages, onStarToggle }: PackageSectio
             </div>
           )}
 
-          {/* Starred Packages */}
-          {starredPackages.length > 0 && (
+          {/* Hearted Packages */}
+          {heartedPackages.length > 0 && (
             <div className="pb-3 border-b border-gray-200/50">
-              <p className="text-sm font-semibold text-primary mb-2 flex items-center gap-2">
-                <Star className="w-4 h-4 fill-current" />
-                Starred Packages
+              <p className="text-sm font-semibold text-rose-600 mb-2 flex items-center gap-2">
+                <Heart className="w-4 h-4 fill-current" />
+                Favorite Packages
               </p>
-              {starredPackages.map(pkg => (
-                <StarrableItemComponent
+              {heartedPackages.map(pkg => (
+                <HeartableItemComponent
                   key={pkg.id}
                   item={pkg}
-                  onStarToggle={onStarToggle}
+                  onHeartToggle={onHeartToggle}
                   renderContent={renderPackageContent}
                 />
               ))}
@@ -145,16 +145,14 @@ export default function PackageSection({ packages, onStarToggle }: PackageSectio
               <Map className="w-4 h-4" />
               All Packages
             </p>
-            <div className="space-y-1 max-h-32 overflow-y-auto">
-              {packages.map(pkg => (
-                <StarrableItemComponent
-                  key={pkg.id}
-                  item={pkg}
-                  onStarToggle={onStarToggle}
-                  renderContent={renderPackageContent}
-                />
-              ))}
-            </div>
+            {packages.map(pkg => (
+              <HeartableItemComponent
+                key={pkg.id}
+                item={pkg}
+                onHeartToggle={onHeartToggle}
+                renderContent={renderPackageContent}
+              />
+            ))}
           </div>
         </div>
       )}

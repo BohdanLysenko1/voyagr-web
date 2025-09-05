@@ -6,23 +6,23 @@ import {
 } from 'lucide-react';
 
 export const SAMPLE_FLIGHTS: Flight[] = [
-  { id: 1, route: 'New York → Paris', date: 'May 15', starred: true },
-  { id: 2, route: 'Toronto → Rome', date: 'May 28', starred: false },
-  { id: 3, route: 'Bangkok → Sydney', date: 'Aug 12', starred: false },
+  { id: 1, route: 'New York → Paris', date: 'May 15', hearted: true },
+  { id: 2, route: 'Toronto → Rome', date: 'May 28', hearted: false },
+  { id: 3, route: 'Bangkok → Sydney', date: 'Aug 12', hearted: false },
 ];
 
 export const SAMPLE_HOTELS: Hotel[] = [
-  { id: 1, name: 'The Ritz-Carlton Belfast', location: 'Ireland', starred: true },
-  { id: 2, name: 'Grand Hotel Belfast', location: 'Ireland', starred: false },
-  { id: 3, name: 'Casa del Sol Resort', location: 'Spain', starred: false },
-  { id: 4, name: 'Aurora Haven Lodge', location: 'Norway', starred: false },
+  { id: 1, name: 'The Ritz-Carlton Belfast', location: 'Ireland', hearted: true },
+  { id: 2, name: 'Grand Hotel Belfast', location: 'Ireland', hearted: false },
+  { id: 3, name: 'Casa del Sol Resort', location: 'Spain', hearted: false },
+  { id: 4, name: 'Aurora Haven Lodge', location: 'Norway', hearted: false },
 ];
 
 export const SAMPLE_PACKAGES: Package[] = [
-  { id: 1, name: 'Soul of Japan', duration: 'Jan 1 - Jan 8', starred: true },
-  { id: 2, name: 'Soul of Japan', duration: 'Jun 16 - Jun 27', starred: false },
-  { id: 3, name: 'Tokyo Drift', duration: 'Mar 21 - Mar 25', starred: false },
-  { id: 4, name: 'Midnight in Paris', duration: 'Sep 1 - Sep 8', starred: false },
+  { id: 1, name: 'Soul of Japan', duration: 'Jan 1 - Jan 8', hearted: true },
+  { id: 2, name: 'Soul of Japan', duration: 'Jun 16 - Jun 27', hearted: false },
+  { id: 3, name: 'Tokyo Drift', duration: 'Mar 21 - Mar 25', hearted: false },
+  { id: 4, name: 'Midnight in Paris', duration: 'Sep 1 - Sep 8', hearted: false },
 ];
 
 export const SUGGESTED_PROMPTS: string[] = [
