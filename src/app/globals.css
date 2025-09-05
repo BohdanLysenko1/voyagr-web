@@ -2,6 +2,44 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Custom Scrollbar Styles */
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(99, 102, 241, 0.2) transparent;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: rgba(99, 102, 241, 0.2);
+    border-radius: 20px;
+    border: transparent;
+  }
+  
+  .scrollbar-thin:hover::-webkit-scrollbar-thumb {
+    background-color: rgba(99, 102, 241, 0.3);
+  }
+  
+  .scrollbar-thumb-primary\/20 {
+    scrollbar-color: rgba(99, 102, 241, 0.2) transparent;
+  }
+  
+  .scrollbar-thumb-primary\/30 {
+    scrollbar-color: rgba(99, 102, 241, 0.3) transparent;
+  }
+  
+  .scrollbar-track-transparent {
+    scrollbar-color: rgba(99, 102, 241, 0.2) transparent;
+  }
+}
+
 @import '../styles/event-colors.css';
 
 :root {
