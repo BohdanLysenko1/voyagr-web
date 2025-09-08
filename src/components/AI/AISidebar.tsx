@@ -6,9 +6,16 @@ import FlightSection from './FlightSection';
 import HotelSection from './HotelSection';
 import PackageSection from './PackageSection';
 import AIPreferencesSection from './AIPreferencesSection';
-import { Search, Settings, Plane, Building, Map } from 'lucide-react';
+import MapOutSection from './MapOutSection';
+import { Search, Settings, Plane, Building, Map, MapPin, X } from 'lucide-react';
 
-type TabKey = 'plan' | 'preferences' | 'flights' | 'hotels' | 'packages';
+type TabKey = 'plan' | 'preferences' | 'flights' | 'hotels' | 'packages' | 'mapout';
+
+interface RecentConversation {
+  id: string;
+  title: string;
+  timestamp: Date;
+}
 
 interface AISidebarProps {
   flights: Flight[];
@@ -18,9 +25,14 @@ interface AISidebarProps {
   onHotelHeartToggle: (id: number) => void;
   onPackageHeartToggle: (id: number) => void;
   onNewTrip?: () => void;
+  onSectionReset?: (targetTab: 'flights' | 'hotels' | 'packages' | 'mapout') => void;
   onPreferencesOpen?: () => void;
   activeTab: TabKey;
   onTabChange: (tab: TabKey) => void;
+  isMobile?: boolean;
+  onClose?: () => void;
+  recentConversations?: RecentConversation[];
+  onConversationSelect?: (conversation: RecentConversation) => void;
 }
 
 export default function AISidebar({
@@ -31,17 +43,43 @@ export default function AISidebar({
   onHotelHeartToggle,
   onPackageHeartToggle,
   onNewTrip,
+  onSectionReset,
   onPreferencesOpen,
   activeTab,
   onTabChange,
+  isMobile = false,
+  onClose,
+  recentConversations,
+  onConversationSelect,
 }: AISidebarProps) {
+  // Section-specific new trip handlers
+  const handleFlightNewTrip = () => {
+    console.log('Flight New Trip clicked');
+    onSectionReset?.('flights');
+  };
 
-  const tabs: { key: TabKey; label: string; icon: ComponentType<{ className?: string }> }[] = [
-    { key: 'plan', label: 'Plan', icon: Search },
-    { key: 'preferences', label: 'Preferences', icon: Settings },
-    { key: 'flights', label: 'Flights', icon: Plane },
-    { key: 'hotels', label: 'Hotels', icon: Building },
-    { key: 'packages', label: 'Packages', icon: Map },
+  const handleHotelNewTrip = () => {
+    console.log('Hotel New Trip clicked');
+    onSectionReset?.('hotels');
+  };
+
+  const handlePackageNewTrip = () => {
+    console.log('Package New Trip clicked');
+    onSectionReset?.('packages');
+  };
+
+  const handleMapOutNewTrip = () => {
+    console.log('MapOut New Trip clicked');
+    onSectionReset?.('mapout');
+  };
+
+  const tabsConfig = [
+    { key: 'plan' as TabKey, label: 'Plan', icon: Search },
+    { key: 'flights' as TabKey, label: 'Flights', icon: Plane },
+    { key: 'hotels' as TabKey, label: 'Hotels', icon: Building },
+    { key: 'packages' as TabKey, label: 'Packages', icon: Map },
+    { key: 'mapout' as TabKey, label: 'Map Out', icon: MapPin },
+    { key: 'preferences' as TabKey, label: 'Preferences', icon: Settings },
   ];
 
   const tabRefs = useRef<Record<TabKey, HTMLButtonElement | null>>({
@@ -50,6 +88,7 @@ export default function AISidebar({
     flights: null,
     hotels: null,
     packages: null,
+    mapout: null,
   });
 
   const focusTab = (key: TabKey) => {
@@ -57,33 +96,33 @@ export default function AISidebar({
   };
 
   const onTabsKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-    const currentIndex = tabs.findIndex((t) => t.key === activeTab);
+    const currentIndex = tabsConfig.findIndex((t) => t.key === activeTab);
     if (currentIndex === -1) return;
 
     if (e.key === 'ArrowRight') {
-      const next = (currentIndex + 1) % tabs.length;
-      onTabChange(tabs[next].key);
-      focusTab(tabs[next].key);
+      const next = (currentIndex + 1) % tabsConfig.length;
+      onTabChange(tabsConfig[next].key);
+      focusTab(tabsConfig[next].key);
       e.preventDefault();
     } else if (e.key === 'ArrowLeft') {
-      const prev = (currentIndex - 1 + tabs.length) % tabs.length;
-      onTabChange(tabs[prev].key);
-      focusTab(tabs[prev].key);
+      const prev = (currentIndex - 1 + tabsConfig.length) % tabsConfig.length;
+      onTabChange(tabsConfig[prev].key);
+      focusTab(tabsConfig[prev].key);
       e.preventDefault();
     } else if (e.key === 'Home') {
-      onTabChange(tabs[0].key);
-      focusTab(tabs[0].key);
+      onTabChange(tabsConfig[0].key);
+      focusTab(tabsConfig[0].key);
       e.preventDefault();
     } else if (e.key === 'End') {
-      onTabChange(tabs[tabs.length - 1].key);
-      focusTab(tabs[tabs.length - 1].key);
+      onTabChange(tabsConfig[tabsConfig.length - 1].key);
+      focusTab(tabsConfig[tabsConfig.length - 1].key);
       e.preventDefault();
     }
   };
 
   return (
-    <div className="w-[480px] min-w-[480px] flex-shrink-0 p-6 pt-0 h-screen flex flex-col">
-      <aside className="w-full flex-1 min-h-0 mt-4 flex flex-col overflow-hidden relative bg-white/60 backdrop-blur-2xl backdrop-saturate-150 bg-clip-padding border border-white/40 shadow-[0_20px_50px_rgba(8,_112,_184,_0.18)] rounded-[2rem] scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent hover:scrollbar-thumb-primary/30 transition-all duration-300 before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/40 before:via-white/10 before:to-white/5">
+    <div className={`${isMobile ? 'w-full h-[70vh] max-h-[70vh]' : 'w-[480px] min-w-[480px] h-screen'} flex-shrink-0 p-6 ${isMobile ? 'pt-2 pb-4' : 'pt-0'} flex flex-col`}>
+      <aside className={`w-full flex-1 min-h-0 ${isMobile ? 'mt-2' : 'mt-4'} flex flex-col overflow-hidden relative bg-white/60 backdrop-blur-2xl backdrop-saturate-150 bg-clip-padding border border-white/40 shadow-[0_20px_50px_rgba(8,_112,_184,_0.18)] rounded-[2rem] scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent hover:scrollbar-thumb-primary/30 transition-all duration-300 before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/40 before:via-white/10 before:to-white/5`}>
         {/* Background decorative orbs */}
         <div className="absolute -top-8 -left-8 w-32 h-32 bg-blue-200/30 rounded-full blur-2xl pointer-events-none animate-pulse"></div>
         <div className="absolute top-1/3 -left-6 w-20 h-20 bg-cyan-200/20 rounded-full blur-lg pointer-events-none"></div>
@@ -105,16 +144,32 @@ export default function AISidebar({
         <div className="absolute top-64 left-18 w-14 h-14 bg-green-300/30 rounded-full blur-md pointer-events-none"></div>
         <div className="absolute bottom-52 left-2 w-8 h-8 bg-purple-400/35 rounded-full blur-sm pointer-events-none"></div>
         <div className="absolute bottom-32 left-16 w-6 h-6 bg-pink-400/40 rounded-full blur-sm pointer-events-none"></div>
+      {/* Mobile header with close button */}
+      {isMobile && onClose && (
+        <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-2xl border-b border-white/40 rounded-t-[2rem] px-4 py-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-gray-800">Travel Options</h3>
+            <button
+              onClick={onClose}
+              className="p-2 rounded-xl hover:bg-white/60 text-gray-600 hover:text-gray-800 transition-all duration-200 backdrop-blur-sm border border-white/40"
+              aria-label="Close sidebar"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      )}
+      
       {/* Sticky header with segmented tabs */}
-      <div className="sticky top-0 z-20 bg-white/50 backdrop-blur-2xl border-b border-white/40 rounded-t-[2rem]">
+      <div className={`sticky ${isMobile ? 'top-[60px]' : 'top-0'} z-20 bg-white/50 backdrop-blur-2xl border-b border-white/40 ${!isMobile ? 'rounded-t-[2rem]' : ''}`}>
         <div
           role="tablist"
           aria-label="AI sidebar sections"
           aria-orientation="horizontal"
           onKeyDown={onTabsKeyDown}
-          className="px-2 pb-3 pt-4 flex flex-wrap gap-2"
+          className={`px-2 pb-3 ${isMobile ? 'pt-3' : 'pt-4'} flex flex-wrap gap-2`}
         >
-          {tabs.map((t) => (
+          {tabsConfig.map((t) => (
             <button
               key={t.key}
               type="button"
@@ -133,14 +188,14 @@ export default function AISidebar({
                   onTabChange(t.key);
                 }
               }}
-              className={`flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 border border-white/30 backdrop-blur-md bg-white/30 shadow-sm ${
+              className={`flex items-center gap-1.5 rounded-xl ${isMobile ? 'px-2.5 py-1.5 text-xs' : 'px-3 py-2 text-sm'} font-medium transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 border border-white/30 backdrop-blur-md bg-white/30 shadow-sm ${
                 activeTab === t.key && t.key !== 'preferences'
                   ? 'bg-white/60 text-primary ring-1 ring-primary/30 shadow-md'
                   : 'text-gray-700 hover:bg-white/40 hover:shadow'
               }`}
             >
-              <t.icon className="w-4 h-4" />
-              <span>{t.label}</span>
+              <t.icon className={`${isMobile ? 'w-3.5 h-3.5' : 'w-4 h-4'}`} />
+              <span className={isMobile ? 'hidden sm:inline' : ''}>{t.label}</span>
             </button>
           ))}
         </div>
@@ -156,7 +211,11 @@ export default function AISidebar({
           hidden={activeTab !== 'plan'}
           className="outline-none"
         >
-          <SearchTripsSection onNewTrip={onNewTrip} />
+          <SearchTripsSection 
+            onNewTrip={onNewTrip} 
+            recentConversations={recentConversations}
+            onConversationSelect={onConversationSelect}
+          />
         </div>
 
 
@@ -168,7 +227,7 @@ export default function AISidebar({
           hidden={activeTab !== 'flights'}
           className="outline-none"
         >
-          <FlightSection flights={flights} onHeartToggle={onFlightHeartToggle} />
+          <FlightSection flights={flights} onHeartToggle={onFlightHeartToggle} onNewTrip={handleFlightNewTrip} />
         </div>
 
         {/* Hotels */}
@@ -179,7 +238,7 @@ export default function AISidebar({
           hidden={activeTab !== 'hotels'}
           className="outline-none"
         >
-          <HotelSection hotels={hotels} onHeartToggle={onHotelHeartToggle} />
+          <HotelSection hotels={hotels} onHeartToggle={onHotelHeartToggle} onNewTrip={handleHotelNewTrip} />
         </div>
 
         {/* Packages */}
@@ -190,7 +249,18 @@ export default function AISidebar({
           hidden={activeTab !== 'packages'}
           className="outline-none"
         >
-          <PackageSection packages={packages} onHeartToggle={onPackageHeartToggle} />
+          <PackageSection packages={packages} onHeartToggle={onPackageHeartToggle} onNewTrip={handlePackageNewTrip} />
+        </div>
+
+        {/* Map Out */}
+        <div
+          role="tabpanel"
+          id="panel-mapout"
+          aria-labelledby="tab-mapout"
+          hidden={activeTab !== 'mapout'}
+          className="outline-none"
+        >
+          <MapOutSection onNewTrip={handleMapOutNewTrip} />
         </div>
       </div>
     </aside>

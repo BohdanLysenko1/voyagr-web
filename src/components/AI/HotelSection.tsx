@@ -1,14 +1,15 @@
 import { useState } from 'react';
-import { Building, Heart, ChevronDown, ChevronRight, Filter, Sparkles, MapPin, Award, DollarSign } from 'lucide-react';
+import { Building, Heart, ChevronDown, ChevronRight, Filter, Sparkles, MapPin, Award, DollarSign, Plus } from 'lucide-react';
 import { Hotel } from '@/types/ai';
 import HeartableItemComponent from './HeartableItem';
 
 interface HotelSectionProps {
   hotels: Hotel[];
   onHeartToggle: (id: number) => void;
+  onNewTrip?: () => void;
 }
 
-export default function HotelSection({ hotels, onHeartToggle }: HotelSectionProps) {
+export default function HotelSection({ hotels, onHeartToggle, onNewTrip }: HotelSectionProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
   const [aiRecommendations] = useState([
@@ -66,6 +67,19 @@ export default function HotelSection({ hotels, onHeartToggle }: HotelSectionProp
       
       {isExpanded && (
         <div className="space-y-4 animate-in slide-in-from-top-2 duration-300">
+          {/* New Trip Button */}
+          {onNewTrip && (
+            <button
+              onClick={onNewTrip}
+              className="w-full flex items-center justify-center gap-3 p-4 rounded-2xl bg-gradient-to-r from-emerald-600/90 to-teal-600/90 hover:from-emerald-500 hover:to-teal-500 text-white font-medium transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl backdrop-blur-sm border border-white/20 group mb-6"
+            >
+              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-white/15 group-hover:bg-white/25 group-hover:scale-110 transition-all duration-300 backdrop-blur-sm border border-white/20">
+                <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" />
+              </div>
+              <span className="tracking-wide font-medium">New Trip</span>
+            </button>
+          )}
+
           {/* AI Hotel Recommendations */}
           <div className="bg-gradient-to-r from-emerald-50 to-green-50 p-3 rounded-lg border border-emerald-100">
             <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">

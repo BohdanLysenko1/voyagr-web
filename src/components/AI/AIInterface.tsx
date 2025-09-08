@@ -1,17 +1,32 @@
-import { Sparkles } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Sparkles, Send, Bot, User, Menu, ArrowRight, Settings } from 'lucide-react';
 import Image from 'next/image';
 
-type TabKey = 'plan' | 'preferences' | 'flights' | 'hotels' | 'packages';
+type TabKey = 'plan' | 'preferences' | 'flights' | 'hotels' | 'packages' | 'mapout';
+
+interface ChatMessage {
+  id: string;
+  content: string;
+  sender: 'user' | 'ai';
+  timestamp: Date;
+}
 
 interface AIInterfaceProps {
   inputValue: string;
   onInputChange: (value: string) => void;
   isTyping: boolean;
-  suggestedPrompts: string[];
+  suggestedPrompts: (string | { text: string; emoji: string })[];
   placeholderText: string;
   onSubmit?: () => void;
   preferences?: any;
   activeTab: TabKey;
+  isMobile?: boolean;
+  onSidebarToggle?: () => void;
+  isSidebarOpen?: boolean;
+  onNewTrip?: () => void;
+  registerClearChat?: (fn: () => void) => void;
+  onFirstMessage?: (firstMessage: string) => void;
+  onPreferencesOpen?: () => void;
 }
 
 export default function AIInterface({ 
@@ -22,15 +37,149 @@ export default function AIInterface({
   placeholderText,
   onSubmit,
   preferences,
-  activeTab
+  activeTab,
+  isMobile = false,
+  onSidebarToggle,
+  isSidebarOpen = false,
+  onNewTrip,
+  registerClearChat,
+  onFirstMessage,
+  onPreferencesOpen
 }: AIInterfaceProps) {
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [isAITyping, setIsAITyping] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Clear chat messages to return to welcome screen
+  const clearChat = () => {
+    console.log('Clearing chat messages');
+    setChatMessages([]);
+    setIsAITyping(false);
+  };
+  
+  // Also clear chat when activeTab changes to ensure clean state
+  useEffect(() => {
+    console.log('Active tab changed to:', activeTab, 'clearing chat');
+    setChatMessages([]);
+    setIsAITyping(false);
+  }, [activeTab]);
+
+  // Expose clearChat function to parent component
+  useEffect(() => {
+    registerClearChat?.(clearChat);
+  }, [registerClearChat]);
+
+  const scrollToBottom = () => {
+    const scrollContainer = messagesEndRef.current?.parentElement;
+    if (scrollContainer) {
+      scrollContainer.scrollTo({
+        top: scrollContainer.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  useEffect(() => {
+    // Auto-scroll for all new messages
+    if (chatMessages.length > 0) {
+      // Always scroll to bottom for new messages
+      setTimeout(() => {
+        scrollToBottom();
+      }, 100);
+    }
+  }, [chatMessages]);
+
+  const generateAIResponse = (userMessage: string): string => {
+    const responses: Record<string, string[]> = {
+      flights: [
+        `I'd be happy to help you find the perfect flights! Based on "${userMessage}", I can suggest some great options. Let me search for flights that match your preferences for dates, destinations, and budget.`,
+        `Great choice! For your flight search "${userMessage}", I recommend checking both direct and connecting flights to get the best deals. Would you like me to focus on specific airlines or departure times?`,
+        `Perfect! I'll help you with "${userMessage}". I can find flights with various price points and schedules. Do you have any preference for morning, afternoon, or evening departures?`
+      ],
+      hotels: [
+        `Excellent! For "${userMessage}", I can recommend some amazing accommodations. Let me find hotels that match your style, budget, and location preferences.`,
+        `I love helping with hotel searches! Based on "${userMessage}", I can suggest properties with great amenities and reviews. Are you looking for luxury, boutique, or budget-friendly options?`,
+        `Perfect request! For "${userMessage}", I'll find accommodations that offer the best value and experience. Would you like properties with specific amenities like pools, spas, or business centers?`
+      ],
+      packages: [
+        `Fantastic! For your package request "${userMessage}", I can create comprehensive travel deals that include flights, hotels, and activities all in one bundle.`,
+        `Great idea! Based on "${userMessage}", I'll design complete travel packages that save you time and money. These packages can include transportation, accommodation, meals, and experiences.`,
+        `Perfect! For "${userMessage}", I can bundle everything together - flights, hotels, transfers, and activities. Package deals often provide better value than booking separately.`
+      ],
+      plan: [
+        `I'm excited to help plan your trip! Based on "${userMessage}", I can create a detailed itinerary with recommendations for flights, accommodations, activities, and dining.`,
+        `Wonderful! For "${userMessage}", I'll craft a personalized travel plan that includes the best attractions, local experiences, and practical tips for your journey.`,
+        `Great travel idea! From "${userMessage}", I can design a complete trip plan with day-by-day activities, restaurant suggestions, and insider tips to make your trip unforgettable.`
+      ],
+      preferences: [
+        `Thanks for sharing your preferences! Based on "${userMessage}", I can now provide more personalized recommendations for your trip planning.`,
+        `Perfect! Your preferences for "${userMessage}" will help me tailor the best travel suggestions for you.`,
+        `Excellent! With your preferences about "${userMessage}", I can create more targeted recommendations for your perfect trip.`
+      ]
+    };
+
+    const categoryResponses = responses[activeTab] || responses.plan;
+    const randomResponse = categoryResponses[Math.floor(Math.random() * categoryResponses.length)];
+    return randomResponse;
+  };
+
+  const handleSendMessage = async (messageOverride?: string) => {
+    const textToSend = messageOverride ? messageOverride.trim() : inputValue.trim();
+    if (!textToSend) return;
+
+    // Check if this is the first message in the conversation
+    const isFirstMessage = chatMessages.length === 0;
+
+    // Add user message
+    const userMessage: ChatMessage = {
+      id: Date.now().toString(),
+      content: textToSend,
+      sender: 'user',
+      timestamp: new Date()
+    };
+
+    setChatMessages(prev => [...prev, userMessage]);
+    // Clear the input box regardless of where the text came from
+    onInputChange('');
+    
+    // If this is the first message, save it to recent conversations
+    if (isFirstMessage) {
+      onFirstMessage?.(textToSend);
+    }
+    
+    // Show AI typing indicator
+    setIsAITyping(true);
+
+    // Simulate AI processing time
+    setTimeout(() => {
+      const aiResponse: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        content: generateAIResponse(textToSend),
+        sender: 'ai',
+        timestamp: new Date()
+      };
+      setChatMessages(prev => [...prev, aiResponse]);
+      setIsAITyping(false);
+    }, 600 + Math.random() * 1000); // Random delay between 0.6-1.6 seconds
+
+    // Call original onSubmit if provided
+    onSubmit?.();
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
   
   // Dynamic content based on active tab
   const getContentByTab = () => {
     switch (activeTab) {
       case 'flights':
         return {
-          title: 'Flight Search AI',
+          title: 'Flight Search',
           description: 'Find the perfect flights for your journey',
           placeholder: 'Tell me about your flight preferences: destinations, dates, budget, seat class...',
           prompts: [
@@ -46,7 +195,7 @@ export default function AIInterface({
         };
       case 'hotels':
         return {
-          title: 'Hotel Search AI',
+          title: 'Hotel Search',
           description: 'Discover amazing accommodations for your stay',
           placeholder: 'Describe your ideal hotel: location, amenities, budget, check-in dates...',
           prompts: [
@@ -62,7 +211,7 @@ export default function AIInterface({
         };
       case 'packages':
         return {
-          title: 'Package Deals AI',
+          title: 'Package Deals',
           description: 'Complete travel packages tailored just for you',
           placeholder: 'Tell me about your dream vacation package: destination, duration, activities, group size...',
           prompts: [
@@ -76,12 +225,28 @@ export default function AIInterface({
           gradientColors: 'from-purple-500/30 to-pink-500/30',
           accentColor: 'text-purple-600'
         };
+      case 'mapout':
+        return {
+          title: 'Map Out Planner',
+          description: 'Create detailed day-by-day itineraries with optimal routing',
+          placeholder: 'Describe your trip details: destinations, duration, preferred activities, travel pace...',
+          prompts: [
+            { text: '5-day New York City itinerary', emoji: '🗽', color: 'from-blue-400/20 to-indigo-400/20 hover:from-blue-400/30 hover:to-indigo-400/30 border-blue-300/40' },
+            { text: 'Weekend food tour in Paris', emoji: '🥐', color: 'from-amber-400/20 to-orange-400/20 hover:from-amber-400/30 hover:to-orange-400/30 border-amber-300/40' },
+            { text: 'Cultural exploration of Rome', emoji: '🏛️', color: 'from-purple-400/20 to-violet-400/20 hover:from-purple-400/30 hover:to-violet-400/30 border-purple-300/40' },
+            { text: 'Island hopping in Greece', emoji: '🏝️', color: 'from-cyan-400/20 to-blue-400/20 hover:from-cyan-400/30 hover:to-blue-400/30 border-cyan-300/40' },
+            { text: 'Adventure route through Iceland', emoji: '🌋', color: 'from-slate-400/20 to-gray-400/20 hover:from-slate-400/30 hover:to-gray-400/30 border-slate-300/40' },
+            { text: 'Cherry blossom tour in Japan', emoji: '🌸', color: 'from-pink-400/20 to-rose-400/20 hover:from-pink-400/30 hover:to-rose-400/30 border-pink-300/40' },
+          ],
+          gradientColors: 'from-emerald-500/30 to-cyan-500/30',
+          accentColor: 'text-emerald-600'
+        };
       default: // 'plan'
         return {
-          title: 'VoyagrAI',
-          description: 'Plan your perfect trip with AI assistance',
-          placeholder: 'Describe your dream trip and I\'ll help plan it...',
-          prompts: [
+          title: 'Voyagr',
+          description: 'Plan your perfect trip with assistance',
+          placeholder: placeholderText || 'Describe your dream trip and I\'ll help plan it...',
+          prompts: suggestedPrompts || [
             { text: "Romantic weekend in Paris", emoji: "💕", color: "from-pink-400/20 to-rose-400/20 hover:from-pink-400/30 hover:to-rose-400/30 border-pink-300/40" },
             { text: "Adventure trip to New Zealand", emoji: "🏔️", color: "from-emerald-400/20 to-green-400/20 hover:from-emerald-400/30 hover:to-green-400/30 border-emerald-300/40" },
             { text: "Food tour through Italy", emoji: "🍝", color: "from-yellow-400/20 to-orange-400/20 hover:from-yellow-400/30 hover:to-orange-400/30 border-yellow-300/40" },
@@ -96,8 +261,23 @@ export default function AIInterface({
   };
 
   const content = getContentByTab();
+  const showChat = chatMessages.length > 0 || isAITyping;
+  
+  console.log('Chat messages count:', chatMessages.length, 'Show chat:', showChat);
+
   return (
-    <div className="flex-1 relative overflow-y-auto min-h-screen">
+    <div className={`flex-1 relative ${isMobile ? 'h-full flex flex-col' : 'h-full flex flex-col'}`}>
+      
+      {/* Mobile Floating Menu Button */}
+      {isMobile && (
+        <button
+          onClick={onSidebarToggle}
+          className="fixed top-20 left-4 z-50 p-3 rounded-full bg-white/80 backdrop-blur-sm border border-white/40 hover:bg-white/90 transition-all duration-200 shadow-lg"
+        >
+          <Menu className="w-5 h-5 text-gray-700" />
+        </button>
+      )}
+      
       {/* Globe Background */}
       <div className="absolute inset-0 opacity-10">
         <div className="w-full h-full" 
@@ -146,9 +326,118 @@ export default function AIInterface({
         </div>
       </div>
 
-      {/* Floating Liquid Glass Card */}
-      <div className="relative flex items-start justify-center p-8 pt-0 min-h-screen">
-        <div className="max-w-4xl w-full mt-6 space-y-4">
+      {/* Chat Interface or Welcome Screen */}
+      {showChat ? (
+        /* Chat Mode */
+        <div className={`relative flex flex-col h-full ${isMobile ? 'p-4 pt-0' : 'p-8 pt-0'}`}>
+          <div className={`${isMobile ? 'w-full' : 'max-w-4xl w-full mx-auto'} ${isMobile ? 'mt-2' : 'mt-6'} h-full flex flex-col`}>
+            {/* Chat Header - Desktop only */}
+            {!isMobile && (
+              <div className="relative overflow-hidden bg-white/60 backdrop-blur-2xl backdrop-saturate-150 bg-clip-padding border border-white/40 rounded-t-[2rem] shadow-[0_20px_50px_rgba(8,_112,_184,_0.18)] p-6 text-center transition-all duration-700 ease-in-out before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/40 before:via-white/10 before:to-white/5">
+                <div className="flex items-center justify-center gap-3">
+                  <div className={`p-2 rounded-xl bg-gradient-to-br ${content.gradientColors} border border-white/40`}>
+                    <Sparkles className={`w-6 h-6 ${content.accentColor}`} />
+                  </div>
+                  <h2 className={`text-2xl font-bold ${content.accentColor}`}>
+                    {content.title}
+                  </h2>
+                </div>
+              </div>
+            )}
+
+            {/* Messages Container */}
+            <div className={`flex-1 relative bg-white/40 backdrop-blur-xl backdrop-saturate-150 bg-clip-padding ${isMobile ? 'border border-white/40 rounded-t-2xl mt-4' : 'border-x border-white/40'} before:content-[''] before:absolute before:inset-0 before:pointer-events-none before:bg-gradient-to-br before:from-white/20 before:via-white/5 before:to-white/5 min-h-0`}>
+                  <div className={`h-full overflow-y-auto ${isMobile ? 'p-4' : 'p-6'} space-y-4 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400`}>
+                    {chatMessages.map((message) => (
+                      <div
+                        key={message.id}
+                        className={`flex items-start gap-3 ${message.sender === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
+                      >
+                        {/* Avatar */}
+                        <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
+                          message.sender === 'user' 
+                            ? 'bg-primary/20 border-2 border-primary/30' 
+                            : `bg-gradient-to-br ${content.gradientColors} border-2 border-white/40`
+                        }`}>
+                          {message.sender === 'user' ? (
+                            <User className="w-5 h-5 text-primary" />
+                          ) : (
+                            <Bot className={`w-5 h-5 ${content.accentColor}`} />
+                          )}
+                        </div>
+
+                        {/* Message Bubble */}
+                        <div className={`max-w-[70%] ${
+                          message.sender === 'user'
+                            ? 'bg-primary/10 border border-primary/20 rounded-2xl rounded-tr-md'
+                            : 'bg-white/60 border border-white/40 rounded-2xl rounded-tl-md backdrop-blur-sm'
+                        } p-4 shadow-sm`}>
+                          <p className="text-gray-800 text-sm leading-relaxed whitespace-pre-wrap">
+                            {message.content}
+                          </p>
+                          <div className="text-xs text-gray-500 mt-2">
+                            {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* AI Typing Indicator */}
+                    {isAITyping && (
+                      <div className="flex items-start gap-3">
+                        <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center bg-gradient-to-br ${content.gradientColors} border-2 border-white/40`}>
+                          <Bot className={`w-5 h-5 ${content.accentColor}`} />
+                        </div>
+                        <div className="bg-white/60 border border-white/40 rounded-2xl rounded-tl-md backdrop-blur-sm p-4 shadow-sm">
+                          <div className="flex items-center gap-2">
+                            <div className="flex gap-1">
+                              <div className={`w-2 h-2 rounded-full animate-bounce ${content.accentColor.replace('text-', 'bg-')}`}></div>
+                              <div className={`w-2 h-2 rounded-full animate-bounce delay-100 ${content.accentColor.replace('text-', 'bg-')}`}></div>
+                              <div className={`w-2 h-2 rounded-full animate-bounce delay-200 ${content.accentColor.replace('text-', 'bg-')}`}></div>
+                            </div>
+                            <span className="text-xs text-gray-500">AI is typing...</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    <div ref={messagesEndRef} />
+                  </div>
+            </div>
+
+            {/* Chat Input */}
+            <div className={`relative overflow-hidden bg-white/60 backdrop-blur-2xl backdrop-saturate-150 bg-clip-padding border border-white/40 ${isMobile ? 'rounded-b-2xl' : 'rounded-b-[2rem]'} shadow-[0_20px_50px_rgba(8,_112,_184,_0.18)] ${isMobile ? 'p-4' : 'p-6'} before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/40 before:via-white/10 before:to-white/5`}>
+              <div className={`flex items-end ${isMobile ? 'gap-3' : 'gap-4'}`}>
+                <div className="flex-1 relative">
+                  <textarea
+                    ref={textareaRef}
+                    value={inputValue}
+                    onChange={(e) => onInputChange(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    placeholder=""
+                    className="w-full p-4 text-sm bg-white/40 border border-white/40 rounded-2xl resize-none focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-white/60 transition-all duration-300 min-h-[60px] max-h-32 placeholder-gray-500 backdrop-blur-sm"
+                    rows={2}
+                  />
+                </div>
+                <button
+                  onClick={() => handleSendMessage()}
+                  disabled={!inputValue.trim() || isAITyping}
+                  className={`p-4 rounded-2xl shadow-lg transition-all duration-300 transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${
+                    activeTab === 'flights' ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500' :
+                    activeTab === 'hotels' ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500' :
+                    activeTab === 'packages' ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500' :
+                    'bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90'
+                  } text-white`}
+                >
+                  <Send className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* Welcome Mode */
+        <div className={`relative flex items-start justify-center ${isMobile ? 'p-4 pt-0' : 'p-8 pt-0'} min-h-screen`}>
+          <div className={`${isMobile ? 'w-full' : 'max-w-4xl w-full'} ${isMobile ? 'mt-2' : 'mt-6'} space-y-4`}>
           
           {/* Preferences Display */}
           {preferences && (
@@ -210,20 +499,21 @@ export default function AIInterface({
               </div>
 
               {/* Dynamic Description */}
-              <div className="mb-12">
+              <div className="mb-8">
                 <p className="text-xl text-gray-700 font-medium transition-all duration-500">
                   {content.description}
                 </p>
               </div>
 
+
               {/* Input Section */}
               <div className="mb-10">
                 <div className="relative max-w-3xl mx-auto">
-                  <div className="relative overflow-hidden bg-white/60 backdrop-blur-xl backdrop-saturate-150 bg-clip-padding border border-white/40 rounded-3xl shadow-xl before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/40 before:via-white/10 before:to-white/5 after:content-[''] after:absolute after:-top-10 after:-left-10 after:w-32 after:h-32 after:bg-white/20 after:rounded-full after:blur-3xl after:pointer-events-none">
+                  <div className="relative overflow-hidden bg-white/50 backdrop-blur-3xl backdrop-saturate-200 bg-clip-padding border border-white/30 rounded-3xl shadow-2xl hover:shadow-3xl transition-all duration-500 before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/60 before:via-white/20 before:to-transparent before:opacity-80 after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:pointer-events-none after:bg-gradient-to-tl after:from-blue-100/20 after:via-purple-100/10 after:to-pink-100/20 after:animate-pulse after:duration-[3000ms] group hover:border-white/50 hover:bg-white/60 focus-within:border-white/70 focus-within:bg-white/70 focus-within:shadow-[0_0_50px_rgba(255,255,255,0.3)]">
                     <textarea
                       value={inputValue}
                       onChange={(e) => onInputChange(e.target.value)}
-                      placeholder={content.placeholder}
+                      placeholder=""
                       className="w-full p-6 text-lg bg-transparent resize-none focus:outline-none focus:ring-0 border-0 transition-all duration-300 min-h-[120px] placeholder-gray-400"
                       rows={4}
                     />
@@ -240,18 +530,48 @@ export default function AIInterface({
                     </div>
                   )}
                   
-                  {/* Dynamic Floating Action Button */}
-                  <button 
-                    onClick={onSubmit}
-                    className={`absolute -bottom-6 left-1/2 transform -translate-x-1/2 p-4 bg-gradient-to-r ${
-                      activeTab === 'flights' ? 'from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500' :
-                      activeTab === 'hotels' ? 'from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500' :
-                      activeTab === 'packages' ? 'from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500' :
-                      'from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90'
-                    } text-white rounded-full shadow-2xl hover:shadow-lg transition-all duration-500 transform hover:scale-110 active:scale-95`}
-                  >
-                    <Sparkles className="w-6 h-6" />
-                  </button>
+                  {/* Preferences and Start Planning Buttons */}
+                  <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 flex items-center gap-4">
+                    {/* Preferences Button */}
+                    <button 
+                      onClick={() => {
+                        onPreferencesOpen?.();
+                      }}
+                      className="relative overflow-hidden px-8 py-4 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-400 hover:to-gray-500 text-white rounded-2xl font-bold text-lg shadow-2xl hover:shadow-xl transition-all duration-300 transform hover:scale-105 active:scale-95 backdrop-blur-sm border border-white/20 before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/20 before:via-white/5 before:to-white/5"
+                    >
+                      <span className="relative z-10 flex items-center gap-3 whitespace-nowrap">
+                        <Settings className="w-6 h-6" />
+                        Preferences
+                      </span>
+                    </button>
+
+                    {/* Start Planning Button */}
+                    <button 
+                      onClick={() => {
+                        if (inputValue.trim()) {
+                          // If user has entered text, start search with their input immediately
+                          handleSendMessage(inputValue);
+                        } else {
+                          // If no input, start with a default planning prompt immediately
+                          const defaultPrompt = "Help me plan my next trip";
+                          handleSendMessage(defaultPrompt);
+                        }
+                      }}
+                      className={`relative overflow-hidden px-8 py-4 bg-gradient-to-r ${
+                        activeTab === 'flights' ? 'from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500' :
+                        activeTab === 'hotels' ? 'from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500' :
+                        activeTab === 'packages' ? 'from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500' :
+                        activeTab === 'mapout' ? 'from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500' :
+                        'from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90'
+                      } text-white rounded-2xl font-bold text-lg shadow-2xl hover:shadow-xl transition-all duration-300 transform hover:scale-105 active:scale-95 backdrop-blur-sm border border-white/20 before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/20 before:via-white/5 before:to-white/5`}
+                    >
+                      <span className="relative z-10 flex items-center gap-3 whitespace-nowrap">
+                        <Sparkles className="w-6 h-6" />
+                        Start Planning
+                        <ArrowRight className="w-5 h-5" />
+                      </span>
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -264,37 +584,36 @@ export default function AIInterface({
                    'Get inspired with these travel ideas:'}
                 </p>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-w-5xl mx-auto">
-                  {content.prompts.map((prompt, index) => (
-                    <button
-                      key={`${activeTab}-${index}`}
-                      onClick={() => onInputChange(prompt.text)}
-                      className={`
-                        group relative p-4 bg-gradient-to-br ${prompt.color}
-                        backdrop-blur-sm border rounded-2xl font-medium 
-                        transition-all duration-500 hover:shadow-lg 
-                        transform hover:scale-105 hover:-translate-y-1 active:scale-95
-                        text-left overflow-hidden animate-in fade-in-0 slide-in-from-bottom-4
-                      `}
-                      style={{ animationDelay: `${index * 50}ms` }}
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="text-2xl group-hover:scale-110 transition-transform duration-300">
-                          {prompt.emoji}
-                        </span>
-                        <span className="text-gray-700 group-hover:text-gray-900 font-medium text-sm leading-relaxed">
-                          {prompt.text}
-                        </span>
-                      </div>
-                      <div className="absolute inset-0 bg-white/0 group-hover:bg-white/10 transition-all duration-300 rounded-2xl"></div>
-                    </button>
-                  ))}
+                <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'}`}>
+                  {content.prompts.map((prompt, index) => {
+                    // Handle both string and object prompt types
+                    const promptText = typeof prompt === 'string' ? prompt : prompt.text;
+                    const promptEmoji = typeof prompt === 'string' ? '✨' : prompt.emoji;
+                    
+                    return (
+                      <button
+                        key={index}
+                        onClick={() => handleSendMessage(promptText)}
+                        className={`group relative overflow-hidden ${isMobile ? 'p-4' : 'p-5'} rounded-2xl border border-white/40 transition-all duration-300 text-left transform hover:scale-[1.02] hover:-translate-y-1 active:scale-[0.98] bg-white/60 backdrop-blur-xl backdrop-saturate-150 bg-clip-padding shadow-[0_8px_32px_rgba(8,_112,_184,_0.12)] hover:shadow-[0_12px_40px_rgba(8,_112,_184,_0.18)] hover:bg-white/70 before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/40 before:via-white/10 before:to-white/5`}
+                      >
+                        <div className="flex items-center gap-3 relative z-10">
+                          <span className={`${isMobile ? 'text-xl' : 'text-2xl'} group-hover:scale-110 transition-transform duration-300`}>{promptEmoji}</span>
+                          <span className={`${isMobile ? 'text-sm' : 'text-sm'} font-medium text-gray-700 group-hover:text-gray-900 transition-colors duration-300 leading-relaxed`}>
+                            {promptText}
+                          </span>
+                        </div>
+                        <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-white/10 opacity-0 group-hover:opacity-100 transition-all duration-300 rounded-2xl"></div>
+                        <div className="absolute inset-0 ring-1 ring-white/20 rounded-2xl opacity-0 group-hover:opacity-100 transition-all duration-300"></div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

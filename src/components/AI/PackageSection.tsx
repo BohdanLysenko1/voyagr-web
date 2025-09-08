@@ -1,14 +1,15 @@
 import { useState } from 'react';
-import { Map, Heart, ChevronDown, ChevronRight, Filter, Sparkles, Users, Calendar, Compass } from 'lucide-react';
+import { Map, Heart, ChevronDown, ChevronRight, Filter, Sparkles, Users, Calendar, Compass, Plus } from 'lucide-react';
 import { Package } from '@/types/ai';
 import HeartableItemComponent from './HeartableItem';
 
 interface PackageSectionProps {
   packages: Package[];
   onHeartToggle: (id: number) => void;
+  onNewTrip?: () => void;
 }
 
-export default function PackageSection({ packages, onHeartToggle }: PackageSectionProps) {
+export default function PackageSection({ packages, onHeartToggle, onNewTrip }: PackageSectionProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
   const [aiPersonalizedPackages] = useState([
@@ -66,6 +67,19 @@ export default function PackageSection({ packages, onHeartToggle }: PackageSecti
       
       {isExpanded && (
         <div className="space-y-4 animate-in slide-in-from-top-2 duration-300">
+          {/* New Trip Button */}
+          {onNewTrip && (
+            <button
+              onClick={onNewTrip}
+              className="w-full flex items-center justify-center gap-3 p-4 rounded-2xl bg-gradient-to-r from-purple-600/90 to-pink-600/90 hover:from-purple-500 hover:to-pink-500 text-white font-medium transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl backdrop-blur-sm border border-white/20 group mb-6"
+            >
+              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-white/15 group-hover:bg-white/25 group-hover:scale-110 transition-all duration-300 backdrop-blur-sm border border-white/20">
+                <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" />
+              </div>
+              <span className="tracking-wide font-medium">New Trip</span>
+            </button>
+          )}
+
           {/* AI Personalized Packages */}
           <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-3 rounded-lg border border-purple-100">
             <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">

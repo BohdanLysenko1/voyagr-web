@@ -25,11 +25,13 @@ export const SAMPLE_PACKAGES: Package[] = [
   { id: 4, name: 'Midnight in Paris', duration: 'Sep 1 - Sep 8', hearted: false },
 ];
 
-export const SUGGESTED_PROMPTS: string[] = [
-  "Relaxing honeymoon in October",
-  "Nature retreat, camping, and hiking",
-  "Affordable solo trip to South America",
-  "10-day Italy excursion with food"
+export const SUGGESTED_PROMPTS = [
+  { text: "Relaxing honeymoon in October", emoji: "💕" },
+  { text: "Nature retreat, camping, and hiking", emoji: "🏕️" },
+  { text: "Affordable solo trip to South America", emoji: "💰" },
+  { text: "10-day Italy excursion with food", emoji: "🍝" },
+  { text: "Cultural exploration in Japan", emoji: "🏯" },
+  { text: "Safari adventure in Kenya", emoji: "🦁" }
 ];
 
 export const PLACEHOLDER_TEXT = "Write your heart out! From 'Europe in May' to 'Best foodie cities in Asia'... Say what you're in the mood for - I'll take care of the rest.";
