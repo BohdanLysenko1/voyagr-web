@@ -368,7 +368,7 @@ export default function AIInterface({
             )}
 
             {/* Messages Container */}
-            <div className={`flex-1 relative bg-white/40 backdrop-blur-xl backdrop-saturate-150 bg-clip-padding ${isMobile ? 'border border-white/40 rounded-2xl mt-4 mb-20 min-h-[300px]' : 'border-x border-white/40'} before:content-[''] before:absolute before:inset-0 before:pointer-events-none before:bg-gradient-to-br before:from-white/20 before:via-white/5 before:to-white/5`}>
+            <div className={`flex-1 relative bg-white/40 backdrop-blur-xl backdrop-saturate-150 bg-clip-padding ${isMobile ? 'border border-white/40 rounded-2xl mt-4 mb-24 min-h-[300px]' : 'border-x border-white/40'} before:content-[''] before:absolute before:inset-0 before:pointer-events-none before:bg-gradient-to-br before:from-white/20 before:via-white/5 before:to-white/5`}>
                   <div className={`h-full overflow-y-auto ${isMobile ? 'p-4' : 'p-6'} space-y-4 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400`}>
                     {chatMessages.map((message) => (
                       <div
@@ -427,8 +427,8 @@ export default function AIInterface({
             </div>
 
             {/* Compact Chat Input */}
-            <div className={`${isMobile ? 'fixed bottom-4 left-4 right-4' : 'relative'} z-40`}>
-              <div className="relative overflow-hidden bg-white/70 backdrop-blur-3xl backdrop-saturate-200 border border-white/30 rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.1)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)] transition-all duration-300 before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/50 before:via-white/20 before:to-white/10">
+            <div className={`${isMobile ? 'relative mt-4 mx-4' : 'relative'} z-[9999]`}>
+              <div className={`relative overflow-hidden ${isMobile ? 'bg-white/90 border-2 border-white/80' : 'bg-white/70 border border-white/30'} backdrop-blur-3xl backdrop-saturate-200 rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.1)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)] transition-all duration-300 before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/50 before:via-white/20 before:to-white/10`}>
                 <div className="flex items-center gap-3 p-4">
                   <div className="flex-1 relative">
                     <textarea

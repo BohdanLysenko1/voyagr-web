@@ -145,7 +145,7 @@ export default function AiPage() {
   };
 
   return (
-    <div className="h-screen bg-gradient-to-br from-slate-50 via-blue-50/50 to-purple-50/30 overflow-hidden">
+    <div className="h-screen bg-gradient-to-br from-slate-50 via-blue-50/50 to-purple-50/30">
       {/* Mobile Layout */}
       <div className="lg:hidden flex flex-col h-full relative pt-16 pb-safe">
         {/* Mobile Sidebar Backdrop */}
