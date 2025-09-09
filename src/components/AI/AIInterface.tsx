@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Sparkles, Send, Bot, User, Menu, ArrowRight, Settings } from 'lucide-react';
+import { Sparkles, Send, Bot, User, Menu, ArrowRight, Settings, MessageSquarePlus } from 'lucide-react';
 import Image from 'next/image';
 
 type TabKey = 'plan' | 'preferences' | 'flights' | 'hotels' | 'packages' | 'mapout';
@@ -50,6 +50,15 @@ export default function AIInterface({
   const [isAITyping, setIsAITyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-resize textarea
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.style.height = 'auto';
+      textarea.style.height = `${Math.min(textarea.scrollHeight, 128)}px`;
+    }
+  }, [inputValue]);
 
   // Clear chat messages to return to welcome screen
   const clearChat = () => {
@@ -266,7 +275,7 @@ export default function AIInterface({
   console.log('Chat messages count:', chatMessages.length, 'Show chat:', showChat);
 
   return (
-    <div className={`flex-1 relative ${isMobile ? 'h-full flex flex-col' : 'h-full flex flex-col'}`}>
+    <div className={`flex-1 relative ${isMobile ? 'h-full flex flex-col overflow-hidden' : 'h-full flex flex-col'}`}>
       
       {/* Mobile Floating Menu Button */}
       {isMobile && (
@@ -329,7 +338,20 @@ export default function AIInterface({
       {/* Chat Interface or Welcome Screen */}
       {showChat ? (
         /* Chat Mode */
-        <div className={`relative flex flex-col h-full ${isMobile ? 'p-4 pt-0' : 'p-8 pt-0'}`}>
+        <div className={`relative flex flex-col ${isMobile ? 'h-screen p-4 pt-0' : 'h-full p-8 pt-0'}`}>
+          {/* Mobile New Chat Button */}
+          {isMobile && (
+            <button
+              onClick={() => {
+                clearChat();
+                onNewTrip?.();
+              }}
+              className="fixed top-20 right-4 z-50 w-14 h-14 rounded-full bg-white/70 backdrop-blur-xl backdrop-saturate-150 border border-white/40 shadow-[0_8px_32px_rgba(8,_112,_184,_0.2)] hover:shadow-[0_12px_40px_rgba(8,_112,_184,_0.3)] transition-all duration-300 transform hover:scale-105 active:scale-95 flex items-center justify-center before:content-[''] before:absolute before:inset-0 before:rounded-full before:pointer-events-none before:bg-gradient-to-br before:from-white/40 before:via-white/10 before:to-white/5"
+            >
+              <MessageSquarePlus className="w-6 h-6 text-gray-700" />
+            </button>
+          )}
+          
           <div className={`${isMobile ? 'w-full' : 'max-w-4xl w-full mx-auto'} ${isMobile ? 'mt-2' : 'mt-6'} h-full flex flex-col`}>
             {/* Chat Header - Desktop only */}
             {!isMobile && (
@@ -346,7 +368,7 @@ export default function AIInterface({
             )}
 
             {/* Messages Container */}
-            <div className={`flex-1 relative bg-white/40 backdrop-blur-xl backdrop-saturate-150 bg-clip-padding ${isMobile ? 'border border-white/40 rounded-t-2xl mt-4' : 'border-x border-white/40'} before:content-[''] before:absolute before:inset-0 before:pointer-events-none before:bg-gradient-to-br before:from-white/20 before:via-white/5 before:to-white/5 min-h-0`}>
+            <div className={`flex-1 relative bg-white/40 backdrop-blur-xl backdrop-saturate-150 bg-clip-padding ${isMobile ? 'border border-white/40 rounded-2xl mt-4 mb-20 min-h-[300px]' : 'border-x border-white/40'} before:content-[''] before:absolute before:inset-0 before:pointer-events-none before:bg-gradient-to-br before:from-white/20 before:via-white/5 before:to-white/5`}>
                   <div className={`h-full overflow-y-auto ${isMobile ? 'p-4' : 'p-6'} space-y-4 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400`}>
                     {chatMessages.map((message) => (
                       <div
@@ -404,39 +426,41 @@ export default function AIInterface({
                   </div>
             </div>
 
-            {/* Chat Input */}
-            <div className={`relative overflow-hidden bg-white/60 backdrop-blur-2xl backdrop-saturate-150 bg-clip-padding border border-white/40 ${isMobile ? 'rounded-b-2xl' : 'rounded-b-[2rem]'} shadow-[0_20px_50px_rgba(8,_112,_184,_0.18)] ${isMobile ? 'p-4' : 'p-6'} before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/40 before:via-white/10 before:to-white/5`}>
-              <div className={`flex items-end ${isMobile ? 'gap-3' : 'gap-4'}`}>
-                <div className="flex-1 relative">
-                  <textarea
-                    ref={textareaRef}
-                    value={inputValue}
-                    onChange={(e) => onInputChange(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    placeholder=""
-                    className={`w-full ${isMobile ? 'p-10 text-2xl' : 'p-8 text-xl'} bg-white/40 border border-white/40 rounded-2xl resize-none focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-white/60 transition-all duration-300 ${isMobile ? 'min-h-[200px]' : 'min-h-[120px]'} ${isMobile ? 'max-h-80' : 'max-h-48'} placeholder-gray-500 backdrop-blur-sm`}
-                    rows={3}
-                  />
+            {/* Compact Chat Input */}
+            <div className={`${isMobile ? 'fixed bottom-4 left-4 right-4' : 'relative'} z-40`}>
+              <div className="relative overflow-hidden bg-white/70 backdrop-blur-3xl backdrop-saturate-200 border border-white/30 rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.1)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)] transition-all duration-300 before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/50 before:via-white/20 before:to-white/10">
+                <div className="flex items-center gap-3 p-4">
+                  <div className="flex-1 relative">
+                    <textarea
+                      ref={textareaRef}
+                      value={inputValue}
+                      onChange={(e) => onInputChange(e.target.value)}
+                      onKeyPress={handleKeyPress}
+                      placeholder="Ask anything..."
+                      className="w-full bg-transparent border-none resize-none focus:outline-none text-gray-800 placeholder-gray-500 text-base leading-6 min-h-[24px] max-h-32 py-0"
+                      rows={1}
+                      style={{ height: 'auto' }}
+                    />
+                  </div>
+                  <button
+                    onClick={() => handleSendMessage()}
+                    disabled={!inputValue.trim() || isAITyping}
+                    className={`flex-shrink-0 w-8 h-8 rounded-full transition-all duration-200 flex items-center justify-center ${
+                      inputValue.trim() && !isAITyping
+                        ? 'bg-gray-800 hover:bg-gray-700 text-white scale-100'
+                        : 'bg-gray-200 text-gray-400 scale-95'
+                    }`}
+                  >
+                    <Send className="w-4 h-4" />
+                  </button>
                 </div>
-                <button
-                  onClick={() => handleSendMessage()}
-                  disabled={!inputValue.trim() || isAITyping}
-                  className={`${isMobile ? 'p-4 min-w-[56px] min-h-[56px]' : 'p-4'} rounded-2xl shadow-lg transition-all duration-300 transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center ${
-                    activeTab === 'flights' ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500' :
-                    activeTab === 'hotels' ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500' :
-                    activeTab === 'packages' ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500' :
-                    'bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90'
-                  } text-white`}
-                >
-                  <Send className="w-5 h-5" />
-                </button>
               </div>
             </div>
           </div>
         </div>
       ) : (
         /* Welcome Mode */
-        <div className={`relative flex items-start justify-center ${isMobile ? 'p-3 pt-0 pb-2' : 'p-8 pt-0'}`}>
+        <div className={`relative flex items-start justify-center ${isMobile ? 'p-3 pt-0 pb-4 flex-1 overflow-y-auto' : 'p-8 pt-0'}`}>
           <div className={`${isMobile ? 'w-full' : 'max-w-4xl w-full'} ${isMobile ? 'mt-0' : 'mt-4'} ${isMobile ? 'space-y-1' : 'space-y-3'}`}>
           
           {/* Compact Preferences Display */}
@@ -511,12 +535,13 @@ export default function AIInterface({
               {/* Input Section */}
               <div className={isMobile ? (preferences ? 'mb-4' : 'mb-4') : 'mb-10'}>
                 <div className="relative max-w-3xl mx-auto">
-                  <div className="relative overflow-hidden bg-white/50 backdrop-blur-3xl backdrop-saturate-200 bg-clip-padding border border-white/30 rounded-2xl shadow-2xl hover:shadow-3xl transition-all duration-500 before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/60 before:via-white/20 before:to-transparent before:opacity-80 after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:pointer-events-none after:bg-gradient-to-tl after:from-blue-100/20 after:via-purple-100/10 after:to-pink-100/20 after:animate-pulse after:duration-[3000ms] group hover:border-white/50 hover:bg-white/60 focus-within:border-white/70 focus-within:bg-white/70 focus-within:shadow-[0_0_50px_rgba(255,255,255,0.3)]">
+                  <div className={`relative overflow-hidden ${isMobile ? 'bg-white/80 border-2 border-white/60' : 'bg-white/50 border border-white/30'} backdrop-blur-3xl backdrop-saturate-200 bg-clip-padding rounded-2xl shadow-2xl hover:shadow-3xl transition-all duration-500 before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/60 before:via-white/20 before:to-transparent before:opacity-80 after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:pointer-events-none after:bg-gradient-to-tl after:from-blue-100/20 after:via-purple-100/10 after:to-pink-100/20 after:animate-pulse after:duration-[3000ms] group hover:border-white/50 hover:bg-white/60 focus-within:border-white/70 focus-within:bg-white/70 focus-within:shadow-[0_0_50px_rgba(255,255,255,0.3)]`}>
                     <textarea
                       value={inputValue}
                       onChange={(e) => onInputChange(e.target.value)}
+                      onKeyPress={handleKeyPress}
                       placeholder=""
-                      className={`w-full ${isMobile ? (preferences ? 'p-4 text-base min-h-[80px]' : 'p-5 text-lg min-h-[100px]') : 'p-6 text-lg min-h-[120px]'} bg-transparent resize-none focus:outline-none focus:ring-0 border-0 transition-all duration-300 placeholder-gray-400`}
+                      className={`w-full ${isMobile ? (preferences ? 'p-4 text-base min-h-[80px]' : 'p-5 text-lg min-h-[100px]') : 'p-6 text-lg min-h-[120px]'} bg-transparent resize-none focus:outline-none focus:ring-0 border-0 transition-all duration-300 placeholder-gray-500 text-gray-800 relative z-10`}
                       rows={4}
                     />
                   </div>
@@ -533,7 +558,7 @@ export default function AIInterface({
                   )}
                   
                   {/* Preferences and Start Planning Buttons */}
-                  <div className={`absolute ${isMobile ? '-bottom-3 left-1/2 transform -translate-x-1/2 flex flex-col gap-2 w-full max-w-xs' : '-bottom-6 left-1/2 transform -translate-x-1/2 flex items-center gap-4'}`}>
+                  <div className={`${isMobile ? 'mt-4 flex flex-col gap-2 w-full' : 'absolute -bottom-6 left-1/2 transform -translate-x-1/2 flex items-center gap-4'}`}>
                     {/* Preferences Button */}
                     <button 
                       onClick={() => {
