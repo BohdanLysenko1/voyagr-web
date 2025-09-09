@@ -147,11 +147,19 @@ export default function AiPage() {
   return (
     <div className="h-screen bg-gradient-to-br from-slate-50 via-blue-50/50 to-purple-50/30 overflow-hidden">
       {/* Mobile Layout */}
-      <div className="lg:hidden flex flex-col h-full relative pt-16">
-        {/* Mobile Sidebar - Slide from Right */}
+      <div className="lg:hidden flex flex-col h-full relative pt-16 pb-safe">
+        {/* Mobile Sidebar Backdrop */}
+        {isSidebarOpen && (
+          <div 
+            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
+            onClick={() => setIsSidebarOpen(false)}
+          />
+        )}
+        
+        {/* Mobile Sidebar - Slide from Left */}
         <div className={`transform transition-transform duration-300 ease-in-out ${
-          isSidebarOpen ? 'translate-x-0' : 'translate-x-full'
-        } fixed top-0 right-0 bottom-0 w-80 z-50 bg-white/95 backdrop-blur-xl border-l border-white/40 shadow-2xl overflow-hidden`}>
+          isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        } fixed top-0 left-0 bottom-0 w-80 max-w-[85vw] z-50 bg-white/95 backdrop-blur-xl border-r border-white/40 shadow-2xl overflow-hidden`}>
           <AISidebar
             flights={updatedFlights}
             hotels={updatedHotels}

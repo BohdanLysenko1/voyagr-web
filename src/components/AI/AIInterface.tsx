@@ -272,7 +272,7 @@ export default function AIInterface({
       {isMobile && (
         <button
           onClick={onSidebarToggle}
-          className="fixed top-20 left-4 z-50 p-3 rounded-full bg-white/80 backdrop-blur-sm border border-white/40 hover:bg-white/90 transition-all duration-200 shadow-lg"
+          className="fixed top-20 left-4 z-40 p-4 rounded-full bg-white/80 backdrop-blur-sm border border-white/40 hover:bg-white/90 transition-all duration-200 shadow-lg min-h-[48px] min-w-[48px] flex items-center justify-center"
         >
           <Menu className="w-5 h-5 text-gray-700" />
         </button>
@@ -414,14 +414,14 @@ export default function AIInterface({
                     onChange={(e) => onInputChange(e.target.value)}
                     onKeyPress={handleKeyPress}
                     placeholder=""
-                    className="w-full p-4 text-sm bg-white/40 border border-white/40 rounded-2xl resize-none focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-white/60 transition-all duration-300 min-h-[60px] max-h-32 placeholder-gray-500 backdrop-blur-sm"
-                    rows={2}
+                    className={`w-full ${isMobile ? 'p-10 text-2xl' : 'p-8 text-xl'} bg-white/40 border border-white/40 rounded-2xl resize-none focus:outline-none focus:ring-2 focus:ring-white/50 focus:border-white/60 transition-all duration-300 ${isMobile ? 'min-h-[200px]' : 'min-h-[120px]'} ${isMobile ? 'max-h-80' : 'max-h-48'} placeholder-gray-500 backdrop-blur-sm`}
+                    rows={3}
                   />
                 </div>
                 <button
                   onClick={() => handleSendMessage()}
                   disabled={!inputValue.trim() || isAITyping}
-                  className={`p-4 rounded-2xl shadow-lg transition-all duration-300 transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${
+                  className={`${isMobile ? 'p-4 min-w-[56px] min-h-[56px]' : 'p-4'} rounded-2xl shadow-lg transition-all duration-300 transform hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center ${
                     activeTab === 'flights' ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500' :
                     activeTab === 'hotels' ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500' :
                     activeTab === 'packages' ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500' :
@@ -436,42 +436,44 @@ export default function AIInterface({
         </div>
       ) : (
         /* Welcome Mode */
-        <div className={`relative flex items-start justify-center ${isMobile ? 'p-4 pt-0' : 'p-8 pt-0'} min-h-screen`}>
-          <div className={`${isMobile ? 'w-full' : 'max-w-4xl w-full'} ${isMobile ? 'mt-2' : 'mt-6'} space-y-4`}>
+        <div className={`relative flex items-start justify-center ${isMobile ? 'p-3 pt-0 pb-2' : 'p-8 pt-0'}`}>
+          <div className={`${isMobile ? 'w-full' : 'max-w-4xl w-full'} ${isMobile ? 'mt-0' : 'mt-4'} ${isMobile ? 'space-y-1' : 'space-y-3'}`}>
           
-          {/* Preferences Display */}
+          {/* Compact Preferences Display */}
           {preferences && (
-            <div className="relative overflow-hidden bg-white/40 backdrop-blur-xl backdrop-saturate-150 bg-clip-padding border border-white/30 rounded-2xl shadow-lg p-4 before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/20 before:via-white/5 before:to-white/5">
+            <div className={`relative overflow-hidden bg-white/40 backdrop-blur-xl backdrop-saturate-150 bg-clip-padding border border-white/30 rounded-xl shadow-lg ${isMobile ? 'p-2' : 'p-4'} before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/20 before:via-white/5 before:to-white/5`}>
               <div className="relative z-10">
-                <h3 className="text-sm font-semibold text-gray-700 mb-3">Your Trip Preferences</h3>
-                <div className="flex flex-wrap gap-2">
-                  {preferences.travelStyle && (
-                    <span className="px-3 py-1 bg-primary/10 text-primary text-xs font-medium rounded-full border border-primary/20">
-                      {preferences.travelStyle.charAt(0).toUpperCase() + preferences.travelStyle.slice(1)} Style
-                    </span>
-                  )}
-                  {preferences.budget && (
-                    <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full border border-green-200">
-                      {preferences.budget.replace('-', ' - $').replace('plus', '+')}
-                    </span>
-                  )}
-                  {preferences.groupSize && (
-                    <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full border border-blue-200">
-                      {preferences.groupSize}
-                    </span>
-                  )}
-                  {preferences.activities && preferences.activities.length > 0 && (
-                    <span className="px-3 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded-full border border-purple-200">
-                      {preferences.activities.length} Activities Selected
-                    </span>
-                  )}
+                <div className="flex items-center justify-between">
+                  <h3 className={`${isMobile ? 'text-xs' : 'text-sm'} font-semibold text-gray-700`}>Trip Preferences</h3>
+                  <div className="flex flex-wrap gap-1">
+                    {preferences.travelStyle && (
+                      <span className={`px-2 py-1 bg-primary/10 text-primary ${isMobile ? 'text-xs' : 'text-xs'} font-medium rounded-full border border-primary/20`}>
+                        {preferences.travelStyle.charAt(0).toUpperCase() + preferences.travelStyle.slice(1)}
+                      </span>
+                    )}
+                    {preferences.budget && (
+                      <span className={`px-2 py-1 bg-green-100 text-green-700 ${isMobile ? 'text-xs' : 'text-xs'} font-medium rounded-full border border-green-200`}>
+                        {preferences.budget.includes('-') ? preferences.budget.split('-')[0] + '+' : preferences.budget}
+                      </span>
+                    )}
+                    {preferences.groupSize && (
+                      <span className={`px-2 py-1 bg-blue-100 text-blue-700 ${isMobile ? 'text-xs' : 'text-xs'} font-medium rounded-full border border-blue-200`}>
+                        {preferences.groupSize}
+                      </span>
+                    )}
+                    {preferences.activities && preferences.activities.length > 0 && (
+                      <span className={`px-2 py-1 bg-purple-100 text-purple-700 ${isMobile ? 'text-xs' : 'text-xs'} font-medium rounded-full border border-purple-200`}>
+                        {preferences.activities.length} Activities
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
           )}
           
           {/* Main AI Card with Enhanced Glassmorphism */}
-          <div className="relative overflow-hidden bg-white/60 backdrop-blur-2xl backdrop-saturate-150 bg-clip-padding border border-white/40 rounded-[2rem] shadow-[0_20px_50px_rgba(8,_112,_184,_0.18)] p-12 text-center transition-all duration-700 ease-in-out before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/40 before:via-white/10 before:to-white/5 after:content-[''] after:absolute after:-top-10 after:-left-10 after:w-40 after:h-40 after:bg-white/20 after:rounded-full after:blur-3xl after:pointer-events-none hover:shadow-[0_25px_60px_rgba(8,_112,_184,_0.25)] hover:border-white/50">
+          <div className={`relative overflow-hidden bg-white/60 backdrop-blur-2xl backdrop-saturate-150 bg-clip-padding border border-white/40 ${isMobile ? (preferences ? 'rounded-2xl p-3' : 'rounded-2xl p-4') : 'rounded-[2rem] p-12'} shadow-[0_20px_50px_rgba(8,_112,_184,_0.18)] text-center transition-all duration-700 ease-in-out before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/40 before:via-white/10 before:to-white/5 after:content-[''] after:absolute after:-top-10 after:-left-10 after:w-40 after:h-40 after:bg-white/20 after:rounded-full after:blur-3xl after:pointer-events-none hover:shadow-[0_25px_60px_rgba(8,_112,_184,_0.25)] hover:border-white/50`}>
             
             {/* Dynamic Gradient Orb Effects */}
             <div className={`absolute -top-20 -right-20 w-40 h-40 bg-gradient-to-br ${content.gradientColors} rounded-full blur-3xl animate-pulse transition-all duration-1000`}></div>
@@ -480,41 +482,41 @@ export default function AIInterface({
             {/* Content */}
             <div className="relative z-10">
               {/* Logo and Dynamic Title */}
-              <div className="flex items-center justify-center gap-4 mb-8 transition-all duration-700 ease-in-out">
+              <div className={`flex items-center justify-center gap-4 ${isMobile ? (preferences ? 'mb-1' : 'mb-2') : 'mb-6'} transition-all duration-700 ease-in-out`}>
                 {activeTab === 'plan' && (
                   <div className="relative">
                     <Image
                       src="/images/AIPage/VoyagrAI logo.png"
                       alt="VoyagrAI Logo"
-                      width={80}
-                      height={80}
+                      width={isMobile ? 60 : 80}
+                      height={isMobile ? 60 : 80}
                       className="object-contain"
                       priority
                     />
                   </div>
                 )}
-                <h1 className={`text-6xl font-bold leading-none transition-all duration-700 ${content.accentColor}`}>
+                <h1 className={`${isMobile ? (preferences ? 'text-2xl' : 'text-3xl') : 'text-6xl'} font-bold leading-none transition-all duration-700 ${content.accentColor}`}>
                   {content.title}
                 </h1>
               </div>
 
               {/* Dynamic Description */}
-              <div className="mb-8">
-                <p className="text-xl text-gray-700 font-medium transition-all duration-500">
+              <div className={isMobile ? (preferences ? 'mb-0' : 'mb-2') : 'mb-6'}>
+                <p className={`${isMobile ? (preferences ? 'text-xs' : 'text-sm') : 'text-lg'} text-gray-700 font-medium transition-all duration-500`}>
                   {content.description}
                 </p>
               </div>
 
 
               {/* Input Section */}
-              <div className="mb-10">
+              <div className={isMobile ? (preferences ? 'mb-4' : 'mb-4') : 'mb-10'}>
                 <div className="relative max-w-3xl mx-auto">
-                  <div className="relative overflow-hidden bg-white/50 backdrop-blur-3xl backdrop-saturate-200 bg-clip-padding border border-white/30 rounded-3xl shadow-2xl hover:shadow-3xl transition-all duration-500 before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/60 before:via-white/20 before:to-transparent before:opacity-80 after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:pointer-events-none after:bg-gradient-to-tl after:from-blue-100/20 after:via-purple-100/10 after:to-pink-100/20 after:animate-pulse after:duration-[3000ms] group hover:border-white/50 hover:bg-white/60 focus-within:border-white/70 focus-within:bg-white/70 focus-within:shadow-[0_0_50px_rgba(255,255,255,0.3)]">
+                  <div className="relative overflow-hidden bg-white/50 backdrop-blur-3xl backdrop-saturate-200 bg-clip-padding border border-white/30 rounded-2xl shadow-2xl hover:shadow-3xl transition-all duration-500 before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/60 before:via-white/20 before:to-transparent before:opacity-80 after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:pointer-events-none after:bg-gradient-to-tl after:from-blue-100/20 after:via-purple-100/10 after:to-pink-100/20 after:animate-pulse after:duration-[3000ms] group hover:border-white/50 hover:bg-white/60 focus-within:border-white/70 focus-within:bg-white/70 focus-within:shadow-[0_0_50px_rgba(255,255,255,0.3)]">
                     <textarea
                       value={inputValue}
                       onChange={(e) => onInputChange(e.target.value)}
                       placeholder=""
-                      className="w-full p-6 text-lg bg-transparent resize-none focus:outline-none focus:ring-0 border-0 transition-all duration-300 min-h-[120px] placeholder-gray-400"
+                      className={`w-full ${isMobile ? (preferences ? 'p-4 text-base min-h-[80px]' : 'p-5 text-lg min-h-[100px]') : 'p-6 text-lg min-h-[120px]'} bg-transparent resize-none focus:outline-none focus:ring-0 border-0 transition-all duration-300 placeholder-gray-400`}
                       rows={4}
                     />
                   </div>
@@ -531,16 +533,16 @@ export default function AIInterface({
                   )}
                   
                   {/* Preferences and Start Planning Buttons */}
-                  <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 flex items-center gap-4">
+                  <div className={`absolute ${isMobile ? '-bottom-3 left-1/2 transform -translate-x-1/2 flex flex-col gap-2 w-full max-w-xs' : '-bottom-6 left-1/2 transform -translate-x-1/2 flex items-center gap-4'}`}>
                     {/* Preferences Button */}
                     <button 
                       onClick={() => {
                         onPreferencesOpen?.();
                       }}
-                      className="relative overflow-hidden px-8 py-4 bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-400 hover:to-gray-500 text-white rounded-2xl font-bold text-lg shadow-2xl hover:shadow-xl transition-all duration-300 transform hover:scale-105 active:scale-95 backdrop-blur-sm border border-white/20 before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/20 before:via-white/5 before:to-white/5"
+                      className={`relative overflow-hidden ${isMobile ? 'px-6 py-3 text-base w-full' : 'px-8 py-4 text-lg'} bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-400 hover:to-gray-500 text-white rounded-2xl font-bold shadow-2xl hover:shadow-xl transition-all duration-300 transform hover:scale-105 active:scale-95 backdrop-blur-sm border border-white/20 before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/20 before:via-white/5 before:to-white/5 min-h-[48px]`}
                     >
-                      <span className="relative z-10 flex items-center gap-3 whitespace-nowrap">
-                        <Settings className="w-6 h-6" />
+                      <span className="relative z-10 flex items-center justify-center gap-3 whitespace-nowrap">
+                        <Settings className={isMobile ? 'w-5 h-5' : 'w-6 h-6'} />
                         Preferences
                       </span>
                     </button>
@@ -557,18 +559,18 @@ export default function AIInterface({
                           handleSendMessage(defaultPrompt);
                         }
                       }}
-                      className={`relative overflow-hidden px-8 py-4 bg-gradient-to-r ${
+                      className={`relative overflow-hidden ${isMobile ? 'px-6 py-3 text-base w-full' : 'px-8 py-4 text-lg'} bg-gradient-to-r ${
                         activeTab === 'flights' ? 'from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500' :
                         activeTab === 'hotels' ? 'from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500' :
                         activeTab === 'packages' ? 'from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500' :
                         activeTab === 'mapout' ? 'from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500' :
                         'from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90'
-                      } text-white rounded-2xl font-bold text-lg shadow-2xl hover:shadow-xl transition-all duration-300 transform hover:scale-105 active:scale-95 backdrop-blur-sm border border-white/20 before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/20 before:via-white/5 before:to-white/5`}
+                      } text-white rounded-2xl font-bold shadow-2xl hover:shadow-xl transition-all duration-300 transform hover:scale-105 active:scale-95 backdrop-blur-sm border border-white/20 before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/20 before:via-white/5 before:to-white/5 min-h-[48px]`}
                     >
-                      <span className="relative z-10 flex items-center gap-3 whitespace-nowrap">
-                        <Sparkles className="w-6 h-6" />
+                      <span className="relative z-10 flex items-center justify-center gap-3 whitespace-nowrap">
+                        <Sparkles className={isMobile ? 'w-5 h-5' : 'w-6 h-6'} />
                         Start Planning
-                        <ArrowRight className="w-5 h-5" />
+                        <ArrowRight className={isMobile ? 'w-4 h-4' : 'w-5 h-5'} />
                       </span>
                     </button>
                   </div>
@@ -576,15 +578,15 @@ export default function AIInterface({
               </div>
 
               {/* Dynamic Suggested Prompts */}
-              <div className="mt-12">
-                <p className="text-gray-600 font-medium mb-8 text-center transition-all duration-500">
+              <div className={isMobile ? (preferences ? 'mt-1' : 'mt-2') : 'mt-6'}>
+                <p className={`text-gray-600 font-medium ${isMobile ? (preferences ? 'mb-1 text-xs' : 'mb-2 text-sm') : 'mb-4 text-base'} text-center transition-all duration-500`}>
                   {activeTab === 'flights' ? 'Popular flight searches:' : 
                    activeTab === 'hotels' ? 'Find your perfect accommodation:' :
                    activeTab === 'packages' ? 'Discover amazing packages:' :
                    'Get inspired with these travel ideas:'}
                 </p>
                 
-                <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'}`}>
+                <div className={`grid ${isMobile ? (preferences ? 'grid-cols-1 gap-1.5' : 'grid-cols-1 gap-2') : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3'}`}>
                   {content.prompts.map((prompt, index) => {
                     // Handle both string and object prompt types
                     const promptText = typeof prompt === 'string' ? prompt : prompt.text;
@@ -594,11 +596,11 @@ export default function AIInterface({
                       <button
                         key={index}
                         onClick={() => handleSendMessage(promptText)}
-                        className={`group relative overflow-hidden ${isMobile ? 'p-4' : 'p-5'} rounded-2xl border border-white/40 transition-all duration-300 text-left transform hover:scale-[1.02] hover:-translate-y-1 active:scale-[0.98] bg-white/60 backdrop-blur-xl backdrop-saturate-150 bg-clip-padding shadow-[0_8px_32px_rgba(8,_112,_184,_0.12)] hover:shadow-[0_12px_40px_rgba(8,_112,_184,_0.18)] hover:bg-white/70 before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/40 before:via-white/10 before:to-white/5`}
+                        className={`group relative overflow-hidden ${isMobile ? (preferences ? 'p-2 min-h-[44px]' : 'p-2.5 min-h-[48px]') : 'p-4'} rounded-xl border border-white/40 transition-all duration-300 text-left transform hover:scale-[1.02] hover:-translate-y-1 active:scale-[0.98] bg-white/60 backdrop-blur-xl backdrop-saturate-150 bg-clip-padding shadow-[0_8px_32px_rgba(8,_112,_184,_0.12)] hover:shadow-[0_12px_40px_rgba(8,_112,_184,_0.18)] hover:bg-white/70 before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/40 before:via-white/10 before:to-white/5`}
                       >
                         <div className="flex items-center gap-3 relative z-10">
-                          <span className={`${isMobile ? 'text-xl' : 'text-2xl'} group-hover:scale-110 transition-transform duration-300`}>{promptEmoji}</span>
-                          <span className={`${isMobile ? 'text-sm' : 'text-sm'} font-medium text-gray-700 group-hover:text-gray-900 transition-colors duration-300 leading-relaxed`}>
+                          <span className={`${isMobile ? 'text-2xl' : 'text-2xl'} group-hover:scale-110 transition-transform duration-300 flex-shrink-0`}>{promptEmoji}</span>
+                          <span className={`${isMobile ? (preferences ? 'text-sm leading-tight' : 'text-sm leading-tight') : 'text-sm'} font-medium text-gray-700 group-hover:text-gray-900 transition-colors duration-300 leading-relaxed`}>
                             {promptText}
                           </span>
                         </div>

@@ -121,7 +121,7 @@ export default function AISidebar({
   };
 
   return (
-    <div className={`${isMobile ? 'w-full h-[70vh] max-h-[70vh]' : 'w-[480px] min-w-[480px] h-screen'} flex-shrink-0 p-6 ${isMobile ? 'pt-2 pb-4' : 'pt-0'} flex flex-col`}>
+    <div className={`${isMobile ? 'w-full h-[80vh] max-h-[80vh] min-h-[600px]' : 'w-[480px] min-w-[480px] h-screen'} flex-shrink-0 p-6 ${isMobile ? 'pt-2 pb-4' : 'pt-0'} flex flex-col`}>
       <aside className={`w-full flex-1 min-h-0 ${isMobile ? 'mt-2' : 'mt-4'} flex flex-col overflow-hidden relative bg-white/60 backdrop-blur-2xl backdrop-saturate-150 bg-clip-padding border border-white/40 shadow-[0_20px_50px_rgba(8,_112,_184,_0.18)] rounded-[2rem] scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent hover:scrollbar-thumb-primary/30 transition-all duration-300 before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/40 before:via-white/10 before:to-white/5`}>
         {/* Background decorative orbs */}
         <div className="absolute -top-8 -left-8 w-32 h-32 bg-blue-200/30 rounded-full blur-2xl pointer-events-none animate-pulse"></div>
@@ -188,14 +188,14 @@ export default function AISidebar({
                   onTabChange(t.key);
                 }
               }}
-              className={`flex items-center gap-1.5 rounded-xl ${isMobile ? 'px-2.5 py-1.5 text-xs' : 'px-3 py-2 text-sm'} font-medium transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 border border-white/30 backdrop-blur-md bg-white/30 shadow-sm ${
+              className={`flex items-center gap-1.5 rounded-xl ${isMobile ? 'px-3 py-2 text-xs min-h-[44px]' : 'px-3 py-2 text-sm'} font-medium transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 border border-white/30 backdrop-blur-md bg-white/30 shadow-sm ${
                 activeTab === t.key && t.key !== 'preferences'
                   ? 'bg-white/60 text-primary ring-1 ring-primary/30 shadow-md'
                   : 'text-gray-700 hover:bg-white/40 hover:shadow'
               }`}
             >
               <t.icon className={`${isMobile ? 'w-3.5 h-3.5' : 'w-4 h-4'}`} />
-              <span className={isMobile ? 'hidden sm:inline' : ''}>{t.label}</span>
+              <span className="text-xs">{t.label}</span>
             </button>
           ))}
         </div>
