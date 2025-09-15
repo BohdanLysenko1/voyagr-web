@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { MapPin, Clock, Calendar, ArrowRight, Route, Navigation } from 'lucide-react';
 
 interface MapOutSectionProps {
@@ -63,35 +63,44 @@ const SAMPLE_MAPOUT_ITEMS: MapOutItem[] = [
   }
 ];
 
-const getTypeColor = (type: MapOutItem['type']) => {
-  switch (type) {
-    case 'attraction': return 'from-blue-500 to-cyan-500';
-    case 'restaurant': return 'from-orange-500 to-red-500';
-    case 'hotel': return 'from-purple-500 to-pink-500';
-    case 'activity': return 'from-green-500 to-emerald-500';
-    case 'transport': return 'from-gray-500 to-slate-500';
-    default: return 'from-blue-500 to-cyan-500';
-  }
-};
-
-const getTypeIcon = (type: MapOutItem['type']) => {
-  switch (type) {
-    case 'attraction': return MapPin;
-    case 'restaurant': return Clock;
-    case 'hotel': return Calendar;
-    case 'activity': return Navigation;
-    case 'transport': return Route;
-    default: return MapPin;
-  }
-};
 
 export default function MapOutSection({ onNewTrip }: MapOutSectionProps) {
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   
-  const days = Array.from(new Set(SAMPLE_MAPOUT_ITEMS.map(item => item.day))).sort();
-  const filteredItems = selectedDay 
+  const getTypeColor = useCallback((type: MapOutItem['type']) => {
+    switch (type) {
+      case 'attraction': return 'from-blue-500 to-cyan-500';
+      case 'restaurant': return 'from-orange-500 to-red-500';
+      case 'hotel': return 'from-purple-500 to-pink-500';
+      case 'activity': return 'from-green-500 to-emerald-500';
+      case 'transport': return 'from-gray-500 to-slate-500';
+      default: return 'from-blue-500 to-cyan-500';
+    }
+  }, []);
+
+  const getTypeIcon = useCallback((type: MapOutItem['type']) => {
+    switch (type) {
+      case 'attraction': return MapPin;
+      case 'restaurant': return Clock;
+      case 'hotel': return Calendar;
+      case 'activity': return Navigation;
+      case 'transport': return Route;
+      default: return MapPin;
+    }
+  }, []);
+  
+  const days = useMemo(() => Array.from(new Set(SAMPLE_MAPOUT_ITEMS.map(item => item.day))).sort(), []);
+  const filteredItems = useMemo(() => selectedDay 
     ? SAMPLE_MAPOUT_ITEMS.filter(item => item.day === selectedDay)
-    : SAMPLE_MAPOUT_ITEMS;
+    : SAMPLE_MAPOUT_ITEMS, [selectedDay]);
+
+  const handleDaySelect = useCallback((day: number | null) => {
+    setSelectedDay(day);
+  }, []);
+
+  const handleAllDaysClick = useCallback(() => {
+    setSelectedDay(null);
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -112,7 +121,7 @@ export default function MapOutSection({ onNewTrip }: MapOutSectionProps) {
       {/* Day Filter */}
       <div className="flex flex-wrap gap-2 justify-center">
         <button
-          onClick={() => setSelectedDay(null)}
+          onClick={handleAllDaysClick}
           className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
             selectedDay === null
               ? 'bg-blue-100 text-blue-700 ring-2 ring-blue-200'
@@ -124,7 +133,7 @@ export default function MapOutSection({ onNewTrip }: MapOutSectionProps) {
         {days.map(day => (
           <button
             key={day}
-            onClick={() => setSelectedDay(day)}
+            onClick={() => handleDaySelect(day)}
             className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
               selectedDay === day
                 ? 'bg-blue-100 text-blue-700 ring-2 ring-blue-200'

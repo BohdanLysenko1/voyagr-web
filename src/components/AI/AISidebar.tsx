@@ -1,11 +1,10 @@
-import { useRef, useState } from 'react';
-import type { ComponentType, KeyboardEvent } from 'react';
+import { useRef, useCallback, useMemo } from 'react';
+import type { KeyboardEvent } from 'react';
 import { Flight, Hotel, Package } from '@/types/ai';
 import SearchTripsSection from './SearchTripsSection';
 import FlightSection from './FlightSection';
 import HotelSection from './HotelSection';
 import PackageSection from './PackageSection';
-import AIPreferencesSection from './AIPreferencesSection';
 import MapOutSection from './MapOutSection';
 import { Search, Settings, Plane, Building, Map, MapPin, X } from 'lucide-react';
 
@@ -53,34 +52,30 @@ export default function AISidebar({
   onConversationSelect,
 }: AISidebarProps) {
   // Section-specific new trip handlers
-  const handleFlightNewTrip = () => {
-    console.log('Flight New Trip clicked');
+  const handleFlightNewTrip = useCallback(() => {
     onSectionReset?.('flights');
-  };
+  }, [onSectionReset]);
 
-  const handleHotelNewTrip = () => {
-    console.log('Hotel New Trip clicked');
+  const handleHotelNewTrip = useCallback(() => {
     onSectionReset?.('hotels');
-  };
+  }, [onSectionReset]);
 
-  const handlePackageNewTrip = () => {
-    console.log('Package New Trip clicked');
+  const handlePackageNewTrip = useCallback(() => {
     onSectionReset?.('packages');
-  };
+  }, [onSectionReset]);
 
-  const handleMapOutNewTrip = () => {
-    console.log('MapOut New Trip clicked');
+  const handleMapOutNewTrip = useCallback(() => {
     onSectionReset?.('mapout');
-  };
+  }, [onSectionReset]);
 
-  const tabsConfig = [
+  const tabsConfig = useMemo(() => [
     { key: 'plan' as TabKey, label: 'Plan', icon: Search },
     { key: 'flights' as TabKey, label: 'Flights', icon: Plane },
     { key: 'hotels' as TabKey, label: 'Hotels', icon: Building },
     { key: 'packages' as TabKey, label: 'Packages', icon: Map },
     { key: 'mapout' as TabKey, label: 'Map Out', icon: MapPin },
     { key: 'preferences' as TabKey, label: 'Preferences', icon: Settings },
-  ];
+  ], []);
 
   const tabRefs = useRef<Record<TabKey, HTMLButtonElement | null>>({
     plan: null,
@@ -91,11 +86,11 @@ export default function AISidebar({
     mapout: null,
   });
 
-  const focusTab = (key: TabKey) => {
+  const focusTab = useCallback((key: TabKey) => {
     setTimeout(() => tabRefs.current[key]?.focus(), 0);
-  };
+  }, []);
 
-  const onTabsKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+  const onTabsKeyDown = useCallback((e: KeyboardEvent<HTMLDivElement>) => {
     const currentIndex = tabsConfig.findIndex((t) => t.key === activeTab);
     if (currentIndex === -1) return;
 
@@ -118,11 +113,14 @@ export default function AISidebar({
       focusTab(tabsConfig[tabsConfig.length - 1].key);
       e.preventDefault();
     }
-  };
+  }, [tabsConfig, activeTab, onTabChange, focusTab]);
 
   return (
     <div className={`${isMobile ? 'w-full h-full' : 'w-[480px] min-w-[480px] h-screen'} flex-shrink-0 ${isMobile ? 'p-0' : 'p-6 pt-0'} flex flex-col`}>
-      <aside className={`w-full flex-1 min-h-0 ${isMobile ? 'mt-0' : 'mt-4'} flex flex-col ${isMobile ? 'overflow-hidden' : 'overflow-hidden'} relative ${isMobile ? 'bg-white/95 backdrop-blur-3xl backdrop-saturate-200 border-r border-white/60 shadow-[0_8px_32px_rgba(8,_112,_184,_0.15)] rounded-none' : 'bg-white/60 backdrop-blur-2xl backdrop-saturate-150 bg-clip-padding border border-white/40 shadow-[0_20px_50px_rgba(8,_112,_184,_0.18)] rounded-[2rem]'} scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent hover:scrollbar-thumb-primary/30 transition-all duration-300 before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/40 before:via-white/10 before:to-white/5`} style={{overscrollBehavior: 'contain'}}>
+      <aside className={`w-full flex-1 min-h-0 ${isMobile ? 'mt-0' : 'mt-4'} flex flex-col overflow-hidden relative transition-all duration-300 scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent hover:scrollbar-thumb-primary/30 ${isMobile 
+        ? 'bg-white border-r border-gray-200 shadow-lg rounded-none' 
+        : 'bg-white/60 backdrop-blur-2xl backdrop-saturate-150 bg-clip-padding border border-white/40 shadow-[0_20px_50px_rgba(8,_112,_184,_0.18)] rounded-[2rem] before:content-[\'\'] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/40 before:via-white/10 before:to-white/5'
+      }`} style={{overscrollBehavior: 'contain'}}>
         {/* Background decorative orbs - reduced for mobile */}
         {!isMobile && (
           <>
@@ -138,12 +136,12 @@ export default function AISidebar({
         
       {/* Mobile header with close button */}
       {isMobile && onClose && (
-        <div className="sticky top-0 z-30 bg-white/90 backdrop-blur-3xl border-b border-white/50 px-6 py-4">
+        <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-white/50 px-6 py-4">
           <div className="flex items-center justify-between">
             <h3 className="text-xl font-bold text-gray-800">Voyagr AI</h3>
             <button
               onClick={onClose}
-              className="p-2.5 rounded-2xl hover:bg-white/80 text-gray-600 hover:text-gray-800 transition-all duration-300 backdrop-blur-xl border border-white/60 shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95"
+              className="p-2.5 rounded-2xl hover:bg-white/80 text-gray-600 hover:text-gray-800 transition-all duration-300 border border-white/60 shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95"
               aria-label="Close sidebar"
             >
               <X className="w-5 h-5" />
@@ -153,7 +151,7 @@ export default function AISidebar({
       )}
       
       {/* Sticky header with segmented tabs */}
-      <div className={`sticky ${isMobile ? 'top-[72px]' : 'top-0'} z-20 ${isMobile ? 'bg-white/85 backdrop-blur-3xl border-b border-white/50' : 'bg-white/50 backdrop-blur-2xl border-b border-white/40 rounded-t-[2rem]'}`}>
+      <div className={`sticky ${isMobile ? 'top-[72px]' : 'top-0'} z-20 ${isMobile ? 'bg-white/90 backdrop-blur-md border-b border-white/50' : 'bg-white/50 backdrop-blur-2xl border-b border-white/40 rounded-t-[2rem]'}`}>
         <div
           role="tablist"
           aria-label="AI sidebar sections"

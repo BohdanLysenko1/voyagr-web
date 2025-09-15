@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Sparkles, Send, Bot, User, Menu, ArrowRight, Settings, MessageSquarePlus } from 'lucide-react';
 import Image from 'next/image';
 
@@ -63,15 +63,13 @@ export default function AIInterface({
   }, [inputValue]);
 
   // Clear chat messages to return to welcome screen
-  const clearChat = () => {
-    console.log('Clearing chat messages');
+  const clearChat = useCallback(() => {
     setChatMessages([]);
     setIsAITyping(false);
-  };
+  }, []);
   
   // Also clear chat when activeTab changes to ensure clean state
   useEffect(() => {
-    console.log('Active tab changed to:', activeTab, 'clearing chat');
     setChatMessages([]);
     setIsAITyping(false);
   }, [activeTab]);
@@ -81,7 +79,7 @@ export default function AIInterface({
     registerClearChat?.(clearChat);
   }, [registerClearChat]);
 
-  const scrollToBottom = () => {
+  const scrollToBottom = useCallback(() => {
     const scrollContainer = messagesEndRef.current?.parentElement;
     if (scrollContainer) {
       scrollContainer.scrollTo({
@@ -89,19 +87,15 @@ export default function AIInterface({
         behavior: 'smooth'
       });
     }
-  };
+  }, []);
 
   useEffect(() => {
-    // Auto-scroll for all new messages
     if (chatMessages.length > 0) {
-      // Always scroll to bottom for new messages
-      setTimeout(() => {
-        scrollToBottom();
-      }, 100);
+      setTimeout(scrollToBottom, 100);
     }
-  }, [chatMessages]);
+  }, [chatMessages, scrollToBottom]);
 
-  const generateAIResponse = (userMessage: string): string => {
+  const generateAIResponse = useCallback((userMessage: string): string => {
     const responses: Record<string, string[]> = {
       flights: [
         `I'd be happy to help you find the perfect flights! Based on "${userMessage}", I can suggest some great options. Let me search for flights that match your preferences for dates, destinations, and budget.`,
@@ -133,9 +127,9 @@ export default function AIInterface({
     const categoryResponses = responses[activeTab] || responses.plan;
     const randomResponse = categoryResponses[Math.floor(Math.random() * categoryResponses.length)];
     return randomResponse;
-  };
+  }, [activeTab]);
 
-  const handleSendMessage = async (messageOverride?: string) => {
+  const handleSendMessage = useCallback(async (messageOverride?: string) => {
     const textToSend = messageOverride ? messageOverride.trim() : inputValue.trim();
     if (!textToSend) return;
 
@@ -175,18 +169,17 @@ export default function AIInterface({
       };
       setChatMessages(prev => [...prev, aiResponse]);
       setIsAITyping(false);
-    }, 600 + Math.random() * 1000); // Random delay between 0.6-1.6 seconds
+    }, 600 + Math.random() * 1000);
 
-    // Call original onSubmit if provided
     onSubmit?.();
-  };
+  }, [chatMessages.length, onInputChange, onFirstMessage, onMessageSent, generateAIResponse, onSubmit]);
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
     }
-  };
+  }, [handleSendMessage]);
   
   // Dynamic content based on active tab
   const getContentByTab = () => {
@@ -276,69 +269,29 @@ export default function AIInterface({
 
   const content = getContentByTab();
   const showChat = chatMessages.length > 0 || isAITyping;
-  
-  console.log('Chat messages count:', chatMessages.length, 'Show chat:', showChat);
 
   return (
     <div className={`flex-1 relative ${isMobile ? 'h-full flex flex-col overflow-hidden' : 'h-full flex flex-col'}`}>
       
       {/* Mobile Floating Menu Button */}
-      {isMobile && (
+      {isMobile && !isSidebarOpen && (
         <button
           onClick={onSidebarToggle}
-          className="fixed top-28 left-4 z-40 p-4 rounded-full bg-white/80 backdrop-blur-sm border border-white/40 hover:bg-white/90 transition-all duration-200 shadow-lg min-h-[48px] min-w-[48px] flex items-center justify-center"
+          className="fixed top-24 left-4 z-50 p-3 rounded-full bg-white/95 border border-gray-200 hover:bg-white transition-all duration-200 shadow-md hover:shadow-lg min-h-[44px] min-w-[44px] flex items-center justify-center"
         >
           <Menu className="w-5 h-5 text-gray-700" />
         </button>
       )}
       
       {/* Globe Background */}
-      <div className="absolute inset-0 opacity-10">
-        <div className="w-full h-full" 
-             style={{
-               backgroundImage: `
-                 url("/images/AIPage/globeBackground.svg"), 
-                 url("/images/AIPage/globeBackground.svg"), 
-                 url("/images/AIPage/globeBackground.svg"), 
-                 url("/images/AIPage/globeBackground.svg"),
-                 url("/images/AIPage/globeBackground.svg"), 
-                 url("/images/AIPage/globeBackground.svg"), 
-                 url("/images/AIPage/globeBackground.svg"), 
-                 url("/images/AIPage/globeBackground.svg"),
-                 url("/images/AIPage/globeBackground.svg"), 
-                 url("/images/AIPage/globeBackground.svg"),
-                 url("/images/AIPage/globeBackground.svg"), 
-                 url("/images/AIPage/globeBackground.svg"), 
-                 url("/images/AIPage/globeBackground.svg"), 
-                 url("/images/AIPage/globeBackground.svg"),
-                 url("/images/AIPage/globeBackground.svg"), 
-                 url("/images/AIPage/globeBackground.svg"), 
-                 url("/images/AIPage/globeBackground.svg"), 
-                 url("/images/AIPage/globeBackground.svg"),
-                 url("/images/AIPage/globeBackground.svg"), 
-                 url("/images/AIPage/globeBackground.svg"),
-                 url("/images/AIPage/globeBackground.svg"), 
-                 url("/images/AIPage/globeBackground.svg"), 
-                 url("/images/AIPage/globeBackground.svg"), 
-                 url("/images/AIPage/globeBackground.svg"),
-                 url("/images/AIPage/globeBackground.svg"),
-                 url("/images/AIPage/globeBackground.svg"), 
-                 url("/images/AIPage/globeBackground.svg"), 
-                 url("/images/AIPage/globeBackground.svg"), 
-                 url("/images/AIPage/globeBackground.svg"),
-                 url("/images/AIPage/globeBackground.svg"), 
-                 url("/images/AIPage/globeBackground.svg"), 
-                 url("/images/AIPage/globeBackground.svg"), 
-                 url("/images/AIPage/globeBackground.svg"),
-                 url("/images/AIPage/globeBackground.svg"), 
-                 url("/images/AIPage/globeBackground.svg")
-               `,
-               backgroundRepeat: 'no-repeat',
-               backgroundSize: '45px, 60px, 35px, 55px, 40px, 65px, 30px, 50px, 38px, 48px, 42px, 52px, 28px, 58px, 36px, 44px, 54px, 32px, 46px, 62px, 34px, 56px, 41px, 49px, 37px, 43px, 39px, 53px, 29px, 47px, 61px, 33px, 59px, 45px, 31px',
-               backgroundPosition: '8% 18%, 72% 45%, 23% 73%, 89% 12%, 45% 85%, 15% 52%, 91% 78%, 6% 88%, 58% 8%, 33% 38%, 78% 25%, 12% 65%, 84% 55%, 38% 12%, 65% 92%, 95% 35%, 25% 28%, 67% 15%, 14% 40%, 88% 62%, 42% 68%, 75% 82%, 19% 8%, 93% 48%, 51% 25%, 26% 90%, 71% 33%, 17% 75%, 82% 9%, 49% 58%, 11% 43%, 76% 67%, 35% 6%, 86% 79%, 4% 22%'
-             }}>
-        </div>
-      </div>
+      <div 
+        className="absolute inset-0 opacity-10 bg-repeat-y"
+        style={{
+          backgroundImage: 'url("/images/AIPage/globeBackground.svg")',
+          backgroundSize: '50px',
+          backgroundPosition: 'center'
+        }}
+      />
 
       {/* Chat Interface or Welcome Screen */}
       {showChat ? (
@@ -373,7 +326,7 @@ export default function AIInterface({
             )}
 
             {/* Messages Container */}
-            <div className={`flex-1 relative bg-white/40 backdrop-blur-xl backdrop-saturate-150 bg-clip-padding ${isMobile ? 'border border-white/40 rounded-2xl mt-4 mb-24 min-h-[300px]' : 'border-x border-white/40'} before:content-[''] before:absolute before:inset-0 before:pointer-events-none before:bg-gradient-to-br before:from-white/20 before:via-white/5 before:to-white/5`}>
+            <div className={`flex-1 relative ${isMobile ? 'bg-white/95 border border-gray-200 rounded-2xl mt-4 mb-24 min-h-[300px]' : 'bg-white/40 backdrop-blur-xl backdrop-saturate-150 bg-clip-padding border-x border-white/40 before:content-[\'\'] before:absolute before:inset-0 before:pointer-events-none before:bg-gradient-to-br before:from-white/20 before:via-white/5 before:to-white/5'}`}>
                   <div className={`h-full overflow-y-auto ${isMobile ? 'p-4' : 'p-6'} space-y-4 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400`}>
                     {chatMessages.map((message) => (
                       <div
@@ -432,8 +385,8 @@ export default function AIInterface({
             </div>
 
             {/* Compact Chat Input */}
-            <div className={`${isMobile ? 'relative mt-4 mx-4' : 'relative'} z-[9999]`}>
-              <div className={`relative overflow-hidden ${isMobile ? 'bg-white/90 border-2 border-white/80' : 'bg-white/70 border border-white/30'} backdrop-blur-3xl backdrop-saturate-200 rounded-3xl shadow-[0_8px_32px_rgba(0,0,0,0.1)] hover:shadow-[0_12px_40px_rgba(0,0,0,0.15)] transition-all duration-300 before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/50 before:via-white/20 before:to-white/10`}>
+            <div className={`${isMobile ? 'relative mt-4 mx-4 mb-6' : 'relative'} z-[9999]`}>
+              <div className={`relative overflow-hidden ${isMobile ? 'bg-white border-2 border-gray-200 shadow-lg' : 'bg-white/70 border border-white/30 backdrop-blur-3xl backdrop-saturate-200 before:content-[\'\'] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/50 before:via-white/20 before:to-white/10'} rounded-3xl hover:shadow-xl transition-all duration-300`}>
                 <div className="flex items-center gap-3 p-4">
                   <div className="flex-1 relative">
                     <textarea

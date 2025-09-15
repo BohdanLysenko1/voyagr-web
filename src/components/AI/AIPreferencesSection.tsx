@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Settings, User, DollarSign, ChevronDown, ChevronRight, Heart, Globe, Calendar } from 'lucide-react';
 
 type BudgetOption = 'budget' | 'moderate' | 'luxury';
@@ -31,47 +31,51 @@ export default function AIPreferencesSection({ onPreferenceChange, defaultExpand
     aiPersonality: 'helpful'
   });
 
-  const [budgetOptions] = useState<{ value: BudgetOption; label: string; icon: string; color: string }[]>([
-    { value: 'budget', label: 'Budget-friendly', icon: '💰', color: 'text-green-600' },
-    { value: 'moderate', label: 'Moderate', icon: '💵', color: 'text-blue-600' },
-    { value: 'luxury', label: 'Luxury', icon: '💎', color: 'text-purple-600' }
-  ]);
+  const budgetOptions = useMemo(() => [
+    { value: 'budget' as BudgetOption, label: 'Budget-friendly', icon: '💰', color: 'text-green-600' },
+    { value: 'moderate' as BudgetOption, label: 'Moderate', icon: '💵', color: 'text-blue-600' },
+    { value: 'luxury' as BudgetOption, label: 'Luxury', icon: '💎', color: 'text-purple-600' }
+  ], []);
 
-  const [travelStyles] = useState<{ value: TravelStyle; label: string; icon: string }[]>([
-    { value: 'adventure', label: 'Adventure', icon: '🏔️' },
-    { value: 'relaxation', label: 'Relaxation', icon: '🏖️' },
-    { value: 'culture', label: 'Cultural', icon: '🏛️' },
-    { value: 'balanced', label: 'Balanced', icon: '⚖️' }
-  ]);
+  const travelStyles = useMemo(() => [
+    { value: 'adventure' as TravelStyle, label: 'Adventure', icon: '🏔️' },
+    { value: 'relaxation' as TravelStyle, label: 'Relaxation', icon: '🏖️' },
+    { value: 'culture' as TravelStyle, label: 'Cultural', icon: '🏛️' },
+    { value: 'balanced' as TravelStyle, label: 'Balanced', icon: '⚖️' }
+  ], []);
 
-  const [interests] = useState<Interest[]>([
+  const interests = useMemo(() => [
     'culture', 'food', 'nature', 'nightlife', 'shopping', 'history', 'art', 'sports'
-  ]);
+  ] as Interest[], []);
 
    // Keep the expansion state in sync if the parent controls default
    useEffect(() => {
      setIsExpanded(defaultExpanded);
    }, [defaultExpanded]);
 
-  const handlePreferenceChange = (key: keyof Preferences, value: Preferences[keyof Preferences]) => {
+  const handlePreferenceChange = useCallback((key: keyof Preferences, value: Preferences[keyof Preferences]) => {
     setPreferences(prev => ({ ...prev, [key]: value }));
     onPreferenceChange?.(key, value);
-  };
+  }, [onPreferenceChange]);
 
-  const toggleInterest = (interest: Interest) => {
+  const toggleInterest = useCallback((interest: Interest) => {
     const currentInterests = preferences.interests;
     const newInterests: Interest[] = currentInterests.includes(interest)
       ? (currentInterests.filter(i => i !== interest) as Interest[])
       : [...currentInterests, interest];
     handlePreferenceChange('interests', newInterests);
-  };
+  }, [preferences.interests, handlePreferenceChange]);
+
+  const handleExpandToggle = useCallback(() => {
+    setIsExpanded(prev => !prev);
+  }, []);
 
   return (
     <div className="mb-8">
       <div className="relative overflow-hidden bg-white/60 backdrop-blur-2xl backdrop-saturate-150 bg-clip-padding border border-white/40 rounded-2xl shadow-[0_20px_50px_rgba(8,_112,_184,_0.18)] transition-all duration-700 ease-in-out before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/40 before:via-white/10 before:to-white/5 hover:shadow-[0_25px_60px_rgba(8,_112,_184,_0.25)] hover:border-white/50 group">
         <div className="flex items-center justify-between w-full p-6 relative z-10">
           <button 
-            onClick={() => setIsExpanded(!isExpanded)}
+            onClick={handleExpandToggle}
             className="flex items-center gap-4 flex-1"
           >
             <div className="relative overflow-hidden p-3 rounded-xl bg-gradient-to-br from-primary/20 to-purple-500/20 border border-white/40 shadow-sm group-hover:shadow-md transform group-hover:scale-110 transition-all duration-300 before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/30 before:via-white/10 before:to-white/5">
@@ -83,7 +87,7 @@ export default function AIPreferencesSection({ onPreferenceChange, defaultExpand
             </div>
           </button>
           <button 
-            onClick={() => setIsExpanded(!isExpanded)}
+            onClick={handleExpandToggle}
             className="relative overflow-hidden p-2 rounded-xl hover:bg-white/40 text-gray-600 hover:text-primary transition-all duration-300 transform hover:scale-110 border border-transparent hover:border-white/40 before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/20 before:via-white/5 before:to-white/5 before:opacity-0 hover:before:opacity-100 before:transition-opacity before:duration-300"
           >
             {isExpanded ? (

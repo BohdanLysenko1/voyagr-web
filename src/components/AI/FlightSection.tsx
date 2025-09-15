@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Plane, Heart, ChevronDown, ChevronRight, Filter, Sparkles, TrendingUp, Clock, Plus } from 'lucide-react';
 import { Flight } from '@/types/ai';
 import HeartableItemComponent from './HeartableItem';
@@ -12,14 +12,16 @@ interface FlightSectionProps {
 export default function FlightSection({ flights, onHeartToggle, onNewTrip }: FlightSectionProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
-  const [aiSuggestions] = useState([
+  
+  const aiSuggestions = useMemo(() => [
     { text: "Best deals this week", icon: TrendingUp, color: "text-green-600" },
     { text: "Last-minute flights", icon: Clock, color: "text-orange-600" },
     { text: "AI recommendations", icon: Sparkles, color: "text-purple-600" }
-  ]);
-  const heartedFlights = flights.filter(flight => flight.hearted);
+  ], []);
+  
+  const heartedFlights = useMemo(() => flights.filter(flight => flight.hearted), [flights]);
 
-  const renderFlightContent = (flight: Flight) => (
+  const renderFlightContent = useCallback((flight: Flight) => (
     <div className="space-y-1">
       <p className="text-sm font-bold text-gray-800 tracking-wide">{flight.route}</p>
       <div className="flex items-center gap-2">
@@ -28,7 +30,7 @@ export default function FlightSection({ flights, onHeartToggle, onNewTrip }: Fli
         <p className="text-xs font-medium text-primary">AI Recommended</p>
       </div>
     </div>
-  );
+  ), []);
 
   return (
     <div className="mb-8">
@@ -41,7 +43,7 @@ export default function FlightSection({ flights, onHeartToggle, onNewTrip }: Fli
       
       <div className="flex items-center justify-between w-full mb-6 p-4 rounded-2xl bg-gradient-to-r from-white/80 to-white/60 border border-white/50 hover:border-blue-200/60 backdrop-blur-sm hover:bg-gradient-to-r hover:from-white/90 hover:to-white/70 transition-all duration-500 shadow-sm hover:shadow-lg transform hover:scale-[1.01] group">
         <button 
-          onClick={() => setIsExpanded(!isExpanded)}
+          onClick={useCallback(() => setIsExpanded(prev => !prev), [])}
           className="flex items-center gap-4 flex-1"
         >
           <div className="text-left">
@@ -50,13 +52,13 @@ export default function FlightSection({ flights, onHeartToggle, onNewTrip }: Fli
         </button>
         <div className="flex items-center gap-3">
           <button 
-            onClick={() => setShowFilters(!showFilters)}
+            onClick={useCallback(() => setShowFilters(prev => !prev), [])}
             className={`p-2 rounded-xl transition-all duration-300 transform hover:scale-110 ${showFilters ? 'bg-primary/20 text-primary shadow-md ring-2 ring-primary/20' : 'hover:bg-blue-100/50 text-gray-600 hover:text-blue-600'}`}
           >
             <Filter className="w-5 h-5" />
           </button>
           <button 
-            onClick={() => setIsExpanded(!isExpanded)}
+            onClick={useCallback(() => setIsExpanded(prev => !prev), [])}
             className="p-2 rounded-xl hover:bg-blue-100/50 text-gray-600 hover:text-blue-600 transition-all duration-300 transform hover:scale-110"
           >
             {isExpanded ? (

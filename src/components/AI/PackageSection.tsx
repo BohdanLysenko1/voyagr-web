@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Map, Heart, ChevronDown, ChevronRight, Filter, Sparkles, Users, Calendar, Compass, Plus } from 'lucide-react';
 import { Package } from '@/types/ai';
 import HeartableItemComponent from './HeartableItem';
@@ -12,14 +12,16 @@ interface PackageSectionProps {
 export default function PackageSection({ packages, onHeartToggle, onNewTrip }: PackageSectionProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
-  const [aiPersonalizedPackages] = useState([
+  
+  const aiPersonalizedPackages = useMemo(() => [
     { text: "Perfect for couples", icon: Users, color: "text-pink-600" },
     { text: "Best seasonal timing", icon: Calendar, color: "text-blue-600" },
     { text: "Adventure match", icon: Compass, color: "text-orange-600" }
-  ]);
-  const heartedPackages = packages.filter(pkg => pkg.hearted);
+  ], []);
+  
+  const heartedPackages = useMemo(() => packages.filter(pkg => pkg.hearted), [packages]);
 
-  const renderPackageContent = (pkg: Package) => (
+  const renderPackageContent = useCallback((pkg: Package) => (
     <div className="space-y-1">
       <p className="text-sm font-bold text-gray-800 tracking-wide">{pkg.name}</p>
       <div className="flex items-center gap-2">
@@ -28,7 +30,15 @@ export default function PackageSection({ packages, onHeartToggle, onNewTrip }: P
         <p className="text-xs font-medium text-purple-600">🎁 Best Deal</p>
       </div>
     </div>
-  );
+  ), []);
+
+  const handleExpandToggle = useCallback(() => {
+    setIsExpanded(prev => !prev);
+  }, []);
+
+  const handleFiltersToggle = useCallback(() => {
+    setShowFilters(prev => !prev);
+  }, []);
 
   return (
     <div>
@@ -41,7 +51,7 @@ export default function PackageSection({ packages, onHeartToggle, onNewTrip }: P
       
       <div className="flex items-center justify-between w-full mb-6 p-4 rounded-2xl bg-gradient-to-r from-white/80 to-white/60 border border-white/50 hover:border-purple-200/60 backdrop-blur-sm hover:bg-gradient-to-r hover:from-white/90 hover:to-white/70 transition-all duration-500 shadow-sm hover:shadow-lg transform hover:scale-[1.01] group">
         <button 
-          onClick={() => setIsExpanded(!isExpanded)}
+          onClick={handleExpandToggle}
           className="flex items-center gap-4 flex-1"
         >
           <div className="text-left">
@@ -50,13 +60,13 @@ export default function PackageSection({ packages, onHeartToggle, onNewTrip }: P
         </button>
         <div className="flex items-center gap-3">
           <button 
-            onClick={() => setShowFilters(!showFilters)}
+            onClick={handleFiltersToggle}
             className={`p-2 rounded-xl transition-all duration-300 transform hover:scale-110 ${showFilters ? 'bg-primary/20 text-primary shadow-md ring-2 ring-primary/20' : 'hover:bg-purple-100/50 text-gray-600 hover:text-purple-600'}`}
           >
             <Filter className="w-5 h-5" />
           </button>
           <button 
-            onClick={() => setIsExpanded(!isExpanded)}
+            onClick={handleExpandToggle}
             className="p-2 rounded-xl hover:bg-purple-100/50 text-gray-600 hover:text-purple-600 transition-all duration-300 transform hover:scale-110"
           >
             {isExpanded ? (

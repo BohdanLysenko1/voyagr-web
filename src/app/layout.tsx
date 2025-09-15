@@ -7,6 +7,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import MainWrapper from "@/components/MainWrapper";
 import { FavoritesProvider } from "@/contexts/FavoritesContext";
+import { NavbarVisibilityProvider } from "@/contexts/NavbarVisibilityContext";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -52,9 +53,11 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-[100dvh] flex flex-col`}
       >
         <FavoritesProvider>
-          <Navbar />
-          <MainWrapper>{children}</MainWrapper>
-          <Footer />
+          <NavbarVisibilityProvider>
+            <Navbar />
+            <MainWrapper>{children}</MainWrapper>
+            <Footer />
+          </NavbarVisibilityProvider>
         </FavoritesProvider>
       </body>
     </html>

@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect, useRef } from 'react';
+import { useNavbarVisibility } from '@/contexts/NavbarVisibilityContext';
 import { 
   UserIcon, 
   HomeIcon, 
@@ -20,6 +21,7 @@ import {
 } from 'lucide-react';
 
 export default function Navbar() {
+  const { isNavbarVisible } = useNavbarVisibility();
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -121,6 +123,7 @@ export default function Navbar() {
           ? 'bg-white/90 backdrop-blur-xl border-b border-white/20 shadow-2xl' 
           : 'bg-gradient-to-r from-primary via-primary to-purple-600'
         }
+        ${!isNavbarVisible ? 'transform -translate-y-full' : 'transform translate-y-0'}
       `}>
         <div className="max-w-7xl mx-auto px-6">
           <div ref={navRef} className="flex items-center justify-between h-20">

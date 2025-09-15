@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useCallback } from 'react';
 import { useAIPageState } from '@/hooks/useAIPageState';
 import { useFavorites } from '@/contexts/FavoritesContext';
+import { useNavbarVisibility } from '@/contexts/NavbarVisibilityContext';
 import { SAMPLE_FLIGHTS, SAMPLE_HOTELS, SAMPLE_PACKAGES, SUGGESTED_PROMPTS, PLACEHOLDER_TEXT } from '@/constants/aiData';
 import { Flight, Hotel, Package } from '@/types/ai';
 import AISidebar from '@/components/AI/AISidebar';
@@ -19,8 +19,8 @@ interface RecentConversation {
 }
 
 export default function AiPage() {
-  const router = useRouter();
-  const { inputValue, setInputValue, activeSection, setActiveSection, isTyping } = useAIPageState();
+  const { inputValue, setInputValue, isTyping } = useAIPageState();
+  const { setNavbarVisible } = useNavbarVisibility();
   const [activeTab, setActiveTab] = useState<TabKey>('plan');
   const [isPreferencesModalOpen, setIsPreferencesModalOpen] = useState(false);
   const [preferences, setPreferences] = useState(null);
@@ -28,29 +28,48 @@ export default function AiPage() {
   const [recentConversations, setRecentConversations] = useState<RecentConversation[]>([]);
   const [currentConversationMessages, setCurrentConversationMessages] = useState<string[]>([]);
   
+  // Hide/show navbar based on sidebar state
+  useEffect(() => {
+    setNavbarVisible(!isSidebarOpen);
+  }, [isSidebarOpen, setNavbarVisible]);
+
+  // Restore navbar visibility when component unmounts
+  useEffect(() => {
+    return () => {
+      setNavbarVisible(true);
+    };
+  }, [setNavbarVisible]);
+
   // Load conversation history from localStorage on mount
   useEffect(() => {
-    const savedConversations = localStorage.getItem('voyagr-conversation-history');
-    if (savedConversations) {
+    const loadConversationHistory = () => {
       try {
-        const parsed = JSON.parse(savedConversations);
-        // Convert timestamp strings back to Date objects
-        const conversations = parsed.map((conv: any) => ({
-          ...conv,
-          timestamp: new Date(conv.timestamp)
-        }));
-        setRecentConversations(conversations);
+        const savedConversations = localStorage.getItem('voyagr-conversation-history');
+        if (savedConversations) {
+          const parsed = JSON.parse(savedConversations);
+          const conversations = parsed.map((conv: any) => ({
+            ...conv,
+            timestamp: new Date(conv.timestamp)
+          }));
+          setRecentConversations(conversations);
+        }
       } catch (error) {
         console.error('Failed to load conversation history:', error);
       }
-    }
+    };
+    
+    loadConversationHistory();
   }, []);
 
   // Save conversation history to localStorage whenever it changes
-  const saveConversationHistory = (conversations: RecentConversation[]) => {
-    localStorage.setItem('voyagr-conversation-history', JSON.stringify(conversations));
-    setRecentConversations(conversations);
-  };
+  const saveConversationHistory = useCallback((conversations: RecentConversation[]) => {
+    try {
+      localStorage.setItem('voyagr-conversation-history', JSON.stringify(conversations));
+      setRecentConversations(conversations);
+    } catch (error) {
+      console.error('Failed to save conversation history:', error);
+    }
+  }, []);
   
   const { toggleAIItemFavorite, isAIItemFavorite } = useFavorites();
 
@@ -70,32 +89,32 @@ export default function AiPage() {
     hearted: isAIItemFavorite(pkg.id)
   }));
 
-  const toggleFlightHeart = (id: number) => {
+  const toggleFlightHeart = useCallback((id: number) => {
     const flight = SAMPLE_FLIGHTS.find((f: Flight) => f.id === id);
     if (flight) toggleAIItemFavorite(flight, 'flight');
-  };
+  }, [toggleAIItemFavorite]);
 
-  const toggleHotelHeart = (id: number) => {
+  const toggleHotelHeart = useCallback((id: number) => {
     const hotel = SAMPLE_HOTELS.find((h: Hotel) => h.id === id);
     if (hotel) toggleAIItemFavorite(hotel, 'hotel');
-  };
+  }, [toggleAIItemFavorite]);
 
-  const togglePackageHeart = (id: number) => {
+  const togglePackageHeart = useCallback((id: number) => {
     const pkg = SAMPLE_PACKAGES.find((p: Package) => p.id === id);
     if (pkg) toggleAIItemFavorite(pkg, 'package');
-  };
+  }, [toggleAIItemFavorite]);
 
-  const handleNewTrip = () => {
+  const handleNewTrip = useCallback(() => {
     // Save current conversation to recent conversations if there are messages
     if (currentConversationMessages.length > 0) {
       const firstMessage = currentConversationMessages[0];
       const newConversation: RecentConversation = {
         id: Date.now().toString(),
-        title: firstMessage.length > 50 ? firstMessage.substring(0, 50) + '...' : firstMessage,
+        title: firstMessage.length > 50 ? `${firstMessage.substring(0, 50)}...` : firstMessage,
         timestamp: new Date()
       };
 
-      const updatedConversations = [newConversation, ...recentConversations.slice(0, 9)]; // Keep only the 10 most recent
+      const updatedConversations = [newConversation, ...recentConversations.slice(0, 9)];
       saveConversationHistory(updatedConversations);
     }
     
@@ -107,67 +126,58 @@ export default function AiPage() {
     
     // Refresh the page to ensure a clean state
     window.location.reload();
-  };
+  }, [currentConversationMessages, recentConversations, saveConversationHistory, setInputValue]);
 
   // Section-specific reset handlers that don't reload the page
   const [clearChatFunction, setClearChatFunction] = useState<(() => void) | null>(null);
   const [resetKey, setResetKey] = useState(0);
   
-  const handleSectionReset = (targetTab: 'flights' | 'hotels' | 'packages' | 'mapout') => {
-    // Clear input and reset interface to section-specific welcome screen
+  const handleSectionReset = useCallback((targetTab: 'flights' | 'hotels' | 'packages' | 'mapout') => {
     setInputValue('');
     
-    // Clear chat immediately
     if (clearChatFunction) {
       clearChatFunction();
     }
     
-    // Force interface reset by changing key
     setResetKey(prev => prev + 1);
     setActiveTab(targetTab);
-    
-    console.log('Section reset to:', targetTab, 'with key:', resetKey + 1);
-  };
+  }, [clearChatFunction, setInputValue]);
 
-  const handleFirstMessage = (firstMessage: string) => {
-    // Add the first message to current conversation
+  const handleFirstMessage = useCallback((firstMessage: string) => {
     setCurrentConversationMessages([firstMessage]);
-  };
+  }, []);
 
-  // Function to track all messages in the current conversation
-  const handleMessageSent = (message: string) => {
+  const handleMessageSent = useCallback((message: string) => {
     setCurrentConversationMessages(prev => [...prev, message]);
-  };
+  }, []);
 
-  const handleConversationSelect = (conversation: RecentConversation) => {
-    // For now, just set the input value to the conversation title
-    // In a real implementation, this would load the full conversation
+  const handleConversationSelect = useCallback((conversation: RecentConversation) => {
     setInputValue(conversation.title);
     setActiveTab('plan');
-  };
+  }, [setInputValue]);
 
-  const handleSubmit = () => {
+  const handleSubmit = useCallback(() => {
     // The actual chat flow is handled entirely by AIInterface's handleSendMessage
     // This is just a callback for any additional parent-level logic if needed
-    console.log('Trip planning conversation started');
-  };
+  }, []);
 
-  const handlePreferencesOpen = () => {
+  const handlePreferencesOpen = useCallback(() => {
     setIsPreferencesModalOpen(true);
-  };
+  }, []);
 
-  const handlePreferencesSave = (newPreferences: any) => {
+  const handlePreferencesSave = useCallback((newPreferences: any) => {
     setPreferences(newPreferences);
-  };
+  }, []);
 
   return (
     <div className="h-screen bg-gradient-to-br from-slate-50 via-blue-50/50 to-purple-50/30">
       {/* Mobile Layout */}
-      <div className="lg:hidden flex flex-col h-full relative pt-16 pb-safe">
+      <div className="lg:hidden flex flex-col h-full relative pt-20 pb-safe">
+        
         {/* Mobile Sidebar Backdrop */}
         {isSidebarOpen && (
           <div 
-            className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
+            className="fixed inset-0 bg-black/30 z-30"
             onClick={() => setIsSidebarOpen(false)}
           />
         )}
@@ -175,7 +185,7 @@ export default function AiPage() {
         {/* Mobile Sidebar - Slide from Left */}
         <div className={`transform transition-transform duration-300 ease-in-out ${
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        } fixed top-0 left-0 bottom-0 w-80 max-w-[85vw] z-50 bg-white/95 backdrop-blur-xl border-r border-white/40 shadow-2xl overflow-hidden`}>
+        } fixed top-0 left-0 bottom-0 w-80 max-w-[85vw] z-40 bg-white border-r border-gray-200 shadow-2xl overflow-hidden`}>
           <AISidebar
             flights={updatedFlights}
             hotels={updatedHotels}
@@ -260,13 +270,6 @@ export default function AiPage() {
         </div>
       </div>
       
-      {/* Overlay for mobile sidebar */}
-      {isSidebarOpen && (
-        <div 
-          className="lg:hidden fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
-          onClick={() => setIsSidebarOpen(false)}
-        />
-      )}
       
       <AIPreferencesModal
         isOpen={isPreferencesModalOpen}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Building, Heart, ChevronDown, ChevronRight, Filter, Sparkles, MapPin, Award, DollarSign, Plus } from 'lucide-react';
 import { Hotel } from '@/types/ai';
 import HeartableItemComponent from './HeartableItem';
@@ -12,14 +12,16 @@ interface HotelSectionProps {
 export default function HotelSection({ hotels, onHeartToggle, onNewTrip }: HotelSectionProps) {
   const [isExpanded, setIsExpanded] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
-  const [aiRecommendations] = useState([
+  
+  const aiRecommendations = useMemo(() => [
     { text: "Best value for money", icon: DollarSign, color: "text-green-600" },
     { text: "Highest rated nearby", icon: Award, color: "text-yellow-600" },
     { text: "Perfect location match", icon: MapPin, color: "text-blue-600" }
-  ]);
-  const heartedHotels = hotels.filter(hotel => hotel.hearted);
+  ], []);
+  
+  const heartedHotels = useMemo(() => hotels.filter(hotel => hotel.hearted), [hotels]);
 
-  const renderHotelContent = (hotel: Hotel) => (
+  const renderHotelContent = useCallback((hotel: Hotel) => (
     <div className="space-y-1">
       <p className="text-sm font-bold text-gray-800 tracking-wide truncate">{hotel.name}</p>
       <div className="flex items-center gap-2">
@@ -28,7 +30,15 @@ export default function HotelSection({ hotels, onHeartToggle, onNewTrip }: Hotel
         <p className="text-xs font-medium text-amber-600">⭐ Top Rated</p>
       </div>
     </div>
-  );
+  ), []);
+
+  const handleExpandToggle = useCallback(() => {
+    setIsExpanded(prev => !prev);
+  }, []);
+
+  const handleFiltersToggle = useCallback(() => {
+    setShowFilters(prev => !prev);
+  }, []);
 
   return (
     <div className="mb-8">
@@ -41,7 +51,7 @@ export default function HotelSection({ hotels, onHeartToggle, onNewTrip }: Hotel
       
       <div className="flex items-center justify-between w-full mb-6 p-4 rounded-2xl bg-gradient-to-r from-white/80 to-white/60 border border-white/50 hover:border-amber-200/60 backdrop-blur-sm hover:bg-gradient-to-r hover:from-white/90 hover:to-white/70 transition-all duration-500 shadow-sm hover:shadow-lg transform hover:scale-[1.01] group">
         <button 
-          onClick={() => setIsExpanded(!isExpanded)}
+          onClick={handleExpandToggle}
           className="flex items-center gap-4 flex-1"
         >
           <div className="text-left">
@@ -50,13 +60,13 @@ export default function HotelSection({ hotels, onHeartToggle, onNewTrip }: Hotel
         </button>
         <div className="flex items-center gap-3">
           <button 
-            onClick={() => setShowFilters(!showFilters)}
+            onClick={handleFiltersToggle}
             className={`p-2 rounded-xl transition-all duration-300 transform hover:scale-110 ${showFilters ? 'bg-primary/20 text-primary shadow-md ring-2 ring-primary/20' : 'hover:bg-amber-100/50 text-gray-600 hover:text-amber-600'}`}
           >
             <Filter className="w-5 h-5" />
           </button>
           <button 
-            onClick={() => setIsExpanded(!isExpanded)}
+            onClick={handleExpandToggle}
             className="p-2 rounded-xl hover:bg-amber-100/50 text-gray-600 hover:text-amber-600 transition-all duration-300 transform hover:scale-110"
           >
             {isExpanded ? (
