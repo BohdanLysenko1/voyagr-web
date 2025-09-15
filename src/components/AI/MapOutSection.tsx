@@ -95,12 +95,15 @@ export default function MapOutSection({ onNewTrip }: MapOutSectionProps) {
 
   return (
     <div className="space-y-6">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="p-2 rounded-lg bg-gradient-to-r from-primary/20 to-purple-500/20">
+          <MapPin className="w-5 h-5 text-primary" />
+        </div>
+        <h2 className="text-lg font-bold text-gray-800">AI Map Out</h2>
+      </div>
+      
       {/* Header */}
       <div className="text-center">
-        <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-100 to-cyan-100 rounded-2xl mb-4">
-          <MapPin className="w-5 h-5 text-blue-600" />
-          <span className="text-blue-800 font-medium">Map Out Your Journey</span>
-        </div>
         <p className="text-gray-600 text-sm">
           Visualize your day-by-day itinerary with optimal routing and timing
         </p>

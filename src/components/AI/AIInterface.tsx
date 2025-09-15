@@ -26,6 +26,7 @@ interface AIInterfaceProps {
   onNewTrip?: () => void;
   registerClearChat?: (fn: () => void) => void;
   onFirstMessage?: (firstMessage: string) => void;
+  onMessageSent?: (message: string) => void;
   onPreferencesOpen?: () => void;
 }
 
@@ -44,6 +45,7 @@ export default function AIInterface({
   onNewTrip,
   registerClearChat,
   onFirstMessage,
+  onMessageSent,
   onPreferencesOpen
 }: AIInterfaceProps) {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
@@ -156,6 +158,9 @@ export default function AIInterface({
     if (isFirstMessage) {
       onFirstMessage?.(textToSend);
     }
+    
+    // Track all messages for conversation history
+    onMessageSent?.(textToSend);
     
     // Show AI typing indicator
     setIsAITyping(true);
@@ -281,7 +286,7 @@ export default function AIInterface({
       {isMobile && (
         <button
           onClick={onSidebarToggle}
-          className="fixed top-20 left-4 z-40 p-4 rounded-full bg-white/80 backdrop-blur-sm border border-white/40 hover:bg-white/90 transition-all duration-200 shadow-lg min-h-[48px] min-w-[48px] flex items-center justify-center"
+          className="fixed top-28 left-4 z-40 p-4 rounded-full bg-white/80 backdrop-blur-sm border border-white/40 hover:bg-white/90 transition-all duration-200 shadow-lg min-h-[48px] min-w-[48px] flex items-center justify-center"
         >
           <Menu className="w-5 h-5 text-gray-700" />
         </button>
@@ -346,7 +351,7 @@ export default function AIInterface({
                 clearChat();
                 onNewTrip?.();
               }}
-              className="fixed top-20 right-4 z-50 w-14 h-14 rounded-full bg-white/70 backdrop-blur-xl backdrop-saturate-150 border border-white/40 shadow-[0_8px_32px_rgba(8,_112,_184,_0.2)] hover:shadow-[0_12px_40px_rgba(8,_112,_184,_0.3)] transition-all duration-300 transform hover:scale-105 active:scale-95 flex items-center justify-center before:content-[''] before:absolute before:inset-0 before:rounded-full before:pointer-events-none before:bg-gradient-to-br before:from-white/40 before:via-white/10 before:to-white/5"
+              className="fixed top-28 right-4 z-50 w-14 h-14 rounded-full bg-white/70 backdrop-blur-xl backdrop-saturate-150 border border-white/40 shadow-[0_8px_32px_rgba(8,_112,_184,_0.2)] hover:shadow-[0_12px_40px_rgba(8,_112,_184,_0.3)] transition-all duration-300 transform hover:scale-105 active:scale-95 flex items-center justify-center before:content-[''] before:absolute before:inset-0 before:rounded-full before:pointer-events-none before:bg-gradient-to-br before:from-white/40 before:via-white/10 before:to-white/5"
             >
               <MessageSquarePlus className="w-6 h-6 text-gray-700" />
             </button>

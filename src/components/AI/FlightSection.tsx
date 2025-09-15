@@ -32,16 +32,19 @@ export default function FlightSection({ flights, onHeartToggle, onNewTrip }: Fli
 
   return (
     <div className="mb-8">
+      <div className="flex items-center gap-3 mb-4">
+        <div className="p-2 rounded-lg bg-gradient-to-r from-primary/20 to-purple-500/20">
+          <Plane className="w-5 h-5 text-primary" />
+        </div>
+        <h2 className="text-lg font-bold text-gray-800">AI Flight Search</h2>
+      </div>
+      
       <div className="flex items-center justify-between w-full mb-6 p-4 rounded-2xl bg-gradient-to-r from-white/80 to-white/60 border border-white/50 hover:border-blue-200/60 backdrop-blur-sm hover:bg-gradient-to-r hover:from-white/90 hover:to-white/70 transition-all duration-500 shadow-sm hover:shadow-lg transform hover:scale-[1.01] group">
         <button 
           onClick={() => setIsExpanded(!isExpanded)}
           className="flex items-center gap-4 flex-1"
         >
-          <div className="p-3 rounded-xl bg-gradient-to-br from-blue-100 to-sky-100 group-hover:from-blue-200 group-hover:to-sky-200 transition-all duration-300 shadow-sm group-hover:shadow-md transform group-hover:scale-110">
-            <Plane className="w-6 h-6 text-blue-600 group-hover:text-blue-700 transition-colors duration-300 group-hover:rotate-12" />
-          </div>
           <div className="text-left">
-            <h2 className="text-xl font-bold text-gray-800 group-hover:text-gray-900 transition-colors duration-300 tracking-wide">AI Flight Search</h2>
             <p className="text-sm text-gray-500 group-hover:text-gray-600 transition-colors duration-300 font-medium">Smart recommendations</p>
           </div>
         </button>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAIPageState } from '@/hooks/useAIPageState';
 import { useFavorites } from '@/contexts/FavoritesContext';
@@ -25,23 +25,32 @@ export default function AiPage() {
   const [isPreferencesModalOpen, setIsPreferencesModalOpen] = useState(false);
   const [preferences, setPreferences] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [recentConversations, setRecentConversations] = useState<RecentConversation[]>([
-    {
-      id: '1',
-      title: 'Beach vacation in Thailand',
-      timestamp: new Date(Date.now() - 2 * 60 * 1000) // 2 mins ago
-    },
-    {
-      id: '2', 
-      title: 'European city break',
-      timestamp: new Date(Date.now() - 60 * 60 * 1000) // 1 hour ago
-    },
-    {
-      id: '3',
-      title: 'Mountain adventure in Switzerland', 
-      timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000) // 3 hours ago
+  const [recentConversations, setRecentConversations] = useState<RecentConversation[]>([]);
+  const [currentConversationMessages, setCurrentConversationMessages] = useState<string[]>([]);
+  
+  // Load conversation history from localStorage on mount
+  useEffect(() => {
+    const savedConversations = localStorage.getItem('voyagr-conversation-history');
+    if (savedConversations) {
+      try {
+        const parsed = JSON.parse(savedConversations);
+        // Convert timestamp strings back to Date objects
+        const conversations = parsed.map((conv: any) => ({
+          ...conv,
+          timestamp: new Date(conv.timestamp)
+        }));
+        setRecentConversations(conversations);
+      } catch (error) {
+        console.error('Failed to load conversation history:', error);
+      }
     }
-  ]);
+  }, []);
+
+  // Save conversation history to localStorage whenever it changes
+  const saveConversationHistory = (conversations: RecentConversation[]) => {
+    localStorage.setItem('voyagr-conversation-history', JSON.stringify(conversations));
+    setRecentConversations(conversations);
+  };
   
   const { toggleAIItemFavorite, isAIItemFavorite } = useFavorites();
 
@@ -77,14 +86,22 @@ export default function AiPage() {
   };
 
   const handleNewTrip = () => {
-    // Save current conversation to recent conversations if there's content
-    if (inputValue.trim()) {
-      // This would save to recent conversations in a real implementation
-      console.log('Saving current conversation to recent conversations:', inputValue);
+    // Save current conversation to recent conversations if there are messages
+    if (currentConversationMessages.length > 0) {
+      const firstMessage = currentConversationMessages[0];
+      const newConversation: RecentConversation = {
+        id: Date.now().toString(),
+        title: firstMessage.length > 50 ? firstMessage.substring(0, 50) + '...' : firstMessage,
+        timestamp: new Date()
+      };
+
+      const updatedConversations = [newConversation, ...recentConversations.slice(0, 9)]; // Keep only the 10 most recent
+      saveConversationHistory(updatedConversations);
     }
     
     // Reset the state to start a fresh conversation
     setInputValue('');
+    setCurrentConversationMessages([]);
     setActiveTab('plan');
     setIsSidebarOpen(false);
     
@@ -113,14 +130,13 @@ export default function AiPage() {
   };
 
   const handleFirstMessage = (firstMessage: string) => {
-    // Save the new conversation to recent conversations
-    const newConversation: RecentConversation = {
-      id: Date.now().toString(),
-      title: firstMessage.length > 50 ? firstMessage.substring(0, 50) + '...' : firstMessage,
-      timestamp: new Date()
-    };
+    // Add the first message to current conversation
+    setCurrentConversationMessages([firstMessage]);
+  };
 
-    setRecentConversations(prev => [newConversation, ...prev.slice(0, 4)]); // Keep only the 5 most recent
+  // Function to track all messages in the current conversation
+  const handleMessageSent = (message: string) => {
+    setCurrentConversationMessages(prev => [...prev, message]);
   };
 
   const handleConversationSelect = (conversation: RecentConversation) => {
@@ -199,6 +215,7 @@ export default function AiPage() {
             isSidebarOpen={isSidebarOpen}
             registerClearChat={setClearChatFunction}
             onFirstMessage={handleFirstMessage}
+            onMessageSent={handleMessageSent}
             onPreferencesOpen={handlePreferencesOpen}
           />
         </div>
@@ -237,6 +254,7 @@ export default function AiPage() {
             registerClearChat={setClearChatFunction}
             onNewTrip={handleNewTrip}
             onFirstMessage={handleFirstMessage}
+            onMessageSent={handleMessageSent}
             onPreferencesOpen={handlePreferencesOpen}
           />
         </div>
