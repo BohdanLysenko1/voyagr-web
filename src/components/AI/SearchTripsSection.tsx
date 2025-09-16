@@ -1,4 +1,4 @@
-import { Search, Plus, Clock } from 'lucide-react';
+import { Search, Clock } from 'lucide-react';
 import { useCallback } from 'react';
 
 interface RecentConversation {
@@ -45,19 +45,6 @@ export default function SearchTripsSection({
         <h2 className="text-lg font-bold text-gray-800">Trip Planner</h2>
       </div>
       
-      {/* Main Action Button */}
-      <button 
-        onClick={useCallback(() => {
-          onNewTrip?.();
-        }, [onNewTrip])}
-        disabled={false}
-        className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-gradient-to-r from-primary to-purple-600 hover:from-primary/95 hover:to-purple-600/95 text-white rounded-xl font-semibold text-base transition-all duration-300 ease-out shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/35 transform hover:scale-[1.01] hover:-translate-y-0.5 active:scale-[0.99] active:translate-y-0 border border-white/10 backdrop-blur-sm mb-6 group relative overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-r before:from-white/0 before:via-white/5 before:to-white/0 before:translate-x-[-100%] hover:before:translate-x-[100%] before:transition-transform before:duration-700"
-      >
-        <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-white/15 group-hover:bg-white/25 group-hover:scale-110 transition-all duration-300 backdrop-blur-sm border border-white/20">
-          <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" />
-        </div>
-        <span className="tracking-wide font-medium">New Trip</span>
-      </button>
 
 
       {/* Recent Conversations */}

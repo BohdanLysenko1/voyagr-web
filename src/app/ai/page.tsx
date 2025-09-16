@@ -172,7 +172,7 @@ export default function AiPage() {
   return (
     <div className="h-screen bg-gradient-to-br from-slate-50 via-blue-50/50 to-purple-50/30">
       {/* Mobile Layout */}
-      <div className="lg:hidden flex flex-col h-full relative pt-20 pb-safe">
+      <div className="lg:hidden flex flex-col h-full min-h-0 relative pt-20 pb-safe">
         
         {/* Mobile Sidebar Backdrop */}
         {isSidebarOpen && (
@@ -209,7 +209,7 @@ export default function AiPage() {
         </div>
         
         {/* Mobile Main Interface */}
-        <div className="flex-1 h-full">
+        <div className="flex-1 h-full min-h-0">
           <AIInterface
             key={resetKey}
             inputValue={inputValue}
@@ -232,7 +232,7 @@ export default function AiPage() {
       </div>
 
       {/* Desktop Layout */}
-      <div className="hidden lg:flex h-full">
+      <div className="hidden lg:flex h-full min-h-0">
         <AISidebar
           flights={updatedFlights}
           hotels={updatedHotels}

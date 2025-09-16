@@ -32,6 +32,9 @@ interface AISidebarProps {
   onClose?: () => void;
   recentConversations?: RecentConversation[];
   onConversationSelect?: (conversation: RecentConversation) => void;
+  onSendMessage?: (message: string) => void;
+  inputValue?: string;
+  onInputChange?: (value: string) => void;
 }
 
 export default function AISidebar({

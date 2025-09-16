@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { Sparkles, Send, Bot, User, Menu, ArrowRight, Settings, MessageSquarePlus } from 'lucide-react';
+import { Sparkles, Send, Bot, User, Menu, ArrowRight, Settings } from 'lucide-react';
 import Image from 'next/image';
 
 type TabKey = 'plan' | 'preferences' | 'flights' | 'hotels' | 'packages' | 'mapout';
@@ -53,14 +53,6 @@ export default function AIInterface({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Auto-resize textarea
-  useEffect(() => {
-    const textarea = textareaRef.current;
-    if (textarea) {
-      textarea.style.height = 'auto';
-      textarea.style.height = `${Math.min(textarea.scrollHeight, 128)}px`;
-    }
-  }, [inputValue]);
 
   // Clear chat messages to return to welcome screen
   const clearChat = useCallback(() => {
@@ -271,7 +263,7 @@ export default function AIInterface({
   const showChat = chatMessages.length > 0 || isAITyping;
 
   return (
-    <div className={`flex-1 relative ${isMobile ? 'h-full flex flex-col overflow-hidden' : 'h-full flex flex-col'}`}>
+    <div className={`flex-1 relative ${isMobile ? 'h-full flex flex-col min-h-0 overflow-hidden' : 'h-full flex flex-col min-h-0'}`}>
       
       {/* Mobile Floating Menu Button */}
       {isMobile && !isSidebarOpen && (
@@ -296,24 +288,12 @@ export default function AIInterface({
       {/* Chat Interface or Welcome Screen */}
       {showChat ? (
         /* Chat Mode */
-        <div className={`relative flex flex-col ${isMobile ? 'h-screen p-4 pt-0' : 'h-full p-8 pt-0'}`}>
-          {/* Mobile New Chat Button */}
-          {isMobile && (
-            <button
-              onClick={() => {
-                clearChat();
-                onNewTrip?.();
-              }}
-              className="fixed top-28 right-4 z-50 w-14 h-14 rounded-full bg-white/70 backdrop-blur-xl backdrop-saturate-150 border border-white/40 shadow-[0_8px_32px_rgba(8,_112,_184,_0.2)] hover:shadow-[0_12px_40px_rgba(8,_112,_184,_0.3)] transition-all duration-300 transform hover:scale-105 active:scale-95 flex items-center justify-center before:content-[''] before:absolute before:inset-0 before:rounded-full before:pointer-events-none before:bg-gradient-to-br before:from-white/40 before:via-white/10 before:to-white/5"
-            >
-              <MessageSquarePlus className="w-6 h-6 text-gray-700" />
-            </button>
-          )}
+        <div className={`relative flex flex-col min-h-0 ${isMobile ? 'h-screen p-4 pt-0' : 'h-full p-8 pt-0'}`}>
           
-          <div className={`${isMobile ? 'w-full' : 'max-w-4xl w-full mx-auto'} ${isMobile ? 'mt-2' : 'mt-6'} h-full flex flex-col`}>
+          <div className={`${isMobile ? 'w-full' : 'max-w-4xl w-full mx-auto'} ${isMobile ? 'mt-2' : 'mt-6'} h-full min-h-0 flex flex-col relative`}>
             {/* Chat Header - Desktop only */}
             {!isMobile && (
-              <div className="relative overflow-hidden bg-white/60 backdrop-blur-2xl backdrop-saturate-150 bg-clip-padding border border-white/40 rounded-t-[2rem] shadow-[0_20px_50px_rgba(8,_112,_184,_0.18)] p-6 text-center transition-all duration-700 ease-in-out before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/40 before:via-white/10 before:to-white/5">
+              <div className="relative overflow-hidden bg-white/60 backdrop-blur-2xl backdrop-saturate-150 bg-clip-padding border border-white/40 border-b-0 rounded-t-[2rem] shadow-[0_20px_50px_rgba(8,_112,_184,_0.18)] p-6 text-center transition-all duration-700 ease-in-out before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/40 before:via-white/10 before:to-white/5">
                 <div className="flex items-center justify-center gap-3">
                   <div className={`p-2 rounded-xl bg-gradient-to-br ${content.gradientColors} border border-white/40`}>
                     <Sparkles className={`w-6 h-6 ${content.accentColor}`} />
@@ -326,8 +306,8 @@ export default function AIInterface({
             )}
 
             {/* Messages Container */}
-            <div className={`flex-1 relative ${isMobile ? 'bg-white/95 border border-gray-200 rounded-2xl mt-4 mb-24 min-h-[300px]' : 'bg-white/40 backdrop-blur-xl backdrop-saturate-150 bg-clip-padding border-x border-white/40 before:content-[\'\'] before:absolute before:inset-0 before:pointer-events-none before:bg-gradient-to-br before:from-white/20 before:via-white/5 before:to-white/5'}`}>
-                  <div className={`h-full overflow-y-auto ${isMobile ? 'p-4' : 'p-6'} space-y-4 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400`}>
+            <div className={`flex-1 min-h-0 relative overflow-hidden ${isMobile ? 'bg-white/95 border border-gray-200 rounded-2xl mt-4 mb-4 min-h-[300px]' : 'bg-white/40 backdrop-blur-xl backdrop-saturate-150 bg-clip-padding border-x border-b border-white/40 rounded-b-[2rem] before:content-[\'\'] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/20 before:via-white/5 before:to-white/5'}`}>
+                  <div className={`h-full overflow-y-auto overscroll-contain ${isMobile ? 'p-4 pb-20' : 'p-6 pb-28'} space-y-4 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400`}>
                     {chatMessages.map((message) => (
                       <div
                         key={message.id}
@@ -347,12 +327,12 @@ export default function AIInterface({
                         </div>
 
                         {/* Message Bubble */}
-                        <div className={`max-w-[70%] ${
+                        <div className={`max-w-[70%] overflow-hidden ${
                           message.sender === 'user'
                             ? 'bg-primary/10 border border-primary/20 rounded-2xl rounded-tr-md'
                             : 'bg-white/60 border border-white/40 rounded-2xl rounded-tl-md backdrop-blur-sm'
                         } p-4 shadow-sm`}>
-                          <p className="text-gray-800 text-sm leading-relaxed whitespace-pre-wrap">
+                          <p className="text-gray-800 text-sm leading-relaxed whitespace-pre-wrap break-words">
                             {message.content}
                           </p>
                           <div className="text-xs text-gray-500 mt-2">
@@ -385,7 +365,7 @@ export default function AIInterface({
             </div>
 
             {/* Compact Chat Input */}
-            <div className={`${isMobile ? 'relative mt-4 mx-4 mb-6' : 'relative'} z-[9999]`}>
+            <div className={`${isMobile ? 'absolute bottom-4 left-4 right-4' : 'absolute bottom-6 left-0 right-0'} z-[9999]`}>
               <div className={`relative overflow-hidden ${isMobile ? 'bg-white border-2 border-gray-200 shadow-lg' : 'bg-white/70 border border-white/30 backdrop-blur-3xl backdrop-saturate-200 before:content-[\'\'] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/50 before:via-white/20 before:to-white/10'} rounded-3xl hover:shadow-xl transition-all duration-300`}>
                 <div className="flex items-center gap-3 p-4">
                   <div className="flex-1 relative">
@@ -393,15 +373,17 @@ export default function AIInterface({
                       ref={textareaRef}
                       value={inputValue}
                       onChange={(e) => onInputChange(e.target.value)}
-                      onKeyPress={handleKeyPress}
+                      onKeyDown={handleKeyPress}
                       placeholder="Ask anything..."
-                      className="w-full bg-transparent border-none resize-none focus:outline-none text-gray-800 placeholder-gray-500 text-base leading-6 min-h-[24px] max-h-32 py-0"
+                      className="w-full bg-transparent border-none resize-none focus:outline-none text-gray-800 placeholder-gray-500 text-base leading-6 h-6 py-0 max-h-6 overflow-hidden"
                       rows={1}
-                      style={{ height: 'auto' }}
                     />
                   </div>
                   <button
-                    onClick={() => handleSendMessage()}
+                    onClick={() => {
+                      const currentInput = inputValue;
+                      handleSendMessage(currentInput);
+                    }}
                     disabled={!inputValue.trim() || isAITyping}
                     className={`flex-shrink-0 w-8 h-8 rounded-full transition-all duration-200 flex items-center justify-center ${
                       inputValue.trim() && !isAITyping
@@ -497,9 +479,9 @@ export default function AIInterface({
                     <textarea
                       value={inputValue}
                       onChange={(e) => onInputChange(e.target.value)}
-                      onKeyPress={handleKeyPress}
-                      placeholder=""
-                      className={`w-full ${isMobile ? (preferences ? 'p-4 text-base min-h-[80px]' : 'p-5 text-lg min-h-[100px]') : 'p-6 text-lg min-h-[120px]'} bg-transparent resize-none focus:outline-none focus:ring-0 border-0 transition-all duration-300 placeholder-gray-500 text-gray-800 relative z-10`}
+                      onKeyDown={handleKeyPress}
+                      placeholder={content.placeholder}
+                      className={`w-full ${isMobile ? (preferences ? 'p-4 text-base h-[80px] max-h-[80px]' : 'p-5 text-lg h-[100px] max-h-[100px]') : 'p-6 text-lg h-[120px] max-h-[120px]'} bg-transparent resize-none focus:outline-none focus:ring-0 border-0 transition-all duration-300 placeholder-gray-500 text-gray-800 relative z-10 overflow-y-auto`}
                       rows={4}
                     />
                   </div>
