@@ -34,7 +34,7 @@ export const SUGGESTED_PROMPTS = [
   { text: "Safari adventure in Kenya", emoji: "🦁" }
 ];
 
-export const PLACEHOLDER_TEXT = "Write your heart out! From 'Europe in May' to 'Best foodie cities in Asia'... Say what you're in the mood for - I'll take care of the rest.";
+export const PLACEHOLDER_TEXT = "";
 
 export const SIDEBAR_SECTIONS = {
   flights: {

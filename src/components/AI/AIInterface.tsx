@@ -54,6 +54,31 @@ export default function AIInterface({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
 
+  // Keep input focused for quick subsequent typing
+  const focusInput = useCallback(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    try {
+      // preventScroll keeps the viewport stable when focusing
+      (el as any).focus({ preventScroll: true });
+    } catch {
+      el.focus();
+    }
+    // Place caret at the end
+    const len = el.value.length;
+    try { el.setSelectionRange(len, len); } catch {}
+    if (process.env.NODE_ENV !== 'production') {
+      setTimeout(() => {
+        const focused = typeof document !== 'undefined' && document.activeElement === el;
+        if (!focused) {
+          // eslint-disable-next-line no-console
+          console.debug('[AIInterface] focusInput: focus attempt did not stick');
+        }
+      }, 0);
+    }
+  }, []);
+
+
   // Clear chat messages to return to welcome screen
   const clearChat = useCallback(() => {
     setChatMessages([]);
@@ -83,9 +108,13 @@ export default function AIInterface({
 
   useEffect(() => {
     if (chatMessages.length > 0) {
-      setTimeout(scrollToBottom, 100);
+      setTimeout(() => {
+        scrollToBottom();
+        // ensure the input is focused after scrolling finishes
+        setTimeout(() => focusInput(), 0);
+      }, 100);
     }
-  }, [chatMessages, scrollToBottom]);
+  }, [chatMessages, scrollToBottom, focusInput]);
 
   const generateAIResponse = useCallback((userMessage: string): string => {
     const responses: Record<string, string[]> = {
@@ -139,6 +168,8 @@ export default function AIInterface({
     setChatMessages(prev => [...prev, userMessage]);
     // Clear the input box regardless of where the text came from
     onInputChange('');
+    // Keep focus in the compact input so user can continue typing immediately
+    focusInput();
     
     // If this is the first message, save it to recent conversations
     if (isFirstMessage) {
@@ -161,13 +192,24 @@ export default function AIInterface({
       };
       setChatMessages(prev => [...prev, aiResponse]);
       setIsAITyping(false);
+      // After AI finishes, refocus the input on the next frame
+      requestAnimationFrame(() => focusInput());
     }, 600 + Math.random() * 1000);
 
     onSubmit?.();
-  }, [chatMessages.length, onInputChange, onFirstMessage, onMessageSent, generateAIResponse, onSubmit]);
+  }, [inputValue, chatMessages.length, onInputChange, onFirstMessage, onMessageSent, generateAIResponse, onSubmit]);
 
   const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    const ke = e as unknown as KeyboardEvent;
+    const isEnter =
+      e.key === 'Enter' ||
+      (ke.code ? (ke.code === 'Enter' || ke.code === 'NumpadEnter') : false) ||
+      // Fallbacks for edge cases / older browsers
+      // @ts-ignore deprecated
+      e.keyCode === 13 ||
+      // @ts-ignore deprecated
+      e.which === 13;
+    if (isEnter && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
     }
@@ -261,6 +303,41 @@ export default function AIInterface({
 
   const content = getContentByTab();
   const showChat = chatMessages.length > 0 || isAITyping;
+
+  useEffect(() => {
+    if (showChat && !isAITyping) {
+      // Defer to the next tick to ensure elements are mounted
+      const t = setTimeout(() => focusInput(), 0);
+      return () => clearTimeout(t);
+    }
+  }, [showChat, isAITyping, chatMessages.length, focusInput]);
+
+  // Global fallback: if user starts typing anywhere in chat view, focus the input.
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (!showChat || isAITyping) return;
+      const target = e.target as HTMLElement | null;
+      if (target) {
+        const tag = target.tagName?.toLowerCase();
+        const isEditable = (target as any).isContentEditable;
+        if (tag === 'input' || tag === 'textarea' || isEditable) return;
+      }
+      const el = textareaRef.current;
+      if (!el) return;
+      // Focus input on printable characters or editing keys
+      const printable = e.key.length === 1;
+      if (printable || e.key === 'Backspace' || e.key === 'Delete') {
+        focusInput();
+      }
+      // Allow Enter to send even if input is not focused
+      if ((e.key === 'Enter' || e.key === 'NumpadEnter') && !e.shiftKey) {
+        e.preventDefault();
+        handleSendMessage();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [showChat, isAITyping, focusInput, handleSendMessage]);
 
   return (
     <div className={`flex-1 relative ${isMobile ? 'h-full flex flex-col min-h-0 overflow-hidden' : 'h-full flex flex-col min-h-0'}`}>
@@ -369,17 +446,22 @@ export default function AIInterface({
               <div className={`relative overflow-hidden ${isMobile ? 'bg-white border-2 border-gray-200 shadow-lg' : 'bg-white/70 border border-white/30 backdrop-blur-3xl backdrop-saturate-200 before:content-[\'\'] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/50 before:via-white/20 before:to-white/10'} rounded-3xl hover:shadow-xl transition-all duration-300`}>
                 <div className="flex items-center gap-3 p-4">
                   <div className="flex-1 relative">
-                    <textarea
+                    <textarea id="ai-compact-input"
                       ref={textareaRef}
                       value={inputValue}
                       onChange={(e) => onInputChange(e.target.value)}
                       onKeyDown={handleKeyPress}
                       placeholder="Ask anything..."
+                      autoFocus
+                      enterKeyHint="send"
                       className="w-full bg-transparent border-none resize-none focus:outline-none text-gray-800 placeholder-gray-500 text-base leading-6 h-6 py-0 max-h-6 overflow-hidden"
                       rows={1}
                     />
                   </div>
                   <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onTouchStart={(e) => e.preventDefault()}
                     onClick={() => {
                       const currentInput = inputValue;
                       handleSendMessage(currentInput);

@@ -1,4 +1,4 @@
-import { Search, Clock } from 'lucide-react';
+import { Search, Clock, Plus } from 'lucide-react';
 import { useCallback } from 'react';
 
 interface RecentConversation {
@@ -45,7 +45,18 @@ export default function SearchTripsSection({
         <h2 className="text-lg font-bold text-gray-800">Trip Planner</h2>
       </div>
       
-
+      {/* New Trip Button */}
+      {onNewTrip && (
+        <button
+          onClick={onNewTrip}
+          className="w-full flex items-center justify-center gap-3 p-4 rounded-2xl bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90 text-white font-medium transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl backdrop-blur-sm border border-white/20 group mb-6"
+        >
+          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-white/15 group-hover:bg-white/25 group-hover:scale-110 transition-all duration-300 backdrop-blur-sm border border-white/20">
+            <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-300" />
+          </div>
+          <span className="tracking-wide font-medium">New Trip</span>
+        </button>
+      )}
 
       {/* Recent Conversations */}
       {recentConversations && recentConversations.length > 0 && (
