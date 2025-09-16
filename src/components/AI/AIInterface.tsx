@@ -52,6 +52,7 @@ export default function AIInterface({
   const [isAITyping, setIsAITyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const globeFieldRef = useRef<HTMLDivElement>(null);
 
 
   // Keep input focused for quick subsequent typing
@@ -78,6 +79,50 @@ export default function AIInterface({
     }
   }, []);
 
+  // Animated globe nodes with slight randomization at mount
+  const globeNodes = useMemo(() => {
+    const rand = (min: number, max: number) => min + Math.random() * (max - min);
+    type NodeCfg = {
+      pos: { top: string; left?: string; right?: string };
+      xStart: number; yStart: number; xEnd: number; yEnd: number;
+      dur: number; size: number; opacity: number; spin: number;
+    };
+    const base: NodeCfg[] = [
+      { pos: { top: '8%', left: '5%' }, xStart: -6, yStart: -4, xEnd: 10, yEnd: 6, dur: rand(20, 26), size: 140, opacity: 0.08, spin: 120 },
+      { pos: { top: '20%', right: '8%' }, xStart: 5, yStart: -3, xEnd: -8, yEnd: 4, dur: rand(24, 30), size: 120, opacity: 0.07, spin: 110 },
+      { pos: { top: '60%', left: '10%' }, xStart: 0, yStart: 0, xEnd: 12, yEnd: -6, dur: rand(18, 24), size: 90, opacity: 0.09, spin: 90 },
+      { pos: { top: '68%', right: '12%' }, xStart: -10, yStart: 2, xEnd: 8, yEnd: -8, dur: rand(20, 26), size: 100, opacity: 0.06, spin: 95 },
+      { pos: { top: '35%', left: '40%' }, xStart: -6, yStart: 6, xEnd: 6, yEnd: -6, dur: rand(16, 22), size: 60, opacity: 0.08, spin: 70 },
+      { pos: { top: '78%', left: '46%' }, xStart: 4, yStart: -4, xEnd: -6, yEnd: 6, dur: rand(14, 20), size: 50, opacity: 0.07, spin: 60 },
+      { pos: { top: '15%', left: '65%' }, xStart: 2, yStart: 4, xEnd: -8, yEnd: -4, dur: rand(18, 22), size: 70, opacity: 0.07, spin: 80 },
+    ];
+    return base.map((n) => {
+      // small random offsets to path
+      const jitter = (v: number, j: number) => v + rand(-j, j);
+      const xStart = jitter(n.xStart, 2);
+      const yStart = jitter(n.yStart, 2);
+      const xEnd = jitter(n.xEnd, 2);
+      const yEnd = jitter(n.yEnd, 2);
+      return {
+        nodeStyle: {
+          top: n.pos.top,
+          left: n.pos.left,
+          right: n.pos.right,
+          ['--xStart' as any]: `${xStart}vw`,
+          ['--yStart' as any]: `${yStart}vh`,
+          ['--xEnd' as any]: `${xEnd}vw`,
+          ['--yEnd' as any]: `${yEnd}vh`,
+          animationDuration: `${n.dur}s`,
+        },
+        spriteStyle: {
+          ['--size' as any]: `${n.size}px`,
+          ['--opacity' as any]: `${n.opacity}`,
+          animationDuration: `${n.spin}s`,
+        },
+      };
+    });
+  }, []);
+
 
   // Clear chat messages to return to welcome screen
   const clearChat = useCallback(() => {
@@ -94,7 +139,7 @@ export default function AIInterface({
   // Expose clearChat function to parent component
   useEffect(() => {
     registerClearChat?.(clearChat);
-  }, [registerClearChat]);
+  }, [registerClearChat, clearChat]);
 
   const scrollToBottom = useCallback(() => {
     const scrollContainer = messagesEndRef.current?.parentElement;
@@ -304,6 +349,21 @@ export default function AIInterface({
   const content = getContentByTab();
   const showChat = chatMessages.length > 0 || isAITyping;
 
+  const globeTint = useMemo(() => {
+    switch (activeTab) {
+      case 'flights':
+        return { from: 'rgba(59,130,246,0.40)', to: 'rgba(99,102,241,0.35)', opacity: '0.32' }; // blue/indigo
+      case 'hotels':
+        return { from: 'rgba(16,185,129,0.40)', to: 'rgba(13,148,136,0.35)', opacity: '0.30' }; // emerald/teal
+      case 'packages':
+        return { from: 'rgba(147,51,234,0.40)', to: 'rgba(236,72,153,0.35)', opacity: '0.32' }; // purple/pink
+      case 'mapout':
+        return { from: 'rgba(16,185,129,0.40)', to: 'rgba(8,145,178,0.35)', opacity: '0.28' }; // emerald/cyan
+      default:
+        return { from: 'rgba(82,113,255,0.40)', to: 'rgba(139,92,246,0.35)', opacity: '0.30' }; // primary/violet
+    }
+  }, [activeTab]);
+
   useEffect(() => {
     if (showChat && !isAITyping) {
       // Defer to the next tick to ensure elements are mounted
@@ -339,6 +399,21 @@ export default function AIInterface({
     return () => window.removeEventListener('keydown', handler);
   }, [showChat, isAITyping, focusInput, handleSendMessage]);
 
+  // Animated globe parallax
+  useEffect(() => {
+    const el = globeFieldRef.current;
+    if (!el) return;
+    const onMove = (e: MouseEvent) => {
+      const { innerWidth: w, innerHeight: h } = window;
+      const x = ((e.clientX / w) - 0.5) * 24; // px parallax
+      const y = ((e.clientY / h) - 0.5) * 16;
+      el.style.setProperty('--px', `${x}px`);
+      el.style.setProperty('--py', `${y}px`);
+    };
+    window.addEventListener('mousemove', onMove, { passive: true } as any);
+    return () => window.removeEventListener('mousemove', onMove as any);
+  }, []);
+
   return (
     <div className={`flex-1 relative ${isMobile ? 'h-full flex flex-col min-h-0 overflow-hidden' : 'h-full flex flex-col min-h-0'}`}>
       
@@ -352,18 +427,23 @@ export default function AIInterface({
         </button>
       )}
       
-      {/* Globe Background */}
-      <div 
-        className="absolute inset-0 opacity-10 bg-repeat-y"
-        style={{
-          backgroundImage: 'url("/images/AIPage/globeBackground.svg")',
-          backgroundSize: '50px',
-          backgroundPosition: 'center'
-        }}
-      />
+      {/* Animated Globe Background */}
+      <div
+        className="globe-field"
+        ref={globeFieldRef}
+        data-force-motion="true"
+        style={{ ['--tintFrom' as any]: globeTint.from, ['--tintTo' as any]: globeTint.to, ['--tintOpacity' as any]: globeTint.opacity }}
+      >
+        {globeNodes.map((n, idx) => (
+          <div key={idx} className="globe-node" style={n.nodeStyle as any}>
+            <div className="globe-sprite" style={n.spriteStyle as any} />
+          </div>
+        ))}
+      </div>
 
-      {/* Chat Interface or Welcome Screen */}
-      {showChat ? (
+      <div className="relative z-10">
+        {/* Chat Interface or Welcome Screen */}
+        {showChat ? (
         /* Chat Mode */
         <div className={`relative flex flex-col min-h-0 ${isMobile ? 'h-screen p-4 pt-0' : 'h-full p-8 pt-0'}`}>
           
@@ -479,19 +559,19 @@ export default function AIInterface({
               </div>
             </div>
           </div>
-        </div>
-      ) : (
+          </div>
+        ) : (
         /* Welcome Mode */
-        <div className={`relative flex items-start justify-center ${isMobile ? 'p-3 pt-0 pb-4 flex-1 overflow-y-auto' : 'p-8 pt-0'}`}>
+        <div className={`relative z-10 ${isMobile ? 'w-full p-4 pt-0' : 'max-w-5xl w-full mx-auto p-10 pt-0'} `} data-force-motion="true">
+          <div className={`${isMobile ? 'p-3 pt-0 pb-4 flex-1 overflow-y-auto' : 'p-8 pt-0'}`}>
           <div className={`${isMobile ? 'w-full' : 'max-w-4xl w-full'} ${isMobile ? 'mt-0' : 'mt-4'} ${isMobile ? 'space-y-1' : 'space-y-3'}`}>
           
           {/* Compact Preferences Display */}
           {preferences && (
             <div className={`glass-card rounded-xl ${isMobile ? 'p-2' : 'p-4'}`}>
-              <div className="relative z-10">
-                <div className="flex items-center justify-between">
-                  <h3 className={`${isMobile ? 'text-xs' : 'text-sm'} font-semibold text-gray-700`}>Trip Preferences</h3>
-                  <div className="flex flex-wrap gap-1">
+              <div className="flex items-center justify-between">
+                <h3 className={`${isMobile ? 'text-xs' : 'text-sm'} font-semibold text-gray-700`}>Trip Preferences</h3>
+                <div className="flex flex-wrap gap-1">
                     {preferences.travelStyle && (
                       <span className={`px-2 py-1 bg-primary/10 text-primary ${isMobile ? 'text-xs' : 'text-xs'} font-medium rounded-full border border-primary/20`}>
                         {preferences.travelStyle.charAt(0).toUpperCase() + preferences.travelStyle.slice(1)}
@@ -514,7 +594,6 @@ export default function AIInterface({
                     )}
                   </div>
                 </div>
-              </div>
             </div>
           )}
             {/* Main AI Card with Enhanced Glassmorphism */}
@@ -654,7 +733,9 @@ export default function AIInterface({
             </div>
           </div>
         </div>
-      )}
+        </div>
+        )}
+      </div>
     </div>
   );
 }
