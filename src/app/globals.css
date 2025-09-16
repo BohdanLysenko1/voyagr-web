@@ -45,6 +45,13 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  /* Design tokens for aurora + glass */
+  --primary-500: #5271FF;
+  --accent-violet: #8B5CF6;
+  --accent-pink: #EC4899;
+  --glass-bg: rgba(255, 255, 255, 0.6);
+  --glass-border: rgba(255, 255, 255, 0.4);
+  --glass-shadow: 0 20px 50px rgba(8, 112, 184, 0.18);
 }
 
 /* Force light theme always - ignore system dark mode preference */
@@ -67,5 +74,116 @@ body {
   --rdp-day_button-height: 26px;
   --rdp-months-gap: 0.5rem;
   font-size: 11px;
+}
 
+/* Aurora + Glassmorphism design tokens and components */
+@layer components {
+  /* Gradient text utility for headings */
+  .gradient-text {
+    background: linear-gradient(90deg, var(--primary-500), var(--accent-violet), var(--accent-pink));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent; /* Safari/WebKit */
+    display: inline-block; /* Prevent descender clipping inside overflow-hidden parents */
+    line-height: 1.12; /* Slightly larger to avoid cutting off descenders */
+    padding-bottom: 0.04em; /* Tiny buffer for glyph descenders like g/j/y */
+  }
+
+  /* Reusable glass cards */
+  .glass-card {
+    position: relative;
+    overflow: hidden;
+    background: var(--glass-bg);
+    -webkit-backdrop-filter: blur(24px) saturate(1.5);
+    backdrop-filter: blur(24px) saturate(1.5);
+    border: 1px solid var(--glass-border);
+    border-radius: 1.5rem;
+    box-shadow: var(--glass-shadow);
+    transition: box-shadow 300ms ease, transform 300ms ease, border-color 300ms ease;
+  }
+  .glass-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(to bottom right, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+    pointer-events: none;
+  }
+  .glass-card:hover {
+    box-shadow: 0 25px 60px rgba(8, 112, 184, 0.25);
+    border-color: rgba(255, 255, 255, 0.5);
+  }
+
+  /* Larger glass panels (e.g., sidebars, main containers) */
+  .glass-panel {
+    position: relative;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.55);
+    -webkit-backdrop-filter: blur(20px) saturate(1.4);
+    backdrop-filter: blur(20px) saturate(1.4);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 2rem;
+    box-shadow: 0 18px 40px rgba(8, 112, 184, 0.16);
+  }
+
+  /* Glass input shells (chat input, search) */
+  .glass-input {
+    position: relative;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.7);
+    -webkit-backdrop-filter: blur(24px) saturate(1.8);
+    backdrop-filter: blur(24px) saturate(1.8);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 1.5rem;
+  }
+
+  /* Gradient ring effect for elevated elements */
+  .glow-ring {
+    position: relative;
+  }
+  .glow-ring::after {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg, rgba(82, 113, 255, 0.6), rgba(139, 92, 246, 0.6));
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+}
+
+/* Animated aurora background overlay */
+@keyframes auroraFloat {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-12px); }
+  100% { transform: translateY(0px); }
+}
+
+.aurora-ambient {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+.aurora-ambient::before,
+.aurora-ambient::after {
+  content: "";
+  position: absolute;
+  inset: -20%;
+  background:
+    radial-gradient(60% 60% at 10% 10%, rgba(82, 113, 255, 0.30) 0%, rgba(82, 113, 255, 0) 60%),
+    radial-gradient(50% 50% at 90% 20%, rgba(139, 92, 246, 0.28) 0%, rgba(139, 92, 246, 0) 60%),
+    radial-gradient(50% 60% at 30% 90%, rgba(236, 72, 153, 0.25) 0%, rgba(236, 72, 153, 0) 60%);
+  filter: blur(45px);
+  animation: auroraFloat 16s ease-in-out infinite;
+}
+.aurora-ambient::after {
+  animation-duration: 22s;
+  transform: translate3d(0,0,0);
 }

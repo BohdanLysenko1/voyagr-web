@@ -72,7 +72,7 @@ export default function AIPreferencesSection({ onPreferenceChange, defaultExpand
 
   return (
     <div className="mb-8">
-      <div className="relative overflow-hidden bg-white/60 backdrop-blur-2xl backdrop-saturate-150 bg-clip-padding border border-white/40 rounded-2xl shadow-[0_20px_50px_rgba(8,_112,_184,_0.18)] transition-all duration-700 ease-in-out before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/40 before:via-white/10 before:to-white/5 hover:shadow-[0_25px_60px_rgba(8,_112,_184,_0.25)] hover:border-white/50 group">
+      <div className="glass-card rounded-2xl transition-all duration-700 ease-in-out hover:shadow-[0_25px_60px_rgba(8,_112,_184,_0.25)] hover:border-white/50 group">
         <div className="flex items-center justify-between w-full p-6 relative z-10">
           <button 
             onClick={handleExpandToggle}
@@ -101,7 +101,7 @@ export default function AIPreferencesSection({ onPreferenceChange, defaultExpand
       {isExpanded && (
         <div className="space-y-6 animate-in slide-in-from-top-2 duration-300 p-6 pt-0 relative z-10">
           {/* Budget Preferences */}
-          <div className="relative overflow-hidden bg-white/50 backdrop-blur-xl backdrop-saturate-150 bg-clip-padding border border-white/40 rounded-2xl shadow-[0_8px_32px_rgba(8,_112,_184,_0.12)] before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/30 before:via-white/10 before:to-white/5">
+          <div className="glass-card rounded-2xl">
             <div className="p-6 relative z-10">
               <h4 className="text-lg font-bold text-gray-800 mb-5 flex items-center gap-3">
                 <div className="relative overflow-hidden p-2 rounded-xl bg-gradient-to-br from-green-400/20 to-emerald-400/20 border border-white/40 shadow-sm before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/40 before:via-white/10 before:to-white/5">
@@ -136,7 +136,7 @@ export default function AIPreferencesSection({ onPreferenceChange, defaultExpand
           </div>
 
           {/* Travel Style */}
-          <div className="relative overflow-hidden bg-white/50 backdrop-blur-xl backdrop-saturate-150 bg-clip-padding border border-white/40 rounded-2xl shadow-[0_8px_32px_rgba(8,_112,_184,_0.12)] before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/30 before:via-white/10 before:to-white/5">
+          <div className="glass-card rounded-2xl">
             <div className="p-6 relative z-10">
               <h4 className="text-lg font-bold text-gray-800 mb-5 flex items-center gap-3">
                 <div className="relative overflow-hidden p-2 rounded-xl bg-gradient-to-br from-blue-400/20 to-cyan-400/20 border border-white/40 shadow-sm before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/40 before:via-white/10 before:to-white/5">
@@ -166,7 +166,7 @@ export default function AIPreferencesSection({ onPreferenceChange, defaultExpand
           </div>
 
           {/* Interests */}
-          <div className="relative overflow-hidden bg-white/50 backdrop-blur-xl backdrop-saturate-150 bg-clip-padding border border-white/40 rounded-2xl shadow-[0_8px_32px_rgba(8,_112,_184,_0.12)] before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/30 before:via-white/10 before:to-white/5">
+          <div className="glass-card rounded-2xl">
             <div className="p-6 relative z-10">
               <h4 className="text-lg font-bold text-gray-800 mb-5 flex items-center gap-3">
                 <div className="relative overflow-hidden p-2 rounded-xl bg-gradient-to-br from-pink-400/20 to-rose-400/20 border border-white/40 shadow-sm before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/40 before:via-white/10 before:to-white/5">
@@ -193,7 +193,7 @@ export default function AIPreferencesSection({ onPreferenceChange, defaultExpand
           </div>
 
           {/* Group Type */}
-          <div className="relative overflow-hidden bg-white/50 backdrop-blur-xl backdrop-saturate-150 bg-clip-padding border border-white/40 rounded-2xl shadow-[0_8px_32px_rgba(8,_112,_184,_0.12)] before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/30 before:via-white/10 before:to-white/5">
+          <div className="glass-card rounded-2xl">
             <div className="p-6 relative z-10">
               <h4 className="text-lg font-bold text-gray-800 mb-5 flex items-center gap-3">
                 <div className="relative overflow-hidden p-2 rounded-xl bg-gradient-to-br from-purple-400/20 to-indigo-400/20 border border-white/40 shadow-sm before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/40 before:via-white/10 before:to-white/5">
@@ -216,7 +216,7 @@ export default function AIPreferencesSection({ onPreferenceChange, defaultExpand
           </div>
 
           {/* AI Assistant Personality */}
-          <div className="relative overflow-hidden bg-white/50 backdrop-blur-xl backdrop-saturate-150 bg-clip-padding border border-white/40 rounded-2xl shadow-[0_8px_32px_rgba(8,_112,_184,_0.12)] before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/30 before:via-white/10 before:to-white/5">
+          <div className="glass-card rounded-2xl">
             <div className="p-6 relative z-10">
               <h4 className="text-lg font-bold text-gray-800 mb-5 flex items-center gap-3">
                 <div className="relative overflow-hidden p-2 rounded-xl bg-gradient-to-br from-amber-400/20 to-yellow-400/20 border border-white/40 shadow-sm before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/40 before:via-white/10 before:to-white/5">

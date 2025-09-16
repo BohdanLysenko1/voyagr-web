@@ -122,7 +122,7 @@ export default function AISidebar({
     <div className={`${isMobile ? 'w-full h-full' : 'w-[480px] min-w-[480px] h-screen'} flex-shrink-0 ${isMobile ? 'p-0' : 'p-6 pt-0'} flex flex-col`}>
       <aside className={`w-full flex-1 min-h-0 ${isMobile ? 'mt-0' : 'mt-4'} flex flex-col overflow-hidden relative transition-all duration-300 scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent hover:scrollbar-thumb-primary/30 ${isMobile 
         ? 'bg-white border-r border-gray-200 shadow-lg rounded-none' 
-        : 'bg-white/60 backdrop-blur-2xl backdrop-saturate-150 bg-clip-padding border border-white/40 shadow-[0_20px_50px_rgba(8,_112,_184,_0.18)] rounded-[2rem] before:content-[\'\'] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/40 before:via-white/10 before:to-white/5'
+        : 'glass-panel rounded-[2rem]'
       }`} style={{overscrollBehavior: 'contain'}}>
         {/* Background decorative orbs - reduced for mobile */}
         {!isMobile && (
@@ -183,7 +183,7 @@ export default function AISidebar({
               }}
               className={`flex items-center gap-2 ${isMobile ? 'rounded-2xl px-4 py-3 text-sm min-h-[48px] flex-1' : 'rounded-xl px-3 py-2 text-sm'} font-semibold transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${isMobile ? 'border-2 border-white/40 backdrop-blur-xl shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98]' : 'border border-white/30 backdrop-blur-md shadow-sm'} ${
                 activeTab === t.key && t.key !== 'preferences'
-                  ? isMobile ? 'bg-gradient-to-r from-primary/20 to-purple-500/20 text-primary border-primary/40 shadow-xl ring-2 ring-primary/30' : 'bg-white/60 text-primary ring-1 ring-primary/30 shadow-md'
+                  ? isMobile ? 'bg-gradient-to-r from-primary/20 to-purple-500/20 text-primary border-primary/40 shadow-xl ring-2 ring-primary/30' : 'bg-white/60 text-primary ring-1 ring-primary/30 shadow-md glow-ring'
                   : isMobile ? 'bg-white/70 text-gray-700 hover:bg-white/80 hover:text-gray-800' : 'bg-white/30 text-gray-700 hover:bg-white/40 hover:shadow'
               }`}
             >

@@ -170,7 +170,8 @@ export default function AiPage() {
   }, []);
 
   return (
-    <div className="h-screen bg-gradient-to-br from-slate-50 via-blue-50/50 to-purple-50/30">
+    <div className="relative h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50/50 to-purple-50/30">
+      <div className="aurora-ambient" />
       {/* Mobile Layout */}
       <div className="lg:hidden flex flex-col h-full min-h-0 relative pt-20 pb-safe">
         

@@ -370,7 +370,7 @@ export default function AIInterface({
           <div className={`${isMobile ? 'w-full' : 'max-w-4xl w-full mx-auto'} ${isMobile ? 'mt-2' : 'mt-6'} h-full min-h-0 flex flex-col relative`}>
             {/* Chat Header - Desktop only */}
             {!isMobile && (
-              <div className="relative overflow-hidden bg-white/60 backdrop-blur-2xl backdrop-saturate-150 bg-clip-padding border border-white/40 border-b-0 rounded-t-[2rem] shadow-[0_20px_50px_rgba(8,_112,_184,_0.18)] p-6 text-center transition-all duration-700 ease-in-out before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/40 before:via-white/10 before:to-white/5">
+              <div className="glass-card border-b-0 rounded-t-[2rem] p-6 text-center transition-all duration-700 ease-in-out">
                 <div className="flex items-center justify-center gap-3">
                   <div className={`p-2 rounded-xl bg-gradient-to-br ${content.gradientColors} border border-white/40`}>
                     <Sparkles className={`w-6 h-6 ${content.accentColor}`} />
@@ -383,67 +383,67 @@ export default function AIInterface({
             )}
 
             {/* Messages Container */}
-            <div className={`flex-1 min-h-0 relative overflow-hidden ${isMobile ? 'bg-white/95 border border-gray-200 rounded-2xl mt-4 mb-4 min-h-[300px]' : 'bg-white/40 backdrop-blur-xl backdrop-saturate-150 bg-clip-padding border-x border-b border-white/40 rounded-b-[2rem] before:content-[\'\'] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/20 before:via-white/5 before:to-white/5'}`}>
-                  <div className={`h-full overflow-y-auto overscroll-contain ${isMobile ? 'p-4 pb-20' : 'p-6 pb-28'} space-y-4 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400`}>
-                    {chatMessages.map((message) => (
-                      <div
-                        key={message.id}
-                        className={`flex items-start gap-3 ${message.sender === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
-                      >
-                        {/* Avatar */}
-                        <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
-                          message.sender === 'user' 
-                            ? 'bg-primary/20 border-2 border-primary/30' 
-                            : `bg-gradient-to-br ${content.gradientColors} border-2 border-white/40`
-                        }`}>
-                          {message.sender === 'user' ? (
-                            <User className="w-5 h-5 text-primary" />
-                          ) : (
-                            <Bot className={`w-5 h-5 ${content.accentColor}`} />
-                          )}
-                        </div>
+            <div className={`flex-1 min-h-0 relative overflow-hidden ${isMobile ? 'bg-white/95 border border-gray-200 rounded-2xl mt-4 mb-4 min-h-[300px]' : 'glass-panel rounded-b-[2rem]'}`}>
+              <div className={`h-full overflow-y-auto overscroll-contain ${isMobile ? 'p-4 pb-20' : 'p-6 pb-28'} space-y-4 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400`}>
+                {chatMessages.map((message) => (
+                  <div
+                    key={message.id}
+                    className={`flex items-start gap-3 ${message.sender === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
+                  >
+                    {/* Avatar */}
+                    <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
+                      message.sender === 'user' 
+                        ? 'bg-primary/20 border-2 border-primary/30' 
+                        : `bg-gradient-to-br ${content.gradientColors} border-2 border-white/40`
+                    }`}>
+                      {message.sender === 'user' ? (
+                        <User className="w-5 h-5 text-primary" />
+                      ) : (
+                        <Bot className={`w-5 h-5 ${content.accentColor}`} />
+                      )}
+                    </div>
 
-                        {/* Message Bubble */}
-                        <div className={`max-w-[70%] overflow-hidden ${
-                          message.sender === 'user'
-                            ? 'bg-primary/10 border border-primary/20 rounded-2xl rounded-tr-md'
-                            : 'bg-white/60 border border-white/40 rounded-2xl rounded-tl-md backdrop-blur-sm'
-                        } p-4 shadow-sm`}>
-                          <p className="text-gray-800 text-sm leading-relaxed whitespace-pre-wrap break-words">
-                            {message.content}
-                          </p>
-                          <div className="text-xs text-gray-500 mt-2">
-                            {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </div>
-                        </div>
+                    {/* Message Bubble */}
+                    <div className={`max-w-[70%] overflow-hidden ${
+                      message.sender === 'user'
+                        ? 'bg-primary/10 border border-primary/20 rounded-2xl rounded-tr-md'
+                        : 'bg-white/60 border border-white/40 rounded-2xl rounded-tl-md backdrop-blur-sm'
+                    } p-4 shadow-sm`}>
+                      <p className="text-gray-800 text-sm leading-relaxed whitespace-pre-wrap break-words">
+                        {message.content}
+                      </p>
+                      <div className="text-xs text-gray-500 mt-2">
+                        {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </div>
-                    ))}
-
-                    {/* AI Typing Indicator */}
-                    {isAITyping && (
-                      <div className="flex items-start gap-3">
-                        <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center bg-gradient-to-br ${content.gradientColors} border-2 border-white/40`}>
-                          <Bot className={`w-5 h-5 ${content.accentColor}`} />
-                        </div>
-                        <div className="bg-white/60 border border-white/40 rounded-2xl rounded-tl-md backdrop-blur-sm p-4 shadow-sm">
-                          <div className="flex items-center gap-2">
-                            <div className="flex gap-1">
-                              <div className={`w-2 h-2 rounded-full animate-bounce ${content.accentColor.replace('text-', 'bg-')}`}></div>
-                              <div className={`w-2 h-2 rounded-full animate-bounce delay-100 ${content.accentColor.replace('text-', 'bg-')}`}></div>
-                              <div className={`w-2 h-2 rounded-full animate-bounce delay-200 ${content.accentColor.replace('text-', 'bg-')}`}></div>
-                            </div>
-                            <span className="text-xs text-gray-500">AI is typing...</span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                    <div ref={messagesEndRef} />
+                    </div>
                   </div>
+                ))}
+
+                {/* AI Typing Indicator */}
+                {isAITyping && (
+                  <div className="flex items-start gap-3">
+                    <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center bg-gradient-to-br ${content.gradientColors} border-2 border-white/40`}>
+                      <Bot className={`w-5 h-5 ${content.accentColor}`} />
+                    </div>
+                    <div className="bg-white/60 border border-white/40 rounded-2xl rounded-tl-md backdrop-blur-sm p-4 shadow-sm">
+                      <div className="flex items-center gap-2">
+                        <div className="flex gap-1">
+                          <div className={`w-2 h-2 rounded-full animate-bounce ${content.accentColor.replace('text-', 'bg-')}`}></div>
+                          <div className={`w-2 h-2 rounded-full animate-bounce delay-100 ${content.accentColor.replace('text-', 'bg-')}`}></div>
+                          <div className={`w-2 h-2 rounded-full animate-bounce delay-200 ${content.accentColor.replace('text-', 'bg-')}`}></div>
+                        </div>
+                        <span className="text-xs text-gray-500">AI is typing...</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <div ref={messagesEndRef} />
+              </div>
             </div>
 
             {/* Compact Chat Input */}
             <div className={`${isMobile ? 'absolute bottom-4 left-4 right-4' : 'absolute bottom-6 left-0 right-0'} z-[9999]`}>
-              <div className={`relative overflow-hidden ${isMobile ? 'bg-white border-2 border-gray-200 shadow-lg' : 'bg-white/70 border border-white/30 backdrop-blur-3xl backdrop-saturate-200 before:content-[\'\'] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/50 before:via-white/20 before:to-white/10'} rounded-3xl hover:shadow-xl transition-all duration-300`}>
+              <div className={`glass-input glow-ring rounded-3xl hover:shadow-xl transition-all duration-300`}>
                 <div className="flex items-center gap-3 p-4">
                   <div className="flex-1 relative">
                     <textarea id="ai-compact-input"
@@ -487,7 +487,7 @@ export default function AIInterface({
           
           {/* Compact Preferences Display */}
           {preferences && (
-            <div className={`relative overflow-hidden bg-white/40 backdrop-blur-xl backdrop-saturate-150 bg-clip-padding border border-white/30 rounded-xl shadow-lg ${isMobile ? 'p-2' : 'p-4'} before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/20 before:via-white/5 before:to-white/5`}>
+            <div className={`glass-card rounded-xl ${isMobile ? 'p-2' : 'p-4'}`}>
               <div className="relative z-10">
                 <div className="flex items-center justify-between">
                   <h3 className={`${isMobile ? 'text-xs' : 'text-sm'} font-semibold text-gray-700`}>Trip Preferences</h3>
@@ -517,16 +517,9 @@ export default function AIInterface({
               </div>
             </div>
           )}
-          
-          {/* Main AI Card with Enhanced Glassmorphism */}
-          <div className={`relative overflow-hidden bg-white/60 backdrop-blur-2xl backdrop-saturate-150 bg-clip-padding border border-white/40 ${isMobile ? (preferences ? 'rounded-2xl p-3' : 'rounded-2xl p-4') : 'rounded-[2rem] p-12'} shadow-[0_20px_50px_rgba(8,_112,_184,_0.18)] text-center transition-all duration-700 ease-in-out before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/40 before:via-white/10 before:to-white/5 after:content-[''] after:absolute after:-top-10 after:-left-10 after:w-40 after:h-40 after:bg-white/20 after:rounded-full after:blur-3xl after:pointer-events-none hover:shadow-[0_25px_60px_rgba(8,_112,_184,_0.25)] hover:border-white/50`}>
-            
-            {/* Dynamic Gradient Orb Effects */}
-            <div className={`absolute -top-20 -right-20 w-40 h-40 bg-gradient-to-br ${content.gradientColors} rounded-full blur-3xl animate-pulse transition-all duration-1000`}></div>
-            <div className={`absolute -bottom-20 -left-20 w-40 h-40 bg-gradient-to-tr ${content.gradientColors} rounded-full blur-3xl animate-pulse delay-1000 transition-all duration-1000`}></div>
-            
-            {/* Content */}
-            <div className="relative z-10">
+            {/* Main AI Card with Enhanced Glassmorphism */}
+            <div className={`glass-panel glow-ring ${isMobile ? (preferences ? 'rounded-2xl p-3' : 'rounded-2xl p-4') : 'rounded-[2rem] p-12'} text-center transition-all duration-700 ease-in-out`}>
+              <div className="relative z-10">
               {/* Logo and Dynamic Title */}
               <div className={`flex items-center justify-center gap-4 ${isMobile ? (preferences ? 'mb-1' : 'mb-2') : 'mb-6'} transition-all duration-700 ease-in-out`}>
                 {activeTab === 'plan' && (
@@ -541,7 +534,7 @@ export default function AIInterface({
                     />
                   </div>
                 )}
-                <h1 className={`${isMobile ? (preferences ? 'text-2xl' : 'text-3xl') : 'text-6xl'} font-bold leading-none transition-all duration-700 ${content.accentColor}`}>
+                <h1 className={`${isMobile ? (preferences ? 'text-2xl' : 'text-3xl') : 'text-6xl'} font-bold leading-tight md:leading-[1.1] transition-all duration-700 gradient-text drop-shadow-sm pb-0.5`}>
                   {content.title}
                 </h1>
               </div>
@@ -557,7 +550,7 @@ export default function AIInterface({
               {/* Input Section */}
               <div className={isMobile ? (preferences ? 'mb-4' : 'mb-4') : 'mb-10'}>
                 <div className="relative max-w-3xl mx-auto">
-                  <div className={`relative overflow-hidden ${isMobile ? 'bg-white/80 border-2 border-white/60' : 'bg-white/50 border border-white/30'} backdrop-blur-3xl backdrop-saturate-200 bg-clip-padding rounded-2xl shadow-2xl hover:shadow-3xl transition-all duration-500 before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/60 before:via-white/20 before:to-transparent before:opacity-80 after:content-[''] after:absolute after:inset-0 after:rounded-[inherit] after:pointer-events-none after:bg-gradient-to-tl after:from-blue-100/20 after:via-purple-100/10 after:to-pink-100/20 after:animate-pulse after:duration-[3000ms] group hover:border-white/50 hover:bg-white/60 focus-within:border-white/70 focus-within:bg-white/70 focus-within:shadow-[0_0_50px_rgba(255,255,255,0.3)]`}>
+                  <div className={`glass-input rounded-2xl`}>
                     <textarea
                       value={inputValue}
                       onChange={(e) => onInputChange(e.target.value)}
@@ -623,6 +616,7 @@ export default function AIInterface({
                   </div>
                 </div>
               </div>
+            </div>
 
               {/* Dynamic Suggested Prompts */}
               <div className={isMobile ? (preferences ? 'mt-1' : 'mt-2') : 'mt-6'}>
@@ -638,7 +632,6 @@ export default function AIInterface({
                     // Handle both string and object prompt types
                     const promptText = typeof prompt === 'string' ? prompt : prompt.text;
                     const promptEmoji = typeof prompt === 'string' ? '✨' : prompt.emoji;
-                    
                     return (
                       <button
                         key={index}
@@ -658,7 +651,6 @@ export default function AIInterface({
                   })}
                 </div>
               </div>
-            </div>
             </div>
           </div>
         </div>
