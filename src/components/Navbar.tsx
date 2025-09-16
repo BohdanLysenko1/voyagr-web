@@ -74,18 +74,17 @@ export default function Navbar() {
 
   const continents = [
     { label: 'Africa', href: '/continents/africa' },
+    { label: 'Antarctica', href: '/continents/antarctica' },
     { label: 'Asia', href: '/continents/asia' },
+    { label: 'Australia', href: '/continents/australia' },
     { label: 'Europe', href: '/continents/europe' },
     { label: 'North America', href: '/continents/north-america' },
     { label: 'South America', href: '/continents/south-america' },
-    { label: 'Australia', href: '/continents/australia' },
-    { label: 'Antarctica', href: '/continents/antarctica' },
   ];
 
-  const deals = [
+/*   const deals = [
     { label: 'All Deals', href: '/deals' },
-    { label: 'Search Deals', href: '/deals/searchdeals' },
-  ];
+  ]; */
 
   // Sample notification data
   const notifications = [
@@ -191,7 +190,7 @@ export default function Navbar() {
               </div>
 
               {/* Deals Dropdown */}
-              <div className="relative">
+{/*               <div className="relative">
                 <button
                   onClick={() => setActiveDropdown(activeDropdown === 'deals' ? null : 'deals')}
                   className={`
@@ -223,9 +222,20 @@ export default function Navbar() {
                     ))}
                   </div>
                 )}
-              </div>
+              </div> */}
 
               {/* Direct Links */}
+              <Link href="/deals" className={`
+                flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm transition-all duration-300 group
+                ${isScrolled 
+                  ? 'text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/10 hover:to-purple-500/10' 
+                  : 'text-white/90 hover:text-white hover:bg-white/10'
+                }
+              `}>
+                <TagIcon className="w-4 h-4 transition-transform duration-300 group-hover:scale-110" />
+                <span>Deals</span>
+              </Link>
+
               <Link href="/favorites" className={`
                 flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm transition-all duration-300 group
                 ${isScrolled 
@@ -271,7 +281,9 @@ export default function Navbar() {
                   : 'text-white/90 hover:text-white hover:bg-white/10'
                 }
               `}>
-                <SearchIcon className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
+                <Link href='/'>
+                  <SearchIcon className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
+                </Link>
               </button>
 
               {/* Notifications */}
@@ -455,7 +467,7 @@ export default function Navbar() {
             </div>
 
             {/* Mobile Deals */}
-            <div className="mb-6">
+{/*             <div className="mb-6">
               <div className="space-y-1">
                 {deals.map((deal) => (
                   <Link
@@ -469,10 +481,19 @@ export default function Navbar() {
                   </Link>
                 ))}
               </div>
-            </div>
+            </div>  */}
 
             {/* Mobile Direct Links */}
             <div className="space-y-1">
+            <Link
+                href="/deals"
+                className="flex items-center gap-3 p-4 text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 rounded-xl transition-all duration-300"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <TagIcon className="w-5 h-5" />
+                <span className="font-semibold">Deals</span>
+              </Link>
+
               <Link
                 href="/favorites"
                 className="flex items-center gap-3 p-4 text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 rounded-xl transition-all duration-300"

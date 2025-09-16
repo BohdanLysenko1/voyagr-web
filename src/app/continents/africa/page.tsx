@@ -1,22 +1,25 @@
 'use client';
 
 import React, { useState } from 'react';
-import ContinentCard from '@/components/ContinentCard';
-import { Compass, Star, ChevronLeft, ChevronRight, Link } from 'lucide-react';
+import SearchDealCard, { sampleDeals, SearchDeal } from '@/components/DealsPage/SearchDeals';
+import DealModal from '@/components/DealsPage/DealModal';
+import { Compass, Star, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const AfricaPage = () => {
   const [currentPackageSet, setCurrentPackageSet] = useState(0);
+  const [selectedDeal, setSelectedDeal] = useState<SearchDeal | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleDealSearch = (filter: string) => {
     if (filter === 'flights') {
-      window.location.href = `/deals/searchdeals?type=flight&continent=Europe`;
+      window.location.href = `/deals/?type=flight&continent=Africa`;
     } else if (filter === 'hotels') {
-      window.location.href = `/deals/searchdeals?type=hotel&continent=Europe`;
+      window.location.href = `/deals/?type=hotel&continent=Africa`;
     } else if (filter === 'package') {
-      window.location.href = `/deals/searchdeals?type=package&continent=Europe`;
+      window.location.href = `/deals/?type=package&continent=Africa`;
     } else {
       // For general continent searches
-      window.location.href = `/deals/searchdeals?continent=${filter}`;
+      window.location.href = `/deals/?continent=Africa`;
     }
   };
 
@@ -38,36 +41,13 @@ const AfricaPage = () => {
     }
   ];
 
-  const allPackages = [
-    {
-      title: "European Explorer Package",
-      price: "$1,295",
-      description: "Flights to Rome, hotel for 5 nights, guided experiences, 3-city sightseeing, and free WiFi. Explore 3 different cities in the slideshow to see your custom journey flow.",
-      image: "/images/DealsPage/Packages_RomePic.jpg"
-    },
-    {
-      title: "Alpine Adventure Package",
-      price: "$1,580",
-      description: "Swiss Alps flights, 4-star resort, local excursions and transportation. Use the slideshow to preview Interlaken, Zermatt, and Lucerne.",
-      image: "/images/ContinentsPage/Continents_AlpsPackage.jpeg"
-    },
-    {
-      title: "Mediterranean Escape Package",
-      price: "$1,425",
-      description: "Barcelona to Athens, boutique stays, culinary tours. Slide through cities you'll visit, each tailored for you.",
-      image: "/images/ContinentsPage/Continents_BarcelonaPic.jpg"
-    },
-    {
-      title: "Nordic Discovery Package",
-      price: "$1,380",
-      description: "Explore Stockholm, Copenhagen, and Oslo. Northern lights, fjord excursions, and guided city tours. Slide through your Scandinavian journey.",
-      image: "/images/ContinentsPage/Continents_Copenhagen.jpg"
-    }
-  ];
-
+  // Filter deals for Africa continent only
+  const africaDeals = sampleDeals.filter(deal => deal.continent === 'Africa' && deal.type === 'package');
+  
+  // Group deals into sets of 3 for carousel
   const packageSets = [];
-  for (let i = 0; i < allPackages.length; i += 2) {
-    packageSets.push(allPackages.slice(i, i + 2));
+  for (let i = 0; i < africaDeals.length; i += 3) {
+    packageSets.push(africaDeals.slice(i, i + 3));
   }
 
   const nextPackageSet = () => {
@@ -76,6 +56,16 @@ const AfricaPage = () => {
 
   const prevPackageSet = () => {
     setCurrentPackageSet((prev) => (prev - 1 + packageSets.length) % packageSets.length);
+  };
+
+  const handleViewDeal = (deal: SearchDeal) => {
+    setSelectedDeal(deal);
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedDeal(null);
   };
 
   return (
@@ -141,65 +131,106 @@ const AfricaPage = () => {
           <div className="space-y-6">
             <div className="flex items-center space-x-3 mb-6">
               <Star className="w-8 h-8 text-[#5271FF]" />
-              <h3 className="text-3xl font-bold text-black">Tailored African Packages</h3>
+              <h3 className="text-3xl font-bold text-black">Featured African Deals</h3>
             </div>
             <div className="space-y-4 text-gray-600">
               <p className="leading-relaxed">
-                Choose from hand-picked trips that match your interests and travel style. Each package bundles accommodations, flights, and unique local experiences.
+                Explore handpicked deals for flights, hotels, and complete packages across Africa. Each offer is carefully selected to provide exceptional value.
               </p>
               <p className="leading-relaxed">
-                Browse the curated options below to see locations, pricing, and everything included. Find the perfect itinerary or get inspired to customize your own Safari adventure.
+                Browse the curated deals below to discover amazing destinations, competitive pricing, and everything you need for your African adventure.
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <div className="relative">
-          <button 
-            onClick={prevPackageSet}
-            className="absolute left-0 top-1/2 transform -translate-y-1/2 z-10 bg-white shadow-lg rounded-full p-3 hover:bg-gray-50 transition-colors duration-200"
-          >
-            <ChevronLeft className="w-6 h-6 text-[#5271FF]" />
-          </button>
-          
-          <button 
-            onClick={nextPackageSet}
-            className="absolute right-0 top-1/2 transform -translate-y-1/2 z-10 bg-white shadow-lg rounded-full p-3 hover:bg-gray-50 transition-colors duration-200"
-          >
-            <ChevronRight className="w-6 h-6 text-[#5271FF]" />
-          </button>
+      {/* Deals Carousel Section */}
+      {packageSets.length > 0 && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+          <div className="relative">
+            <button 
+              onClick={prevPackageSet}
+              disabled={packageSets.length <= 1}
+              className={`absolute -left-2 top-1/2 transform -translate-y-1/2 z-10 rounded-full p-3 transition-colors duration-200 ${
+                packageSets.length <= 1 
+                  ? 'bg-gray-100 shadow-sm cursor-not-allowed' 
+                  : 'bg-white shadow-lg hover:bg-gray-50 cursor-pointer'
+              }`}
+            >
+              <ChevronLeft className={`w-6 h-6 ${
+                packageSets.length <= 1 ? 'text-gray-300' : 'text-[#5271FF]'
+              }`} />
+            </button>
+              
+            <button 
+              onClick={nextPackageSet}
+              disabled={packageSets.length <= 1}
+              className={`absolute -right-2 top-1/2 transform -translate-y-1/2 z-10 rounded-full p-3 transition-colors duration-200 ${
+                packageSets.length <= 1 
+                  ? 'bg-gray-100 shadow-sm cursor-not-allowed' 
+                  : 'bg-white shadow-lg hover:bg-gray-50 cursor-pointer'
+              }`}
+            >
+              <ChevronRight className={`w-6 h-6 ${
+                packageSets.length <= 1 ? 'text-gray-300' : 'text-[#5271FF]'
+              }`} />
+            </button>
 
-          <div className="px-12">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {packageSets[currentPackageSet]?.map((pkg, index) => (
-                <ContinentCard
-                  key={index}
-                  title={pkg.title}
-                  price={pkg.price}
-                  description={pkg.description}
-                  image={pkg.image}
-                  //TODO: Change this to open modal with package details and link instead of redirection
-                  onNavigate={() => handleDealSearch('europe-package')}
-                />
-              ))}
+            <div className="px-12">
+              <div className={`grid gap-6 ${
+                  africaDeals.length === 1 
+                    ? 'grid-cols-1 justify-items-center max-w-sm mx-auto' 
+                    : 'grid-cols-1 md:grid-cols-2 justify-items-center max-w-2xl mx-auto'
+                }`}>
+                {packageSets[currentPackageSet]?.map((deal) => (
+                  <SearchDealCard
+                    key={deal.id}
+                    deal={deal}
+                    onViewDeal={handleViewDeal}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
 
-          <div className="flex justify-center mt-8 space-x-2">
-            {packageSets.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => setCurrentPackageSet(index)}
-                className={`w-3 h-3 rounded-full transition-colors duration-200 ${
-                  index === currentPackageSet ? 'bg-[#5271FF]' : 'bg-gray-300'
-                }`}
-              />
-            ))}
+            {packageSets.length > 1 && (
+              <div className="flex justify-center mt-8 space-x-2">
+                {packageSets.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setCurrentPackageSet(index)}
+                    className={`w-3 h-3 rounded-full transition-colors duration-200 ${
+                      index === currentPackageSet ? 'bg-[#5271FF]' : 'bg-gray-300'
+                    }`}
+                  />
+                ))}
+              </div>
+            )}
           </div>
-        </div>
-      </section>
+        </section>
+      )}
+
+      {/* If no packages exist, show message */}
+      {packageSets.length === 0 && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
+          <p className="text-gray-600 text-lg">
+            No package deals currently available for Africa. Check back soon for amazing offers!
+          </p>
+          <button
+            onClick={() => handleDealSearch('Africa')}
+            className="mt-4 bg-[#5271FF] text-white font-semibold px-6 py-3 rounded-lg hover:bg-[#4461E8] transition-colors"
+          >
+            Search All Deals For Africa
+          </button>
+        </section>
+      )}
+
+      {/* Deal Modal */}
+      <DealModal
+        open={isModalOpen}
+        onClose={closeModal}
+        deal={selectedDeal}
+      />
     </div>
   );
 };

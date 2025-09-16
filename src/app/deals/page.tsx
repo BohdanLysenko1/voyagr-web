@@ -1,179 +1,220 @@
 "use client"
-import DealCard from '@/components/DealsPage/DealCard';
-import { Hotel, Plane, Package } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+import React, { useState, useMemo, useEffect, Suspense } from 'react';
+import { Search, ArrowUpDown } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import SearchDealCard, { SearchDeal, sampleDeals } from '@/components/DealsPage/SearchDeals';
+import DealModal from '@/components/DealsPage/DealModal';
 
-interface FlightDeal {
-    id: number;
-    title: string;
-    price: string;
-    description: string;
-    imagesrc: string;
-    imagealt: string;
-}
-
-interface HotelDeal {
-    id: number;
-    title: string;
-    price: string;
-    description: string;
-    imagesrc: string;
-    imagealt: string;
-}
-
-interface PackageDeal {
-    id: number;
-    title: string;
-    price: string;
-    description: string;
-    imagesrc: string;
-    imagealt: string;
-}
-
-const flightDeals: FlightDeal[] = [
-    {
-        id: 1,
-        title: 'NYC → Paris',
-        price: '$499 round trip',
-        description: 'Soar direct from NYC to the City of Lights. Flexible return dates, priority boarding, a full checked bag included, and seamless transfers make this an ideal city break.',
-        imagesrc: '/images/DealsPage/Flights_ParisPic.jpg',
-        imagealt: 'Paris',
-    },
-    {
-        id: 2,
-        title: 'LA → Amsterdam',
-        price: '$529 round trip',
-        description: 'Fly from LA to Amsterdam with premium service, flexible dates, and exclusive Voyagr rates.',
-        imagesrc: '/images/DealsPage/Flights_Amsterdam.jpg',
-        imagealt: 'Amsterdam',
-    },
-    {
-        id: 3,
-        title: 'Chicago → Lisbon',
-        price: '$515 round trip',
-        description: 'Direct flights from Chicago to Lisbon, Portugal. Enjoy seamless transfers and a complimentary checked bag.',
-        imagesrc: '/images/DealsPage/Flights_LisbonPortugal.jpg',
-        imagealt: 'Lisbon, Portugal',
-    },
+const continents = [
+  {value: 'all', label: 'All Locations'},
+  {value: 'Africa', label: 'Africa'},
+  {value: 'Antarctica', label: 'Antarctica'},
+  {value: 'Asia', label: 'Asia'},
+  {value: 'Australia', label: 'Australia'},
+  {value: 'Europe', label: 'Europe'},
+  {value: 'North America', label: 'North America'},
+  {value: 'South America', label: 'South America'}
 ];
 
-const hotelDeals: HotelDeal[] = [
-    {
-        id: 1,
-        title: 'Grand Hotel Tremezzo, Lake Como',
-        price: '$425 per nightt',
-        description: 'Lakefront luxury in Italy with panoramic lake views, gourmet restaurants, and a world-class spa.',
-        imagesrc: '/images/DealsPage/Hotel_LakeComo.jpg',
-        imagealt: 'Lake Como Hotel',
-    },
-    {
-        id: 2,
-        title: 'Ritz-Carlton, San Francisco',
-        price: '$349 per night',
-        description: 'Experience luxury at the Ritz-Carlton with stunning bay views, michelin-starred dining, and exclusive club access.',
-        imagesrc: '/images/DealsPage/Hotel_SanFrancisco.jpg',
-        imagealt: 'Ritz-Carlton San Francisco',
-    },
-    {
-        id: 3,
-        title: 'Swiss Alpine Lodge; Zermatt, Switzerland',
-        price: '$458 per night',
-        description: 'Mountain luxury with Matterhorn views. Ski-in/ski-out access, alpine spa, and traditional Swiss hospitality',
-        imagesrc: '/images/DealsPage/Hotel_Switzerland.jpg',
-        imagealt: 'Switzerland',
-    },
+const sortOptions = [
+  { value: 'price-low', label: 'Price: Low to High' },
+  { value: 'price-high', label: 'Price: High to Low' },
+  { value: 'rating', label: 'Highest Rated' },
+  { value: 'title', label: 'Alphabetical' }
 ];
 
-const packageDeals: PackageDeal[] = [
-    {
-        id: 1,
-        title: 'Mediterranean Sampler',
-        price: '$1,899 per person',
-        description: "Experience Barcelona's energy, Nice's Riviera charm, and Florence's historic beauty. Includes intercity flights, 7 nights in central hotels, exclusive foodie day trips, and skip-the-line museum accesss.",
-        imagesrc: '/images/DealsPage/Packages_BarcelonaPic.jpg',
-        imagealt: 'Barcelona Package',
-    },
-    {
-        id: 2,
-        title: 'Mediterranean Cruise & Stay',
-        price: '$2,299 per person',
-        description: '10-day package combining a 7-night Mediterranean cruise with 3 nights in Rome. All meals, transfers, and guided tours included.',
-        imagesrc: '/images/DealsPage/Packages_RomePic.jpg',
-        imagealt: 'Mediterranean Package',
-    },
-    {
-        id: 3,
-        title: 'Bali Wellness Retreat',
-        price: '$1,599 per person',
-        description: '6-day wellness package with luxury resort accommodation, daily yoga, spa treatments, and healthy cuisine.',
-        imagesrc: '/images/DealsPage/Packages_Bali.jpg',
-        imagealt: 'Bali Wellness',
-    },
-];
 
-export default function DealsPage() {
+
+// Separate component that uses useSearchParams
+function SearchDealsContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedType, setSelectedType] = useState<'all' | 'flight' | 'hotel' | 'package'>('all');
+  const [selectedContinent, setSelectedContinent] = useState<'all' | 'Africa' | 'Antarctica' | 'Asia' | 'Australia' | 'Europe' | 'North America' | 'South America' > ('all');
+  const [sortBy, setSortBy] = useState('price-low');
+  const [selectedDeal, setSelectedDeal] = useState<SearchDeal | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const handleFlightDealClick = (deal: FlightDeal) => {
-    router.push(`/deals/flights/${deal.id}`);
+  useEffect(() => {
+    const typeParam = searchParams.get('type');
+    const continentParam = searchParams.get('continent');
+    const searchParam = searchParams.get('search');
+    
+    if (typeParam && ['flight', 'hotel', 'package'].includes(typeParam)) {
+      setSelectedType(typeParam as 'flight' | 'hotel' | 'package');
+    }
+    
+    if (continentParam && continents.some(c => c.value === continentParam)) {
+      setSelectedContinent(continentParam as any);
+    }
+    
+    if (searchParam) {
+      setSearchQuery(searchParam);
+    }
+  }, [searchParams]);
+
+  const filteredAndSortedDeals = useMemo(() => {
+    let filtered = sampleDeals.filter(deal => {
+      const matchesSearch = deal.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           deal.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           deal.description.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesType = selectedType === 'all' || deal.type === selectedType;
+      const matchesContinent = selectedContinent === 'all' || deal.continent === selectedContinent;
+      
+      
+      return matchesSearch && matchesType && matchesContinent;
+    });
+
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'price-low':
+          return a.price - b.price;
+        case 'price-high':
+          return b.price - a.price;
+        case 'rating':
+          return (b.rating || 0) - (a.rating || 0);
+        case 'title':
+          return a.title.localeCompare(b.title);
+        default:
+          return 0;
+      }
+    });
+
+    return filtered;
+  }, [searchQuery, selectedType, selectedContinent, sortBy]);
+
+  const handleViewDeal = (deal: SearchDeal) => {
+    setSelectedDeal(deal);
+    setIsModalOpen(true);
   };
 
-  const handleHotelDealClick = (deal: HotelDeal) => {
-    router.push(`/deals/hotels/${deal.id}`);
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedDeal(null);
   };
 
-  const handlePackageDealClick = (deal: PackageDeal) => {
-    router.push(`/deals/packages/${deal.id}`);
-  };
   return (
-    <main className="bg-white min-h-screen w-full pb-8">
-      <div className="pt-12 pb-4 px-8 max-w-7xl mx-auto">
-        <h1 className="text-6xl font-bold text-center mt-4 mb-2">Top Travel Deals</h1>
-        <h2 className="text-5xl font-semibold text-center text-gray-400 mb-10">Save more on flights, hotels, and custom trips</h2>
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-2">Search Travel Deals</h1>
+          <p className="text-lg md:text-xl text-gray-600">Find the perfect deal for your next adventure</p>
+        </div>
 
-        {/* Flight Deals Section */}
-        <section className="mb-12">
-          <h3 className="text-3xl font-bold mb-1 flex items-center justify-center gap-2"> <Plane className="w-6 h-6"/> Flight Deals</h3>
-          <p className="text-gray-700 mb-2 text-center">Discover hand-picked flight discounts to top global destinations.<br/>Enjoy flexible dates, premium carriers, and exclusive Voyagr rates.</p>
-          <p className="text-gray-700 mb-4 text-center">Book quickly—these limited-time deals are updated weekly to help you take off for less.</p>
-          
-          <div className="flex flex-col items-center gap-6">
-            <DealCard deals={flightDeals} variant="overlay" onDealClick={handleFlightDealClick} />
-            <Link href="/deals/searchdeals?type=flight">
-              <button className="bg-primary text-white font-semibold rounded-full px-10 py-3 text-lg shadow hover:bg-blue-700 transition">View All Flight Deals</button>
-            </Link>
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <div className="relative mb-4">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <input
+              type="text"
+              placeholder="Search destinations, deals, or experiences..."
+              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
-        </section>
 
-        {/* Hotel Deals Section */}
-        <section className="mb-12">
-          <h3 className="text-3xl font-bold mb-1 flex items-center justify-center gap-2"> <Hotel className="w-6 h-6" />Hotel Deals</h3>
-          <p className="text-gray-700 mb-2 text-center">Save on curated hotels and resorts. Our deals feature verified ratings, central locations, and value-packed inclusions.</p>
-          <p className="text-gray-700 mb-4 text-center">Browse exclusive rates and book stays that match your style, budget, and destination.</p>
-          
-          <div className="flex flex-col items-center gap-6">
-            <DealCard deals={hotelDeals} variant="overlay" onDealClick={handleHotelDealClick} />
-            <Link href="/deals/searchdeals?type=hotel">
-              <button className="bg-primary text-white font-semibold rounded-full px-10 py-3 text-lg shadow hover:bg-blue-700 transition">Browse All Hotels</button>
-              </Link>
-          </div>
-        </section>
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-gray-700">Type:</span>
+              <select
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                value={selectedType}
+                onChange={(e) => setSelectedType(e.target.value as any)}
+              >
+                <option value="all">All Types</option>
+                <option value="flight">Flights</option>
+                <option value="hotel">Hotels</option>
+                <option value="package">Packages</option>
+              </select>
+            </div>
 
-         {/* Packages & Bundles Section */}
-        <section className="mb-8">
-          <h3 className="text-3xl font-bold mb-1 flex items-center justify-center gap-2"> <Package className="w-6 h-6" /> Packages & Bundles</h3>
-          <p className="text-gray-700 mb-2 text-center">Combine flights, hotels, and experiences for maximum savings. Explore custom trips built for every type of traveler.</p>
-          <p className="text-gray-700 mb-4 text-center">See below for today's featured packages—each offers great value and smart itineraries you can book instantly.</p>
-          
-          <div className="flex flex-col items-center gap-6">
-            <DealCard deals={packageDeals} variant="overlay" onDealClick={handlePackageDealClick} />
-            <Link href="/deals/searchdeals?type=package">
-              <button className="bg-primary text-white font-semibold rounded-full px-10 py-3 text-lg shadow hover:bg-blue-700 transition">See More Bundles</button>
-            </Link>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-gray-700">Continent:</span>
+              <select
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                value={selectedContinent}
+                onChange={(e) => setSelectedContinent(e.target.value as any)}
+              >
+                {continents.map(continent => (
+                  <option key={continent.value} value={continent.value}>{continent.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <ArrowUpDown className="w-4 h-4 text-gray-500" />
+              <span className="text-sm font-medium text-gray-700">Sort by:</span>
+              <select
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+              >
+                {sortOptions.map(option => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </div>
           </div>
-        </section>
+        </div>
+
+        <div className="mb-6">
+          <p className="text-gray-600 text-lg">
+            Showing {filteredAndSortedDeals.length} {filteredAndSortedDeals.length === 1 ? 'deal' : 'deals'}
+            {searchQuery && ` for "${searchQuery}"`}
+          </p>
+        </div>
+
+        {filteredAndSortedDeals.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredAndSortedDeals.map(deal => (
+              <SearchDealCard 
+                key={deal.id} 
+                deal={deal} 
+                onViewDeal={handleViewDeal}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <div className="mb-4">
+              <Search className="w-16 h-16 text-gray-300 mx-auto" />
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">No deals found</h3>
+            <p className="text-gray-600 mb-4">
+              Try adjusting your search criteria or filters to find more deals.
+            </p>
+            <button
+              onClick={() => {
+                setSearchQuery('');
+                setSelectedType('all');
+                setSelectedContinent('all');
+                setSortBy('price-low');
+              }}
+              className="bg-primary text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Clear All Filters
+            </button>
+          </div>
+        )}
       </div>
-    </main>
+
+      {/* Deal Modal */}
+      <DealModal
+        open={isModalOpen}
+        onClose={closeModal}
+        deal={selectedDeal}
+      />
+    </div>
+  );
+}
+
+// Main component with Suspense boundary
+export default function SearchDealsPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex items-center justify-center"><div className="text-lg text-gray-600">Loading search results...</div></div>}>
+      <SearchDealsContent />
+    </Suspense>
   );
 }
