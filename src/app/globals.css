@@ -529,3 +529,11 @@ body {
     animation-timing-function: linear !important;
   }
 }
+
+/* Safe-area aware spacing utilities */
+@layer utilities {
+  /* Adds comfortable bottom padding on mobile to avoid footer crowding */
+  .pb-safe {
+    padding-bottom: calc(env(safe-area-inset-bottom) + 120px);
+  }
+}

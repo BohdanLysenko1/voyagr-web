@@ -460,7 +460,7 @@ export default function AIInterface({
   }, [isMobile]);
 
   return (
-    <div className={`flex-1 relative ${isMobile ? 'h-full flex flex-col min-h-0 overflow-hidden' : 'h-full flex flex-col min-h-0'} ${showChat ? 'max-h-[calc(100vh-100px)]' : ''}`}>
+    <div className={`flex-1 relative ${isMobile ? 'min-h-full flex flex-col' : 'h-full flex flex-col min-h-0'} ${showChat ? 'max-h-[calc(100vh-100px)]' : ''}`}>
       
       {/* Mobile Floating Menu Button */}
       {isMobile && !isSidebarOpen && (
@@ -613,9 +613,9 @@ export default function AIInterface({
           </div>
         ) : (
         /* Welcome Mode */
-        <div className={`relative z-10 ${isMobile ? 'w-full p-4 pt-0' : 'max-w-5xl w-full mx-auto p-10 pt-0'} `} data-force-motion="true">
-          <div className={`${isMobile ? 'p-3 pt-0 pb-4 flex-1 overflow-y-auto' : 'p-8 pt-0'}`}>
-          <div className={`${isMobile ? 'w-full' : 'max-w-4xl w-full'} ${isMobile ? 'mt-0' : 'mt-4'} ${isMobile ? 'space-y-1' : 'space-y-3'}`}>
+        <div className={`relative z-10 ${isMobile ? 'w-full p-4 pt-0 min-h-full' : 'max-w-5xl w-full mx-auto p-10 pt-0'} `} data-force-motion="true">
+          <div className={`${isMobile ? 'p-3 pt-0 pb-8 min-h-full' : 'p-8 pt-0'}`}>
+          <div className={`${isMobile ? 'w-full min-h-full' : 'max-w-4xl w-full'} ${isMobile ? 'mt-0' : 'mt-4'} ${isMobile ? 'space-y-2' : 'space-y-3'}`}>
           
           {/* Compact Preferences Display */}
           {preferences && (
@@ -761,15 +761,15 @@ export default function AIInterface({
             </div>
 
               {/* Dynamic Suggested Prompts */}
-              <div className={isMobile ? (preferences ? 'mt-1' : 'mt-2') : 'mt-6'}>
-                <p className={`text-gray-600 font-medium ${isMobile ? (preferences ? 'mb-1 text-xs' : 'mb-2 text-sm') : 'mb-4 text-base'} text-center transition-all duration-500`}>
+              <div className={isMobile ? (preferences ? 'mt-2' : 'mt-3') : 'mt-6'}>
+                <p className={`text-gray-600 font-medium ${isMobile ? (preferences ? 'mb-2 text-xs' : 'mb-3 text-sm') : 'mb-4 text-base'} text-center transition-all duration-500`}>
                   {activeTab === 'flights' ? 'Popular flight searches:' : 
                    activeTab === 'hotels' ? 'Find your perfect accommodation:' :
                    activeTab === 'packages' ? 'Discover amazing packages:' :
                    'Get inspired with these travel ideas:'}
                 </p>
                 
-                <div className={`grid ${isMobile ? (preferences ? 'grid-cols-1 gap-1.5' : 'grid-cols-1 gap-2') : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3'}`}>
+                <div className={`grid ${isMobile ? (preferences ? 'grid-cols-1 gap-3' : 'grid-cols-1 gap-4') : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3'} ${isMobile ? 'pb-8' : ''}`}>
                   {content.prompts.map((prompt, index) => {
                     // Handle both string and object prompt types
                     const promptText = typeof prompt === 'string' ? prompt : prompt.text;
@@ -778,11 +778,11 @@ export default function AIInterface({
                       <button
                         key={index}
                         onClick={() => handleSendMessage(promptText)}
-                        className={`group relative overflow-hidden ${isMobile ? (preferences ? 'p-2 min-h-[44px]' : 'p-2.5 min-h-[48px]') : 'p-4'} rounded-xl border border-white/40 transition-all duration-300 text-left transform hover:scale-[1.02] hover:-translate-y-1 active:scale-[0.98] bg-white/60 backdrop-blur-xl backdrop-saturate-150 bg-clip-padding shadow-[0_8px_32px_rgba(8,_112,_184,_0.12)] hover:shadow-[0_12px_40px_rgba(8,_112,_184,_0.18)] hover:bg-white/70 before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/40 before:via-white/10 before:to-white/5`}
+                        className={`group relative overflow-hidden ${isMobile ? (preferences ? 'p-3 min-h-[52px]' : 'p-4 min-h-[56px]') : 'p-4'} rounded-xl border border-white/40 transition-all duration-300 text-left transform hover:scale-[1.02] hover:-translate-y-1 active:scale-[0.98] bg-white/60 backdrop-blur-xl backdrop-saturate-150 bg-clip-padding shadow-[0_8px_32px_rgba(8,_112,_184,_0.12)] hover:shadow-[0_12px_40px_rgba(8,_112,_184,_0.18)] hover:bg-white/70 before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/40 before:via-white/10 before:to-white/5`}
                       >
-                        <div className="flex items-center gap-3 relative z-10">
+                        <div className={`flex items-center ${isMobile ? 'gap-4' : 'gap-3'} relative z-10`}>
                           <span className={`${isMobile ? 'text-2xl' : 'text-2xl'} group-hover:scale-110 transition-transform duration-300 flex-shrink-0`}>{promptEmoji}</span>
-                          <span className={`${isMobile ? (preferences ? 'text-sm leading-tight' : 'text-sm leading-tight') : 'text-sm'} font-medium text-gray-700 group-hover:text-gray-900 transition-colors duration-300 leading-relaxed`}>
+                          <span className={`${isMobile ? (preferences ? 'text-sm leading-relaxed' : 'text-sm leading-relaxed') : 'text-sm'} font-medium text-gray-700 group-hover:text-gray-900 transition-colors duration-300 leading-relaxed`}>
                             {promptText}
                           </span>
                         </div>

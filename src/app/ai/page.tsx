@@ -173,7 +173,7 @@ export default function AiPage() {
     <div className="relative h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50/50 to-purple-50/30">
       <div className="aurora-ambient" />
       {/* Mobile Layout */}
-      <div className="lg:hidden flex flex-col h-full min-h-0 relative pt-20 pb-safe max-h-screen overflow-hidden">
+      <div className="lg:hidden flex flex-col h-full min-h-0 relative pt-20 max-h-screen">
         
         {/* Mobile Sidebar Backdrop */}
         {isSidebarOpen && (
@@ -210,7 +210,7 @@ export default function AiPage() {
         </div>
         
         {/* Mobile Main Interface */}
-        <div className="flex-1 h-full min-h-0">
+        <div className="flex-1 min-h-0 pb-safe overflow-y-auto overscroll-contain">
           <AIInterface
             key={resetKey}
             inputValue={inputValue}
