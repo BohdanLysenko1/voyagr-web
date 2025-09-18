@@ -30,18 +30,46 @@ export default function AiPage() {
   const [recentConversations, setRecentConversations] = useState<RecentConversation[]>([]);
   const [currentConversationMessages, setCurrentConversationMessages] = useState<string[]>([]);
   
-  // Hide/show navbar based on sidebar state
-  useEffect(() => {
-    setNavbarVisible(!isSidebarOpen);
-  }, [isSidebarOpen, setNavbarVisible]);
-
-  // Hide footer on mobile AI pages
+  // Manage navbar and footer visibility based on device type and sidebar state
   useEffect(() => {
     const isMobile = window.innerWidth < 1024; // lg breakpoint
+    
     if (isMobile) {
+      // Mobile: navbar always visible, footer always hidden (set once)
+      setNavbarVisible(true);
       setFooterVisible(false);
+    } else {
+      // Desktop: navbar toggles with sidebar, footer always visible
+      setNavbarVisible(!isSidebarOpen);
+      setFooterVisible(true);
     }
-  }, [setFooterVisible]);
+  }, [isSidebarOpen, setNavbarVisible, setFooterVisible]);
+
+  // Handle window resize separately to avoid conflicting with sidebar toggles
+  useEffect(() => {
+    let resizeTimeout: NodeJS.Timeout;
+    
+    const handleResize = () => {
+      if (resizeTimeout) clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(() => {
+        const isMobile = window.innerWidth < 1024;
+        if (isMobile) {
+          setNavbarVisible(true);
+          setFooterVisible(false);
+        } else {
+          setNavbarVisible(!isSidebarOpen);
+          setFooterVisible(true);
+        }
+      }, 100);
+    };
+
+    window.addEventListener('resize', handleResize);
+    
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      if (resizeTimeout) clearTimeout(resizeTimeout);
+    };
+  }, [isSidebarOpen, setNavbarVisible, setFooterVisible]);
 
   // Restore navbar and footer visibility when component unmounts
   useEffect(() => {
