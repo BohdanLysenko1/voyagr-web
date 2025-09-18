@@ -57,6 +57,9 @@ export default function AIInterface({
   const isSnappingRef = useRef(false);
   const lastScrollYRef = useRef(0);
   const isScrollingDownRef = useRef(false);
+  const scrollContainerRef = useRef<HTMLElement | null>(null);
+  const isUserScrollingRef = useRef(false);
+  const autoScrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
 
   // Keep input focused for quick subsequent typing
@@ -145,25 +148,85 @@ export default function AIInterface({
     registerClearChat?.(clearChat);
   }, [registerClearChat, clearChat]);
 
-  const scrollToBottom = useCallback(() => {
-    const scrollContainer = messagesEndRef.current?.parentElement;
-    if (scrollContainer) {
+  // Check if user is near the bottom of the scroll container
+  const isNearBottom = useCallback((threshold = 100) => {
+    const scrollContainer = scrollContainerRef.current;
+    if (!scrollContainer) return true;
+    
+    const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
+    return scrollHeight - scrollTop - clientHeight < threshold;
+  }, []);
+
+  // Smooth scroll to bottom with better UX handling
+  const scrollToBottom = useCallback((force = false) => {
+    if (autoScrollTimeoutRef.current) {
+      clearTimeout(autoScrollTimeoutRef.current);
+    }
+
+    // Only auto-scroll if user is near bottom or force is true
+    if (!force && !isNearBottom()) {
+      return;
+    }
+
+    let scrollContainer = scrollContainerRef.current;
+    
+    // Fallback: try to find scroll container if not set
+    if (!scrollContainer && messagesEndRef.current) {
+      scrollContainer = messagesEndRef.current.parentElement;
+      scrollContainerRef.current = scrollContainer;
+    }
+    
+    if (!scrollContainer) return;
+
+    // Use requestAnimationFrame for smooth scrolling
+    const smoothScroll = () => {
+      if (!scrollContainer) return;
+      
       scrollContainer.scrollTo({
         top: scrollContainer.scrollHeight,
         behavior: 'smooth'
       });
-    }
-  }, []);
+      
+      // Focus input after scrolling animation completes
+      autoScrollTimeoutRef.current = setTimeout(() => {
+        focusInput();
+      }, 300); // Give time for smooth scroll to complete
+    };
 
+    // Delay scroll slightly to allow DOM updates to complete
+    requestAnimationFrame(() => {
+      requestAnimationFrame(smoothScroll);
+    });
+  }, [isNearBottom, focusInput]);
+
+
+  // Auto-scroll on new messages with improved logic
   useEffect(() => {
-    if (chatMessages.length > 0) {
-      setTimeout(() => {
-        scrollToBottom();
-        // ensure the input is focused after scrolling finishes
-        setTimeout(() => focusInput(), 0);
-      }, 100);
+    if (chatMessages.length === 0) return;
+    
+    // Wait for DOM updates, then check if we should scroll
+    const scrollTimeout = setTimeout(() => {
+      // Don't auto-scroll if user is actively scrolling up to read history
+      if (isUserScrollingRef.current && !isNearBottom(300)) return;
+      
+      // Force scroll to new messages - be more aggressive for new content
+      scrollToBottom(true);
+    }, 100); // Slightly longer delay to ensure DOM rendering is complete
+    
+    return () => clearTimeout(scrollTimeout);
+  }, [chatMessages, scrollToBottom, isNearBottom]);
+
+  // Auto-scroll when AI starts typing
+  useEffect(() => {
+    if (isAITyping) {
+      // Give AI typing a moment to render, then scroll
+      const typingScrollTimeout = setTimeout(() => {
+        scrollToBottom(true); // Force scroll when AI starts typing
+      }, 150);
+      
+      return () => clearTimeout(typingScrollTimeout);
     }
-  }, [chatMessages, scrollToBottom, focusInput]);
+  }, [isAITyping, scrollToBottom]);
 
   const generateAIResponse = useCallback((userMessage: string): string => {
     const responses: Record<string, string[]> = {
@@ -219,6 +282,9 @@ export default function AIInterface({
     onInputChange('');
     // Keep focus in the compact input so user can continue typing immediately
     focusInput();
+    
+    // Immediately scroll to show the user's message
+    setTimeout(() => scrollToBottom(true), 50);
     
     // If this is the first message, save it to recent conversations
     if (isFirstMessage) {
@@ -352,6 +418,52 @@ export default function AIInterface({
 
   const content = getContentByTab();
   const showChat = chatMessages.length > 0 || isAITyping;
+
+  // Initialize scroll container ref
+  useEffect(() => {
+    const updateScrollContainer = () => {
+      if (messagesEndRef.current?.parentElement) {
+        scrollContainerRef.current = messagesEndRef.current.parentElement;
+      }
+    };
+    
+    updateScrollContainer();
+    
+    // Also update on resize or DOM changes
+    const observer = new MutationObserver(updateScrollContainer);
+    if (messagesEndRef.current) {
+      observer.observe(messagesEndRef.current, { childList: true, subtree: true });
+    }
+    
+    return () => observer.disconnect();
+  }, [showChat]);
+
+  // Handle user scrolling detection
+  useEffect(() => {
+    const scrollContainer = scrollContainerRef.current;
+    if (!scrollContainer) return;
+
+    let scrollTimeout: NodeJS.Timeout;
+    
+    const handleScroll = () => {
+      isUserScrollingRef.current = true;
+      
+      // Clear existing timeout
+      if (scrollTimeout) clearTimeout(scrollTimeout);
+      
+      // Reset user scrolling flag after a delay
+      scrollTimeout = setTimeout(() => {
+        isUserScrollingRef.current = false;
+      }, 1000);
+    };
+
+    scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
+    
+    return () => {
+      scrollContainer.removeEventListener('scroll', handleScroll);
+      if (scrollTimeout) clearTimeout(scrollTimeout);
+    };
+  }, [showChat]);
 
   const globeTint = useMemo(() => {
     switch (activeTab) {
@@ -508,7 +620,7 @@ export default function AIInterface({
             )}
 
             {/* Messages Container */}
-            <div className={`flex-1 min-h-0 relative overflow-hidden ${isMobile ? 'bg-white/95 border border-gray-200 rounded-2xl mt-4' : 'glass-panel rounded-b-[2rem] max-h-[calc(100vh-180px)]'}`}>
+            <div className={`flex-1 min-h-0 relative overflow-hidden ${isMobile ? 'mt-4' : 'glass-panel rounded-b-[2rem] max-h-[calc(100vh-180px)]'}`}>
               <div className={`h-full overflow-y-auto overscroll-contain ${isMobile ? 'p-4 pb-[calc(env(safe-area-inset-bottom)+100px)]' : 'p-6 pb-28'} ${isMobile ? 'space-y-6' : 'space-y-5'} scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400 scroll-smooth`}>
                 {chatMessages.map((message) => (
                   <div
@@ -531,13 +643,13 @@ export default function AIInterface({
                     {/* Message Bubble */}
                     <div className={`w-fit max-w-[calc(100%_-_4rem)] sm:max-w-[70ch] lg:max-w-[80ch] overflow-hidden ${
                       message.sender === 'user' 
-                        ? 'bg-primary/10 border border-primary/20 rounded-2xl rounded-tr-md'
-                        : 'bg-white/60 border border-white/40 rounded-2xl rounded-tl-md backdrop-blur-sm'
-                    } px-5 py-4 md:px-4 shadow-sm`}>
-                      <p className="text-gray-800 text-sm leading-relaxed whitespace-pre-wrap break-words">
+                        ? 'bg-primary/15 border border-primary/30 rounded-2xl rounded-tr-md backdrop-blur-md'
+                        : 'bg-white/20 border border-white/30 rounded-2xl rounded-tl-md backdrop-blur-md'
+                    } px-5 py-4 md:px-4 shadow-lg`}>
+                      <p className="text-gray-900 text-sm leading-relaxed whitespace-pre-wrap break-words font-medium">
                         {message.content}
                       </p>
-                      <div className="text-xs text-gray-500 mt-2.5 md:mt-2">
+                      <div className="text-xs text-gray-600 mt-2.5 md:mt-2">
                         {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </div>
                     </div>
@@ -550,14 +662,14 @@ export default function AIInterface({
                     <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center bg-gradient-to-br ${content.gradientColors} border-2 border-white/40`}>
                       <Bot className={`w-5 h-5 ${content.accentColor}`} />
                     </div>
-                    <div className="w-fit max-w-[calc(100%_-_4rem)] sm:max-w-[70ch] lg:max-w-[80ch] bg-white/60 border border-white/40 rounded-2xl rounded-tl-md backdrop-blur-sm p-4 shadow-sm overflow-hidden">
+                    <div className="w-fit max-w-[calc(100%_-_4rem)] sm:max-w-[70ch] lg:max-w-[80ch] bg-white/20 border border-white/30 rounded-2xl rounded-tl-md backdrop-blur-md p-4 shadow-lg overflow-hidden">
                       <div className="flex items-center gap-2">
                         <div className="flex gap-1">
                           <div className={`w-2 h-2 rounded-full animate-bounce ${content.accentColor.replace('text-', 'bg-')}`}></div>
                           <div className={`w-2 h-2 rounded-full animate-bounce delay-100 ${content.accentColor.replace('text-', 'bg-')}`}></div>
                           <div className={`w-2 h-2 rounded-full animate-bounce delay-200 ${content.accentColor.replace('text-', 'bg-')}`}></div>
                         </div>
-                        <span className="text-xs text-gray-500">AI is typing...</span>
+                        <span className="text-xs text-gray-600 font-medium">AI is typing...</span>
                       </div>
                     </div>
                   </div>

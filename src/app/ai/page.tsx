@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAIPageState } from '@/hooks/useAIPageState';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { useNavbarVisibility } from '@/contexts/NavbarVisibilityContext';
+import { useFooterVisibility } from '@/contexts/FooterVisibilityContext';
 import { SAMPLE_FLIGHTS, SAMPLE_HOTELS, SAMPLE_PACKAGES, SUGGESTED_PROMPTS, PLACEHOLDER_TEXT } from '@/constants/aiData';
 import { Flight, Hotel, Package } from '@/types/ai';
 import AISidebar from '@/components/AI/AISidebar';
@@ -21,6 +22,7 @@ interface RecentConversation {
 export default function AiPage() {
   const { inputValue, setInputValue, isTyping } = useAIPageState();
   const { setNavbarVisible } = useNavbarVisibility();
+  const { setFooterVisible } = useFooterVisibility();
   const [activeTab, setActiveTab] = useState<TabKey>('plan');
   const [isPreferencesModalOpen, setIsPreferencesModalOpen] = useState(false);
   const [preferences, setPreferences] = useState(null);
@@ -33,12 +35,21 @@ export default function AiPage() {
     setNavbarVisible(!isSidebarOpen);
   }, [isSidebarOpen, setNavbarVisible]);
 
-  // Restore navbar visibility when component unmounts
+  // Hide footer on mobile AI pages
+  useEffect(() => {
+    const isMobile = window.innerWidth < 1024; // lg breakpoint
+    if (isMobile) {
+      setFooterVisible(false);
+    }
+  }, [setFooterVisible]);
+
+  // Restore navbar and footer visibility when component unmounts
   useEffect(() => {
     return () => {
       setNavbarVisible(true);
+      setFooterVisible(true);
     };
-  }, [setNavbarVisible]);
+  }, [setNavbarVisible, setFooterVisible]);
 
   // Load conversation history from localStorage on mount
   useEffect(() => {

@@ -3,11 +3,15 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useRef } from "react";
+import { useFooterVisibility } from "@/contexts/FooterVisibilityContext";
 
 export default function Footer() {
   const footerRef = useRef<HTMLElement>(null);
+  const { isFooterVisible } = useFooterVisibility();
 
   const light = false; // Always keep footer purple 
+
+  if (!isFooterVisible) return null;
 
   return (
     <footer
