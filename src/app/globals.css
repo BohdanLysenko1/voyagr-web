@@ -92,7 +92,7 @@ body {
 
   /* Section-specific gradient text classes */
   .gradient-text-flights {
-    background: linear-gradient(90deg, rgb(186, 230, 253), rgb(191, 219, 254), rgb(199, 210, 254));
+    background: linear-gradient(90deg, rgb(2, 132, 199), rgb(37, 99, 235), rgb(67, 56, 202));
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -102,7 +102,7 @@ body {
   }
 
   .gradient-text-hotels {
-    background: linear-gradient(90deg, rgb(254, 215, 170), rgb(253, 230, 138), rgb(254, 240, 138));
+    background: linear-gradient(90deg, rgb(217, 119, 6), rgb(234, 88, 12), rgb(180, 83, 9));
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -112,7 +112,7 @@ body {
   }
 
   .gradient-text-packages {
-    background: linear-gradient(90deg, rgb(221, 214, 254), rgb(245, 208, 254), rgb(251, 207, 232));
+    background: linear-gradient(90deg, rgb(147, 51, 234), rgb(192, 38, 211), rgb(219, 39, 119));
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -122,7 +122,7 @@ body {
   }
 
   .gradient-text-mapout {
-    background: linear-gradient(90deg, rgb(187, 247, 208), rgb(217, 249, 157), rgb(196, 240, 128));
+    background: linear-gradient(90deg, rgb(22, 163, 74), rgb(101, 163, 13), rgb(5, 150, 105));
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
