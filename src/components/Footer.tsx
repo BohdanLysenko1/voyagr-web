@@ -2,26 +2,12 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useRef } from "react";
 
 export default function Footer() {
-  const [inView, setInView] = useState(false); 
   const footerRef = useRef<HTMLElement>(null);
 
-  useEffect(() => {
-    const el = footerRef.current;
-    if (!el) return;
-
-    const obs = new IntersectionObserver(
-      ([entry]) => setInView(entry.isIntersecting),
-      { threshold: 0.8 } 
-    );
-
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, []);
-
-  const light = !inView; 
+  const light = false; // Always keep footer purple 
 
   return (
     <footer

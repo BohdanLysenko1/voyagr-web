@@ -90,6 +90,47 @@ body {
     padding-bottom: 0.04em; /* Tiny buffer for glyph descenders like g/j/y */
   }
 
+  /* Section-specific gradient text classes */
+  .gradient-text-flights {
+    background: linear-gradient(90deg, rgb(186, 230, 253), rgb(191, 219, 254), rgb(199, 210, 254));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+    display: inline-block;
+    line-height: 1.12;
+  }
+
+  .gradient-text-hotels {
+    background: linear-gradient(90deg, rgb(254, 215, 170), rgb(253, 230, 138), rgb(254, 240, 138));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+    display: inline-block;
+    line-height: 1.12;
+  }
+
+  .gradient-text-packages {
+    background: linear-gradient(90deg, rgb(221, 214, 254), rgb(245, 208, 254), rgb(251, 207, 232));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+    display: inline-block;
+    line-height: 1.12;
+  }
+
+  .gradient-text-mapout {
+    background: linear-gradient(90deg, rgb(187, 247, 208), rgb(217, 249, 157), rgb(196, 240, 128));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+    display: inline-block;
+    line-height: 1.12;
+  }
+
   /* Reusable glass cards */
   .glass-card {
     position: relative;
@@ -136,6 +177,225 @@ body {
     backdrop-filter: blur(24px) saturate(1.8);
     border: 1px solid rgba(255, 255, 255, 0.35);
     border-radius: 1.5rem;
+  }
+
+  /* Neon glow effect for input boxes */
+  @keyframes neon-pulse-primary {
+    0%, 100% {
+      box-shadow: 
+        0 0 6px rgba(82, 113, 255, 0.4),
+        0 0 12px rgba(82, 113, 255, 0.3),
+        0 0 18px rgba(82, 113, 255, 0.2),
+        0 0 24px rgba(82, 113, 255, 0.15),
+        inset 0 0 6px rgba(82, 113, 255, 0.1);
+      border: 1px solid rgba(82, 113, 255, 0.5);
+    }
+    50% {
+      box-shadow: 
+        0 0 8px rgba(82, 113, 255, 0.6),
+        0 0 16px rgba(82, 113, 255, 0.4),
+        0 0 24px rgba(82, 113, 255, 0.3),
+        0 0 32px rgba(82, 113, 255, 0.2),
+        inset 0 0 8px rgba(82, 113, 255, 0.2);
+      border: 1px solid rgba(82, 113, 255, 0.7);
+    }
+  }
+
+  @keyframes neon-pulse-blue {
+    0%, 100% {
+      box-shadow: 
+        0 0 6px rgba(186, 230, 253, 0.3),
+        0 0 12px rgba(186, 230, 253, 0.2),
+        0 0 18px rgba(191, 219, 254, 0.15),
+        0 0 24px rgba(191, 219, 254, 0.1),
+        inset 0 0 6px rgba(186, 230, 253, 0.08);
+      border: 1px solid rgba(186, 230, 253, 0.4);
+    }
+    50% {
+      box-shadow: 
+        0 0 8px rgba(186, 230, 253, 0.4),
+        0 0 16px rgba(186, 230, 253, 0.3),
+        0 0 24px rgba(191, 219, 254, 0.2),
+        0 0 32px rgba(191, 219, 254, 0.15),
+        inset 0 0 8px rgba(186, 230, 253, 0.15);
+      border: 1px solid rgba(186, 230, 253, 0.6);
+    }
+  }
+
+  @keyframes neon-pulse-orange {
+    0%, 100% {
+      box-shadow: 
+        0 0 6px rgba(254, 215, 170, 0.3),
+        0 0 12px rgba(254, 215, 170, 0.2),
+        0 0 18px rgba(253, 230, 138, 0.15),
+        0 0 24px rgba(253, 230, 138, 0.1),
+        inset 0 0 6px rgba(254, 215, 170, 0.08);
+      border: 1px solid rgba(254, 215, 170, 0.4);
+    }
+    50% {
+      box-shadow: 
+        0 0 8px rgba(254, 215, 170, 0.4),
+        0 0 16px rgba(254, 215, 170, 0.3),
+        0 0 24px rgba(253, 230, 138, 0.2),
+        0 0 32px rgba(253, 230, 138, 0.15),
+        inset 0 0 8px rgba(254, 215, 170, 0.15);
+      border: 1px solid rgba(254, 215, 170, 0.6);
+    }
+  }
+
+  @keyframes neon-pulse-purple {
+    0%, 100% {
+      box-shadow: 
+        0 0 6px rgba(221, 214, 254, 0.3),
+        0 0 12px rgba(221, 214, 254, 0.2),
+        0 0 18px rgba(245, 208, 254, 0.15),
+        0 0 24px rgba(245, 208, 254, 0.1),
+        inset 0 0 6px rgba(221, 214, 254, 0.08);
+      border: 1px solid rgba(221, 214, 254, 0.4);
+    }
+    50% {
+      box-shadow: 
+        0 0 8px rgba(221, 214, 254, 0.4),
+        0 0 16px rgba(221, 214, 254, 0.3),
+        0 0 24px rgba(245, 208, 254, 0.2),
+        0 0 32px rgba(245, 208, 254, 0.15),
+        inset 0 0 8px rgba(221, 214, 254, 0.15);
+      border: 1px solid rgba(221, 214, 254, 0.6);
+    }
+  }
+
+  @keyframes neon-pulse-green {
+    0%, 100% {
+      box-shadow: 
+        0 0 6px rgba(187, 247, 208, 0.3),
+        0 0 12px rgba(187, 247, 208, 0.2),
+        0 0 18px rgba(217, 249, 157, 0.15),
+        0 0 24px rgba(217, 249, 157, 0.1),
+        inset 0 0 6px rgba(187, 247, 208, 0.08);
+      border: 1px solid rgba(187, 247, 208, 0.4);
+    }
+    50% {
+      box-shadow: 
+        0 0 8px rgba(187, 247, 208, 0.4),
+        0 0 16px rgba(187, 247, 208, 0.3),
+        0 0 24px rgba(217, 249, 157, 0.2),
+        0 0 32px rgba(217, 249, 157, 0.15),
+        inset 0 0 8px rgba(187, 247, 208, 0.15);
+      border: 1px solid rgba(187, 247, 208, 0.6);
+    }
+  }
+
+  /* Default neon glow - plan tab */
+  .neon-glow {
+    animation: neon-pulse-primary 2s ease-in-out infinite;
+    transition: all 0.3s ease;
+    outline: none !important;
+  }
+
+  .neon-glow:focus-within {
+    animation: none;
+    box-shadow: 
+      0 0 10px rgba(82, 113, 255, 0.8),
+      0 0 20px rgba(82, 113, 255, 0.6),
+      0 0 30px rgba(82, 113, 255, 0.4),
+      0 0 40px rgba(82, 113, 255, 0.3),
+      inset 0 0 10px rgba(82, 113, 255, 0.3);
+    border: 1px solid rgba(82, 113, 255, 0.9);
+    outline: none !important;
+  }
+
+  /* Flights - Sky Blue */
+  .neon-glow-flights {
+    animation: neon-pulse-blue 2s ease-in-out infinite;
+    transition: all 0.3s ease;
+    outline: none !important;
+  }
+
+  .neon-glow-flights:focus-within {
+    animation: none;
+    box-shadow: 
+      0 0 10px rgba(186, 230, 253, 0.5),
+      0 0 20px rgba(186, 230, 253, 0.4),
+      0 0 30px rgba(191, 219, 254, 0.3),
+      0 0 40px rgba(191, 219, 254, 0.2),
+      inset 0 0 10px rgba(186, 230, 253, 0.2);
+    border: 1px solid rgba(186, 230, 253, 0.7);
+    outline: none !important;
+  }
+
+  /* Hotels - Orange */
+  .neon-glow-hotels {
+    animation: neon-pulse-orange 2s ease-in-out infinite;
+    transition: all 0.3s ease;
+    outline: none !important;
+  }
+
+  .neon-glow-hotels:focus-within {
+    animation: none;
+    box-shadow: 
+      0 0 10px rgba(254, 215, 170, 0.5),
+      0 0 20px rgba(254, 215, 170, 0.4),
+      0 0 30px rgba(253, 230, 138, 0.3),
+      0 0 40px rgba(253, 230, 138, 0.2),
+      inset 0 0 10px rgba(254, 215, 170, 0.2);
+    border: 1px solid rgba(254, 215, 170, 0.7);
+    outline: none !important;
+  }
+
+  /* Packages - Purple/Magenta */
+  .neon-glow-packages {
+    animation: neon-pulse-purple 2s ease-in-out infinite;
+    transition: all 0.3s ease;
+    outline: none !important;
+  }
+
+  .neon-glow-packages:focus-within {
+    animation: none;
+    box-shadow: 
+      0 0 10px rgba(221, 214, 254, 0.5),
+      0 0 20px rgba(221, 214, 254, 0.4),
+      0 0 30px rgba(245, 208, 254, 0.3),
+      0 0 40px rgba(245, 208, 254, 0.2),
+      inset 0 0 10px rgba(221, 214, 254, 0.2);
+    border: 1px solid rgba(221, 214, 254, 0.7);
+    outline: none !important;
+  }
+
+  /* Mapout - Green */
+  .neon-glow-mapout {
+    animation: neon-pulse-green 2s ease-in-out infinite;
+    transition: all 0.3s ease;
+    outline: none !important;
+  }
+
+  .neon-glow-mapout:focus-within {
+    animation: none;
+    box-shadow: 
+      0 0 10px rgba(187, 247, 208, 0.5),
+      0 0 20px rgba(187, 247, 208, 0.4),
+      0 0 30px rgba(217, 249, 157, 0.3),
+      0 0 40px rgba(217, 249, 157, 0.2),
+      inset 0 0 10px rgba(187, 247, 208, 0.2);
+    border: 1px solid rgba(187, 247, 208, 0.7);
+    outline: none !important;
+  }
+
+  .neon-glow textarea,
+  .neon-glow textarea:focus,
+  .neon-glow textarea:focus-visible,
+  .neon-glow input,
+  .neon-glow input:focus,
+  .neon-glow input:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  /* Additional browser outline removal */
+  .neon-glow *:focus,
+  .neon-glow *:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
   }
 
   /* Gradient ring effect for elevated elements */

@@ -119,7 +119,7 @@ export default function AISidebar({
   }, [tabsConfig, activeTab, onTabChange, focusTab]);
 
   return (
-    <div className={`${isMobile ? 'w-full h-full' : 'w-[480px] min-w-[480px] h-screen'} flex-shrink-0 ${isMobile ? 'p-0' : 'p-6 pt-0'} flex flex-col`}>
+    <div className={`${isMobile ? 'w-full h-full' : 'w-[480px] min-w-[480px] h-[calc(100vh-100px)]'} flex-shrink-0 ${isMobile ? 'p-0' : 'p-6 pt-0'} flex flex-col`}>
       <aside className={`w-full flex-1 min-h-0 ${isMobile ? 'mt-0' : 'mt-4'} flex flex-col overflow-hidden relative transition-all duration-300 scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent hover:scrollbar-thumb-primary/30 ${isMobile 
         ? 'bg-white border-r border-gray-200 shadow-lg rounded-none' 
         : 'glass-panel rounded-[2rem]'
@@ -183,7 +183,23 @@ export default function AISidebar({
               }}
               className={`flex items-center gap-2 ${isMobile ? 'rounded-2xl px-4 py-3 text-sm min-h-[48px] flex-1' : 'rounded-xl px-3 py-2 text-sm'} font-semibold transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${isMobile ? 'border-2 border-white/40 backdrop-blur-xl shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98]' : 'border border-white/30 backdrop-blur-md shadow-sm'} ${
                 activeTab === t.key && t.key !== 'preferences'
-                  ? isMobile ? 'bg-gradient-to-r from-primary/20 to-purple-500/20 text-primary border-primary/40 shadow-xl ring-2 ring-primary/30' : 'bg-white/60 text-primary ring-1 ring-primary/30 shadow-md glow-ring'
+                  ? (() => {
+                      const getActiveStyle = () => {
+                        switch (t.key) {
+                          case 'flights':
+                            return isMobile ? 'bg-gradient-to-r from-sky-500/20 to-blue-500/20 text-sky-600 border-sky-400/40 shadow-xl ring-2 ring-sky-500/30' : 'bg-white/60 text-sky-600 ring-1 ring-sky-500/30 shadow-md glow-ring';
+                          case 'hotels':
+                            return isMobile ? 'bg-gradient-to-r from-orange-500/20 to-amber-500/20 text-orange-600 border-orange-400/40 shadow-xl ring-2 ring-orange-500/30' : 'bg-white/60 text-orange-600 ring-1 ring-orange-500/30 shadow-md glow-ring';
+                          case 'packages':
+                            return isMobile ? 'bg-gradient-to-r from-purple-500/20 to-fuchsia-500/20 text-purple-600 border-purple-400/40 shadow-xl ring-2 ring-purple-500/30' : 'bg-white/60 text-purple-600 ring-1 ring-purple-500/30 shadow-md glow-ring';
+                          case 'mapout':
+                            return isMobile ? 'bg-gradient-to-r from-green-500/20 to-lime-500/20 text-green-600 border-green-400/40 shadow-xl ring-2 ring-green-500/30' : 'bg-white/60 text-green-600 ring-1 ring-green-500/30 shadow-md glow-ring';
+                          default:
+                            return isMobile ? 'bg-gradient-to-r from-primary/20 to-purple-500/20 text-primary border-primary/40 shadow-xl ring-2 ring-primary/30' : 'bg-white/60 text-primary ring-1 ring-primary/30 shadow-md glow-ring';
+                        }
+                      };
+                      return getActiveStyle();
+                    })()
                   : isMobile ? 'bg-white/70 text-gray-700 hover:bg-white/80 hover:text-gray-800' : 'bg-white/30 text-gray-700 hover:bg-white/40 hover:shadow'
               }`}
             >

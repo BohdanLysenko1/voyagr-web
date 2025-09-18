@@ -352,13 +352,13 @@ export default function AIInterface({
   const globeTint = useMemo(() => {
     switch (activeTab) {
       case 'flights':
-        return { from: 'rgba(59,130,246,0.40)', to: 'rgba(99,102,241,0.35)', opacity: '0.32' }; // blue/indigo
+        return { from: 'rgba(14,165,233,0.40)', to: 'rgba(56,189,248,0.35)', opacity: '0.32' }; // sky blue
       case 'hotels':
-        return { from: 'rgba(16,185,129,0.40)', to: 'rgba(13,148,136,0.35)', opacity: '0.30' }; // emerald/teal
+        return { from: 'rgba(251,146,60,0.40)', to: 'rgba(245,158,11,0.35)', opacity: '0.32' }; // orange/amber
       case 'packages':
-        return { from: 'rgba(147,51,234,0.40)', to: 'rgba(236,72,153,0.35)', opacity: '0.32' }; // purple/pink
+        return { from: 'rgba(168,85,247,0.40)', to: 'rgba(217,70,239,0.35)', opacity: '0.32' }; // purple/fuchsia
       case 'mapout':
-        return { from: 'rgba(16,185,129,0.40)', to: 'rgba(8,145,178,0.35)', opacity: '0.28' }; // emerald/cyan
+        return { from: 'rgba(34,197,94,0.40)', to: 'rgba(132,204,22,0.35)', opacity: '0.32' }; // green/lime
       default:
         return { from: 'rgba(82,113,255,0.40)', to: 'rgba(139,92,246,0.35)', opacity: '0.30' }; // primary/violet
     }
@@ -415,7 +415,7 @@ export default function AIInterface({
   }, []);
 
   return (
-    <div className={`flex-1 relative ${isMobile ? 'h-full flex flex-col min-h-0 overflow-hidden' : 'h-full flex flex-col min-h-0'}`}>
+    <div className={`flex-1 relative ${isMobile ? 'h-full flex flex-col min-h-0 overflow-hidden' : 'h-full flex flex-col min-h-0'} ${showChat ? 'max-h-[calc(100vh-100px)]' : ''}`}>
       
       {/* Mobile Floating Menu Button */}
       {isMobile && !isSidebarOpen && (
@@ -445,7 +445,7 @@ export default function AIInterface({
         {/* Chat Interface or Welcome Screen */}
         {showChat ? (
         /* Chat Mode */
-        <div className={`relative flex flex-col min-h-0 ${isMobile ? 'h-screen p-4 pt-0' : 'h-full p-8 pt-0'}`}>
+        <div className={`relative flex flex-col min-h-0 ${isMobile ? 'h-[calc(100vh-100px)] p-4 pt-0' : 'h-[calc(100vh-100px)] p-6 pt-0'} overflow-hidden`}>
           
           <div className={`${isMobile ? 'w-full' : 'max-w-4xl w-full mx-auto'} ${isMobile ? 'mt-2' : 'mt-6'} h-full min-h-0 flex flex-col relative`}>
             {/* Chat Header - Desktop only */}
@@ -463,7 +463,7 @@ export default function AIInterface({
             )}
 
             {/* Messages Container */}
-            <div className={`flex-1 min-h-0 relative overflow-hidden ${isMobile ? 'bg-white/95 border border-gray-200 rounded-2xl mt-4 mb-4 min-h-[300px]' : 'glass-panel rounded-b-[2rem]'}`}>
+            <div className={`flex-1 min-h-0 relative overflow-hidden ${isMobile ? 'bg-white/95 border border-gray-200 rounded-2xl mt-4 mb-4 max-h-[calc(100vh-240px)]' : 'glass-panel rounded-b-[2rem] max-h-[calc(100vh-180px)]'}`}>
               <div className={`h-full overflow-y-auto overscroll-contain ${isMobile ? 'p-4 pb-20' : 'p-6 pb-28'} space-y-4 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400`}>
                 {chatMessages.map((message) => (
                   <div
@@ -523,7 +523,13 @@ export default function AIInterface({
 
             {/* Compact Chat Input */}
             <div className={`${isMobile ? 'absolute bottom-4 left-4 right-4' : 'absolute bottom-6 left-0 right-0'} z-[9999]`}>
-              <div className={`glass-input glow-ring rounded-3xl hover:shadow-xl transition-all duration-300`}>
+              <div className={`glass-input glow-ring ${
+                activeTab === 'flights' ? 'neon-glow-flights' :
+                activeTab === 'hotels' ? 'neon-glow-hotels' :
+                activeTab === 'packages' ? 'neon-glow-packages' :
+                activeTab === 'mapout' ? 'neon-glow-mapout' :
+                'neon-glow'
+              } rounded-3xl hover:shadow-xl transition-all duration-300`}>
                 <div className="flex items-center gap-3 p-4">
                   <div className="flex-1 relative">
                     <textarea id="ai-compact-input"
@@ -534,7 +540,7 @@ export default function AIInterface({
                       placeholder="Ask anything..."
                       autoFocus
                       enterKeyHint="send"
-                      className="w-full bg-transparent border-none resize-none focus:outline-none text-gray-800 placeholder-gray-500 text-base leading-6 h-6 py-0 max-h-6 overflow-hidden"
+                      className="w-full bg-transparent border-none resize-none focus:outline-none focus:ring-0 focus:border-transparent text-gray-800 placeholder-gray-500 text-base leading-6 h-6 py-0 max-h-6 overflow-hidden"
                       rows={1}
                     />
                   </div>
@@ -613,7 +619,13 @@ export default function AIInterface({
                     />
                   </div>
                 )}
-                <h1 className={`${isMobile ? (preferences ? 'text-2xl' : 'text-3xl') : 'text-6xl'} font-bold leading-tight md:leading-[1.1] transition-all duration-700 gradient-text drop-shadow-sm pb-0.5`}>
+                <h1 className={`${isMobile ? (preferences ? 'text-2xl' : 'text-3xl') : 'text-6xl'} font-bold leading-tight md:leading-[1.1] transition-all duration-700 ${
+                  activeTab === 'flights' ? 'gradient-text-flights' :
+                  activeTab === 'hotels' ? 'gradient-text-hotels' :
+                  activeTab === 'packages' ? 'gradient-text-packages' :
+                  activeTab === 'mapout' ? 'gradient-text-mapout' :
+                  'gradient-text'
+                } drop-shadow-sm pb-0.5`}>
                   {content.title}
                 </h1>
               </div>
@@ -629,13 +641,19 @@ export default function AIInterface({
               {/* Input Section */}
               <div className={isMobile ? (preferences ? 'mb-4' : 'mb-4') : 'mb-10'}>
                 <div className="relative max-w-3xl mx-auto">
-                  <div className={`glass-input rounded-2xl`}>
+                  <div className={`glass-input ${
+                    activeTab === 'flights' ? 'neon-glow-flights' :
+                    activeTab === 'hotels' ? 'neon-glow-hotels' :
+                    activeTab === 'packages' ? 'neon-glow-packages' :
+                    activeTab === 'mapout' ? 'neon-glow-mapout' :
+                    'neon-glow'
+                  } rounded-2xl`}>
                     <textarea
                       value={inputValue}
                       onChange={(e) => onInputChange(e.target.value)}
                       onKeyDown={handleKeyPress}
                       placeholder={content.placeholder}
-                      className={`w-full ${isMobile ? (preferences ? 'p-4 text-base h-[80px] max-h-[80px]' : 'p-5 text-lg h-[100px] max-h-[100px]') : 'p-6 text-lg h-[120px] max-h-[120px]'} bg-transparent resize-none focus:outline-none focus:ring-0 border-0 transition-all duration-300 placeholder-gray-500 text-gray-800 relative z-10 overflow-y-auto`}
+                      className={`w-full ${isMobile ? (preferences ? 'p-4 text-base h-[80px] max-h-[80px]' : 'p-5 text-lg h-[100px] max-h-[100px]') : 'p-6 text-lg h-[120px] max-h-[120px]'} bg-transparent resize-none focus:outline-none focus:ring-0 focus:border-transparent border-0 transition-all duration-300 placeholder-gray-500 text-gray-800 relative z-10 overflow-y-auto`}
                       rows={4}
                     />
                   </div>
@@ -679,10 +697,10 @@ export default function AIInterface({
                         }
                       }}
                       className={`relative overflow-hidden ${isMobile ? 'px-6 py-3 text-base w-full' : 'px-8 py-4 text-lg'} bg-gradient-to-r ${
-                        activeTab === 'flights' ? 'from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500' :
-                        activeTab === 'hotels' ? 'from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500' :
-                        activeTab === 'packages' ? 'from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500' :
-                        activeTab === 'mapout' ? 'from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500' :
+                        activeTab === 'flights' ? 'from-sky-500 to-blue-500 hover:from-sky-400 hover:to-blue-400' :
+                        activeTab === 'hotels' ? 'from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400' :
+                        activeTab === 'packages' ? 'from-purple-500 to-fuchsia-500 hover:from-purple-400 hover:to-fuchsia-400' :
+                        activeTab === 'mapout' ? 'from-green-500 to-lime-500 hover:from-green-400 hover:to-lime-400' :
                         'from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90'
                       } text-white rounded-2xl font-bold shadow-2xl hover:shadow-xl transition-all duration-300 transform hover:scale-105 active:scale-95 backdrop-blur-sm border border-white/20 before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/20 before:via-white/5 before:to-white/5 min-h-[48px]`}
                     >

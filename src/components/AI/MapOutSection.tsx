@@ -211,7 +211,7 @@ export default function MapOutSection({ onNewTrip }: MapOutSectionProps) {
       <div className="pt-4 space-y-3">
         <button
           onClick={onNewTrip}
-          className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white rounded-2xl font-medium text-sm shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] backdrop-blur-sm border border-white/20"
+          className="w-full py-3 px-4 bg-gradient-to-r from-green-500 to-lime-500 hover:from-green-400 hover:to-lime-400 text-white rounded-2xl font-medium text-sm shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] backdrop-blur-sm border border-white/20"
         >
           Create New Itinerary
         </button>
