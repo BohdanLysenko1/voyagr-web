@@ -572,7 +572,7 @@ export default function AIInterface({
   }, [isMobile]);
 
   return (
-    <div className={`flex-1 relative ${isMobile ? 'min-h-full flex flex-col' : 'h-full flex flex-col min-h-0'} ${showChat ? 'max-h-[calc(100vh-100px)]' : ''}`}>
+    <div className={`flex-1 relative overflow-x-hidden ${isMobile ? 'min-h-full flex flex-col' : 'h-full flex flex-col min-h-0'} ${showChat ? 'max-h-[calc(100vh-100px)]' : ''}`} style={{ touchAction: 'pan-y', overscrollBehaviorX: 'none' }}>
       
       {/* Mobile Floating Menu Button */}
       {isMobile && !isSidebarOpen && (
@@ -620,8 +620,8 @@ export default function AIInterface({
             )}
 
             {/* Messages Container */}
-            <div className={`flex-1 min-h-0 relative overflow-hidden ${isMobile ? 'mt-4' : 'glass-panel rounded-b-[2rem] max-h-[calc(100vh-180px)]'}`}>
-              <div className={`h-full overflow-y-auto overscroll-contain ${isMobile ? 'p-4 pb-[calc(env(safe-area-inset-bottom)+100px)]' : 'p-6 pb-28'} ${isMobile ? 'space-y-6' : 'space-y-5'} scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400 scroll-smooth`}>
+            <div className={`flex-1 min-h-0 relative overflow-hidden overflow-x-hidden ${isMobile ? 'mt-4' : 'glass-panel rounded-b-[2rem] max-h-[calc(100vh-180px)]'}`} style={{ touchAction: 'pan-y', overscrollBehaviorX: 'none' }}>
+              <div className={`h-full overflow-y-auto overflow-x-hidden overscroll-contain ${isMobile ? 'p-4 pb-[calc(env(safe-area-inset-bottom)+100px)]' : 'p-6 pb-28'} ${isMobile ? 'space-y-6' : 'space-y-5'} scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400 scroll-smooth`} style={{ touchAction: 'pan-y', overscrollBehaviorX: 'none' }}>
                 {chatMessages.map((message) => (
                   <div
                     key={message.id}
@@ -725,7 +725,7 @@ export default function AIInterface({
           </div>
         ) : (
         /* Welcome Mode */
-        <div className={`relative z-10 ${isMobile ? 'w-full p-4 pt-0 min-h-full' : 'max-w-5xl w-full mx-auto p-10 pt-0'} `} data-force-motion="true">
+        <div className={`relative z-10 overflow-x-hidden ${isMobile ? 'w-full p-4 pt-0 min-h-full' : 'max-w-5xl w-full mx-auto p-10 pt-0'} `} data-force-motion="true" style={{ touchAction: 'pan-y', overscrollBehaviorX: 'none' }}>
           <div className={`${isMobile ? 'p-3 pt-0 pb-8 min-h-full' : 'p-8 pt-0'}`}>
           <div className={`${isMobile ? 'w-full min-h-full' : 'max-w-4xl w-full'} ${isMobile ? 'mt-0' : 'mt-4'} ${isMobile ? 'space-y-2' : 'space-y-3'}`}>
           

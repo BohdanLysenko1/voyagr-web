@@ -209,7 +209,7 @@ export default function AiPage() {
   }, []);
 
   return (
-    <div className="relative h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50/50 to-purple-50/30">
+    <div className="relative h-screen overflow-hidden overflow-x-hidden bg-gradient-to-br from-slate-50 via-blue-50/50 to-purple-50/30" style={{ touchAction: 'pan-y', overscrollBehaviorX: 'none' }}>
       <div className="aurora-ambient" />
       {/* Mobile Layout */}
       <div className="lg:hidden flex flex-col h-full min-h-0 relative pt-20 max-h-screen">
@@ -249,7 +249,7 @@ export default function AiPage() {
         </div>
         
         {/* Mobile Main Interface */}
-        <div className="flex-1 min-h-0 pb-safe overflow-y-auto overscroll-contain">
+        <div className="flex-1 min-h-0 pb-safe overflow-y-auto overflow-x-hidden overscroll-contain" style={{ touchAction: 'pan-y', overscrollBehaviorX: 'none' }}>
           <AIInterface
             key={resetKey}
             inputValue={inputValue}
