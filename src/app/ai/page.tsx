@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAIPageState } from '@/hooks/useAIPageState';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { useNavbarVisibility } from '@/contexts/NavbarVisibilityContext';
@@ -10,6 +10,7 @@ import { Flight, Hotel, Package } from '@/types/ai';
 import AISidebar from '@/components/AI/AISidebar';
 import AIInterface from '@/components/AI/AIInterface';
 import AIPreferencesModal from '@/components/AI/AIPreferencesModal';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/Sheet';
 
 type TabKey = 'plan' | 'preferences' | 'flights' | 'hotels' | 'packages' | 'mapout';
 
@@ -212,63 +213,65 @@ export default function AiPage() {
     <div className="relative h-screen overflow-hidden overflow-x-hidden bg-gradient-to-br from-slate-50 via-blue-50/50 to-purple-50/30" style={{ touchAction: 'pan-y', overscrollBehaviorX: 'none' }}>
       <div className="aurora-ambient" />
       {/* Mobile Layout */}
-      <div className="lg:hidden flex flex-col h-full min-h-0 relative pt-20 max-h-screen">
+      <div className="lg:hidden flex flex-col h-full min-h-0 max-h-screen pt-16">
         
-        {/* Mobile Sidebar Backdrop */}
-        {isSidebarOpen && (
-          <div 
-            className="fixed inset-0 bg-black/30 z-30"
-            onClick={() => setIsSidebarOpen(false)}
-          />
-        )}
-        
-        {/* Mobile Sidebar - Slide from Left */}
-        <div className={`transform transition-transform duration-300 ease-in-out ${
-          isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        } fixed top-0 left-0 bottom-0 w-80 max-w-[85vw] z-40 bg-white border-r border-gray-200 shadow-2xl overflow-hidden`}>
-          <AISidebar
-            flights={updatedFlights}
-            hotels={updatedHotels}
-            packages={updatedPackages}
-            onFlightHeartToggle={toggleFlightHeart}
-            onHotelHeartToggle={toggleHotelHeart}
-            onPackageHeartToggle={togglePackageHeart}
-            onNewTrip={handleNewTrip}
-            onSectionReset={handleSectionReset}
-            onPreferencesOpen={handlePreferencesOpen}
-            activeTab={activeTab}
-            onTabChange={(tab) => {
-              setActiveTab(tab);
-              setIsSidebarOpen(false);
-            }}
-            isMobile={true}
-            onClose={() => setIsSidebarOpen(false)}
-            recentConversations={recentConversations}
-            onConversationSelect={handleConversationSelect}
-          />
-        </div>
-        
-        {/* Mobile Main Interface */}
-        <div className="flex-1 min-h-0 pb-safe overflow-y-auto overflow-x-hidden overscroll-contain" style={{ touchAction: 'pan-y', overscrollBehaviorX: 'none' }}>
-          <AIInterface
-            key={resetKey}
-            inputValue={inputValue}
-            onInputChange={setInputValue}
-            isTyping={isTyping}
-            suggestedPrompts={SUGGESTED_PROMPTS}
-            placeholderText={PLACEHOLDER_TEXT}
-            onSubmit={handleSubmit}
-            preferences={preferences}
-            activeTab={activeTab}
-            isMobile={true}
-            onSidebarToggle={() => setIsSidebarOpen(!isSidebarOpen)}
-            isSidebarOpen={isSidebarOpen}
-            registerClearChat={setClearChatFunction}
-            onFirstMessage={handleFirstMessage}
-            onMessageSent={handleMessageSent}
-            onPreferencesOpen={handlePreferencesOpen}
-          />
-        </div>
+        {/* Mobile Sidebar using Sheet */}
+        <Sheet open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
+          <SheetContent side="left" className="p-0 border-0 bg-white/95 backdrop-blur-xl backdrop-saturate-150 border-r border-white/40">
+            <AISidebar
+              flights={updatedFlights}
+              hotels={updatedHotels}
+              packages={updatedPackages}
+              onFlightHeartToggle={toggleFlightHeart}
+              onHotelHeartToggle={toggleHotelHeart}
+              onPackageHeartToggle={togglePackageHeart}
+              onNewTrip={handleNewTrip}
+              onSectionReset={handleSectionReset}
+              onPreferencesOpen={handlePreferencesOpen}
+              activeTab={activeTab}
+              onTabChange={(tab) => {
+                setActiveTab(tab);
+                setIsSidebarOpen(false);
+              }}
+              isMobile={true}
+              onClose={() => setIsSidebarOpen(false)}
+              recentConversations={recentConversations}
+              onConversationSelect={handleConversationSelect}
+            />
+          </SheetContent>
+          
+          {/* Mobile Main Interface with SheetTrigger */}
+          <div className="flex-1 min-h-0 pb-safe overflow-y-auto overflow-x-hidden overscroll-contain" style={{ touchAction: 'pan-y', overscrollBehaviorX: 'none' }}>
+            <AIInterface
+              key={resetKey}
+              inputValue={inputValue}
+              onInputChange={setInputValue}
+              isTyping={isTyping}
+              suggestedPrompts={SUGGESTED_PROMPTS}
+              placeholderText={PLACEHOLDER_TEXT}
+              onSubmit={handleSubmit}
+              preferences={preferences}
+              activeTab={activeTab}
+              isMobile={true}
+              onSidebarToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+              isSidebarOpen={isSidebarOpen}
+              registerClearChat={setClearChatFunction}
+              onFirstMessage={handleFirstMessage}
+              onMessageSent={handleMessageSent}
+              onPreferencesOpen={handlePreferencesOpen}
+              renderMenuTrigger={(triggerProps: { children: React.ReactNode; onClick?: () => void }) => (
+                <SheetTrigger asChild>
+                  <button
+                    onClick={triggerProps.onClick}
+                    className="fixed top-4 left-4 z-10 p-3 rounded-full bg-white/95 backdrop-blur-md border border-white/40 hover:bg-white transition-all duration-200 shadow-lg hover:shadow-xl min-h-[48px] min-w-[48px] flex items-center justify-center glass-morphism"
+                  >
+                    {triggerProps.children}
+                  </button>
+                </SheetTrigger>
+              )}
+            />
+          </div>
+        </Sheet>
       </div>
 
       {/* Desktop Layout */}

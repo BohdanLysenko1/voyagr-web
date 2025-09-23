@@ -28,6 +28,7 @@ interface AIInterfaceProps {
   onFirstMessage?: (firstMessage: string) => void;
   onMessageSent?: (message: string) => void;
   onPreferencesOpen?: () => void;
+  renderMenuTrigger?: (triggerProps: { children: React.ReactNode; onClick?: () => void }) => React.ReactNode;
 }
 
 export default function AIInterface({ 
@@ -46,7 +47,8 @@ export default function AIInterface({
   registerClearChat,
   onFirstMessage,
   onMessageSent,
-  onPreferencesOpen
+  onPreferencesOpen,
+  renderMenuTrigger
 }: AIInterfaceProps) {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [isAITyping, setIsAITyping] = useState(false);
@@ -576,12 +578,21 @@ export default function AIInterface({
       
       {/* Mobile Floating Menu Button */}
       {isMobile && !isSidebarOpen && (
-        <button
-          onClick={onSidebarToggle}
-          className="fixed top-24 left-4 z-50 p-3 rounded-full bg-white/95 border border-gray-200 hover:bg-white transition-all duration-200 shadow-md hover:shadow-lg min-h-[44px] min-w-[44px] flex items-center justify-center"
-        >
-          <Menu className="w-5 h-5 text-gray-700" />
-        </button>
+        <>
+          {renderMenuTrigger ? (
+            renderMenuTrigger({
+              children: <Menu className="w-5 h-5 text-gray-700" />,
+              onClick: onSidebarToggle,
+            })
+          ) : (
+            <button
+              onClick={onSidebarToggle}
+              className="fixed top-4 left-4 z-10 p-3 rounded-full bg-white/95 border border-gray-200 hover:bg-white transition-all duration-200 shadow-md hover:shadow-lg min-h-[44px] min-w-[44px] flex items-center justify-center"
+            >
+              <Menu className="w-5 h-5 text-gray-700" />
+            </button>
+          )}
+        </>
       )}
       
       {/* Animated Globe Background */}
@@ -679,7 +690,7 @@ export default function AIInterface({
             </div>
 
             {/* Compact Chat Input */}
-            <div className={`${isMobile ? 'fixed left-4 right-4 bottom-[calc(env(safe-area-inset-bottom)+16px)]' : 'absolute bottom-6 left-0 right-0'} z-20 transition-all duration-300 ${isFooterVisible ? 'opacity-0 translate-y-2 pointer-events-none' : 'opacity-100 translate-y-0'}`}>
+            <div className={`${isMobile ? 'fixed left-4 right-4 bottom-[calc(env(safe-area-inset-bottom)+16px)]' : 'absolute bottom-6 left-0 right-0'} z-10 transition-all duration-300 ${isFooterVisible ? 'opacity-0 translate-y-2 pointer-events-none' : 'opacity-100 translate-y-0'}`}>
               <div className={`glass-input glow-ring ${
                 activeTab === 'flights' ? 'neon-glow-flights' :
                 activeTab === 'hotels' ? 'neon-glow-hotels' :

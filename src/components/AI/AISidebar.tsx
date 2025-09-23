@@ -1,12 +1,12 @@
-import { useRef, useCallback, useMemo } from 'react';
-import type { KeyboardEvent } from 'react';
+import { useCallback } from 'react';
 import { Flight, Hotel, Package } from '@/types/ai';
 import SearchTripsSection from './SearchTripsSection';
 import FlightSection from './FlightSection';
 import HotelSection from './HotelSection';
 import PackageSection from './PackageSection';
 import MapOutSection from './MapOutSection';
-import { Search, Settings, Plane, Building, Map, MapPin, X } from 'lucide-react';
+import DrawerButtonGrid from './DrawerButtonGrid';
+import { X } from 'lucide-react';
 
 type TabKey = 'plan' | 'preferences' | 'flights' | 'hotels' | 'packages' | 'mapout';
 
@@ -71,52 +71,6 @@ export default function AISidebar({
     onSectionReset?.('mapout');
   }, [onSectionReset]);
 
-  const tabsConfig = useMemo(() => [
-    { key: 'plan' as TabKey, label: 'Plan', icon: Search },
-    { key: 'flights' as TabKey, label: 'Flights', icon: Plane },
-    { key: 'hotels' as TabKey, label: 'Hotels', icon: Building },
-    { key: 'packages' as TabKey, label: 'Packages', icon: Map },
-    { key: 'mapout' as TabKey, label: 'Map Out', icon: MapPin },
-    { key: 'preferences' as TabKey, label: 'Preferences', icon: Settings },
-  ], []);
-
-  const tabRefs = useRef<Record<TabKey, HTMLButtonElement | null>>({
-    plan: null,
-    preferences: null,
-    flights: null,
-    hotels: null,
-    packages: null,
-    mapout: null,
-  });
-
-  const focusTab = useCallback((key: TabKey) => {
-    setTimeout(() => tabRefs.current[key]?.focus(), 0);
-  }, []);
-
-  const onTabsKeyDown = useCallback((e: KeyboardEvent<HTMLDivElement>) => {
-    const currentIndex = tabsConfig.findIndex((t) => t.key === activeTab);
-    if (currentIndex === -1) return;
-
-    if (e.key === 'ArrowRight') {
-      const next = (currentIndex + 1) % tabsConfig.length;
-      onTabChange(tabsConfig[next].key);
-      focusTab(tabsConfig[next].key);
-      e.preventDefault();
-    } else if (e.key === 'ArrowLeft') {
-      const prev = (currentIndex - 1 + tabsConfig.length) % tabsConfig.length;
-      onTabChange(tabsConfig[prev].key);
-      focusTab(tabsConfig[prev].key);
-      e.preventDefault();
-    } else if (e.key === 'Home') {
-      onTabChange(tabsConfig[0].key);
-      focusTab(tabsConfig[0].key);
-      e.preventDefault();
-    } else if (e.key === 'End') {
-      onTabChange(tabsConfig[tabsConfig.length - 1].key);
-      focusTab(tabsConfig[tabsConfig.length - 1].key);
-      e.preventDefault();
-    }
-  }, [tabsConfig, activeTab, onTabChange, focusTab]);
 
   return (
     <div className={`${isMobile ? 'w-full h-full' : 'w-[480px] min-w-[480px] h-[calc(100vh-100px)]'} flex-shrink-0 ${isMobile ? 'p-0' : 'p-6 pt-0'} flex flex-col`}>
@@ -153,62 +107,20 @@ export default function AISidebar({
         </div>
       )}
       
-      {/* Sticky header with segmented tabs */}
-      <div className={`sticky ${isMobile ? 'top-[72px]' : 'top-0'} z-20 ${isMobile ? 'bg-white/90 backdrop-blur-md border-b border-white/50' : 'bg-white/50 backdrop-blur-2xl border-b border-white/40 rounded-t-[2rem]'}`}>
-        <div
-          role="tablist"
-          aria-label="AI sidebar sections"
-          aria-orientation="horizontal"
-          onKeyDown={onTabsKeyDown}
-          className={`${isMobile ? 'px-4 py-3' : 'px-2 pb-3 pt-4'} flex flex-wrap gap-2`}
-        >
-          {tabsConfig.map((t) => (
-            <button
-              key={t.key}
-              type="button"
-              ref={(el) => {
-                tabRefs.current[t.key] = el;
-              }}
-              role="tab"
-              id={`tab-${t.key}`}
-              aria-controls={`panel-${t.key}`}
-              aria-selected={activeTab === t.key}
-              tabIndex={activeTab === t.key ? 0 : -1}
-              onClick={() => {
-                if (t.key === 'preferences') {
-                  onPreferencesOpen?.();
-                } else {
-                  onTabChange(t.key);
-                }
-              }}
-              className={`flex items-center gap-2 ${isMobile ? 'rounded-2xl px-4 py-3 text-sm min-h-[48px] flex-1' : 'rounded-xl px-3 py-2 text-sm'} font-semibold transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${isMobile ? 'border-2 border-white/40 backdrop-blur-xl shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98]' : 'border border-white/30 backdrop-blur-md shadow-sm'} ${
-                activeTab === t.key && t.key !== 'preferences'
-                  ? (() => {
-                      const getActiveStyle = () => {
-                        switch (t.key) {
-                          case 'flights':
-                            return isMobile ? 'bg-gradient-to-r from-sky-500/20 to-blue-500/20 text-sky-600 border-sky-400/40 shadow-xl ring-2 ring-sky-500/30' : 'bg-white/60 text-sky-600 ring-1 ring-sky-500/30 shadow-md glow-ring';
-                          case 'hotels':
-                            return isMobile ? 'bg-gradient-to-r from-orange-500/20 to-amber-500/20 text-orange-600 border-orange-400/40 shadow-xl ring-2 ring-orange-500/30' : 'bg-white/60 text-orange-600 ring-1 ring-orange-500/30 shadow-md glow-ring';
-                          case 'packages':
-                            return isMobile ? 'bg-gradient-to-r from-purple-500/20 to-fuchsia-500/20 text-purple-600 border-purple-400/40 shadow-xl ring-2 ring-purple-500/30' : 'bg-white/60 text-purple-600 ring-1 ring-purple-500/30 shadow-md glow-ring';
-                          case 'mapout':
-                            return isMobile ? 'bg-gradient-to-r from-green-500/20 to-lime-500/20 text-green-600 border-green-400/40 shadow-xl ring-2 ring-green-500/30' : 'bg-white/60 text-green-600 ring-1 ring-green-500/30 shadow-md glow-ring';
-                          default:
-                            return isMobile ? 'bg-gradient-to-r from-primary/20 to-purple-500/20 text-primary border-primary/40 shadow-xl ring-2 ring-primary/30' : 'bg-white/60 text-primary ring-1 ring-primary/30 shadow-md glow-ring';
-                        }
-                      };
-                      return getActiveStyle();
-                    })()
-                  : isMobile ? 'bg-white/70 text-gray-700 hover:bg-white/80 hover:text-gray-800' : 'bg-white/30 text-gray-700 hover:bg-white/40 hover:shadow'
-              }`}
-            >
-              <t.icon className={`${isMobile ? 'w-4 h-4' : 'w-4 h-4'} transition-transform duration-300 ${activeTab === t.key && isMobile ? 'scale-110' : ''}`} />
-              <span className={`${isMobile ? 'text-sm font-semibold' : 'text-xs'} transition-all duration-300`}>{t.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
+      {/* Button Grid - Quick Actions */}
+      <DrawerButtonGrid 
+        onTabChange={(tab) => {
+          if (tab === 'preferences') {
+            onPreferencesOpen?.();
+          } else {
+            onTabChange(tab as TabKey);
+          }
+        }}
+        onPreferencesOpen={onPreferencesOpen}
+        onNewTrip={onNewTrip}
+        className={`${isMobile ? 'border-b border-white/30' : ''}`}
+      />
+      
 
       {/* Panels */}
       <div className={`flex-1 overflow-y-scroll ${isMobile ? 'p-4' : 'p-4'} space-y-4`} style={{overscrollBehavior: 'contain'}}>

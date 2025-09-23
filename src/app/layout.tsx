@@ -3,9 +3,7 @@ import localFont from "next/font/local";
 import Script from "next/script";
 import 'react-day-picker/style.css';
 import "./globals.css";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
-import MainWrapper from "@/components/MainWrapper";
+import LayoutWrapper from "@/components/LayoutWrapper";
 import { FavoritesProvider } from "@/contexts/FavoritesContext";
 import { NavbarVisibilityProvider } from "@/contexts/NavbarVisibilityContext";
 import { FooterVisibilityProvider } from "@/contexts/FooterVisibilityContext";
@@ -56,9 +54,7 @@ export default function RootLayout({
         <FavoritesProvider>
           <NavbarVisibilityProvider>
             <FooterVisibilityProvider>
-              <Navbar />
-              <MainWrapper>{children}</MainWrapper>
-              <Footer />
+              <LayoutWrapper>{children}</LayoutWrapper>
             </FooterVisibilityProvider>
           </NavbarVisibilityProvider>
         </FavoritesProvider>

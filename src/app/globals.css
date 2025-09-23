@@ -536,4 +536,43 @@ body {
   .pb-safe {
     padding-bottom: calc(env(safe-area-inset-bottom) + 120px);
   }
+
+  /* Glass Morphism Utilities for Drawer/Sheet Components */
+  .glass-morphism {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: saturate(150%) blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+  }
+
+  .glass-morphism:hover {
+    background: rgba(255, 255, 255, 0.98);
+    box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.45);
+  }
+
+  /* Enhanced glass effect for sidebar */
+  .glass-sidebar {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: saturate(150%) blur(20px);
+    border-right: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 
+      0 8px 32px 0 rgba(31, 38, 135, 0.37),
+      inset 1px 0 0 rgba(255, 255, 255, 0.3);
+  }
+
+  /* Smooth transitions for drawer animations */
+  .drawer-transition {
+    transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  /* Backdrop blur enhancement */
+  .backdrop-enhanced {
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    background: rgba(0, 0, 0, 0.3);
+  }
 }
