@@ -103,18 +103,26 @@ export default function AIInterface({
     }
   }, [adjustTextareaHeight]);
 
+  const keyboardLift = useMemo(() => {
+    if (!isMobile) return 0;
+    return Math.max(0, keyboardOffset);
+  }, [isMobile, keyboardOffset]);
+
   const mobileInputBottom = useMemo(() => {
     if (!isMobile) return undefined;
-    const offset = Math.max(0, keyboardOffset);
-    return `calc(env(safe-area-inset-bottom) + ${16 + offset}px)`;
-  }, [isMobile, keyboardOffset]);
+    return 'calc(env(safe-area-inset-bottom) + 16px)';
+  }, [isMobile]);
+
+  const mobileInputTransform = useMemo(() => {
+    if (!isMobile) return undefined;
+    return keyboardLift ? `translateY(-${keyboardLift}px)` : undefined;
+  }, [isMobile, keyboardLift]);
 
   const mobileMessagePadding = useMemo(() => {
     if (!isMobile) return undefined;
-    const offset = Math.max(0, keyboardOffset);
     const baseGap = 24;
-    return `calc(env(safe-area-inset-bottom) + ${inputShellHeight + offset + baseGap}px)`;
-  }, [isMobile, inputShellHeight, keyboardOffset]);
+    return `calc(env(safe-area-inset-bottom) + ${inputShellHeight + keyboardLift + baseGap}px)`;
+  }, [isMobile, inputShellHeight, keyboardLift]);
 
   // Animated globe nodes with slight randomization at mount
   const globeNodes = useMemo(() => {
@@ -805,8 +813,8 @@ export default function AIInterface({
             {/* Compact Chat Input */}
             <div
               ref={inputContainerRef}
-              className={`${isMobile ? 'fixed' : 'absolute bottom-6 left-0 right-0'} z-10 transition-all duration-300 ${isFooterVisible ? 'opacity-0 translate-y-2 pointer-events-none' : 'opacity-100 translate-y-0'}`}
-              style={isMobile ? { left: '1rem', right: '1rem', bottom: mobileInputBottom } : undefined}
+              className={`${isMobile ? 'fixed' : 'absolute bottom-6 left-0 right-0'} z-[60] transition-all duration-300 ${isFooterVisible ? 'opacity-0 translate-y-2 pointer-events-none' : 'opacity-100 translate-y-0'}`}
+              style={isMobile ? { left: '1rem', right: '1rem', bottom: mobileInputBottom, transform: mobileInputTransform } : undefined}
             >
               <div className={`glass-input glow-ring ${
                 activeTab === 'flights' ? 'neon-glow-flights' :
