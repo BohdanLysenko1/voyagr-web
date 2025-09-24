@@ -30,6 +30,32 @@ export default function AiPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [recentConversations, setRecentConversations] = useState<RecentConversation[]>([]);
   const [currentConversationMessages, setCurrentConversationMessages] = useState<string[]>([]);
+
+  // Keep a CSS custom property in sync with the real viewport height to avoid 100vh jumps on mobile
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const updateViewportHeight = () => {
+      const viewport = window.visualViewport;
+      const height = viewport ? viewport.height : window.innerHeight;
+      document.documentElement.style.setProperty('--app-height', `${height}px`);
+    };
+
+    updateViewportHeight();
+    window.addEventListener('resize', updateViewportHeight);
+    window.addEventListener('orientationchange', updateViewportHeight);
+    const viewport = window.visualViewport;
+    viewport?.addEventListener('resize', updateViewportHeight);
+    viewport?.addEventListener('scroll', updateViewportHeight);
+
+    return () => {
+      window.removeEventListener('resize', updateViewportHeight);
+      window.removeEventListener('orientationchange', updateViewportHeight);
+      viewport?.removeEventListener('resize', updateViewportHeight);
+      viewport?.removeEventListener('scroll', updateViewportHeight);
+      document.documentElement.style.removeProperty('--app-height');
+    };
+  }, []);
   
   // Manage navbar and footer visibility based on device type and sidebar state
   useEffect(() => {
@@ -210,10 +236,16 @@ export default function AiPage() {
   }, []);
 
   return (
-    <div className="relative h-screen overflow-hidden overflow-x-hidden bg-gradient-to-br from-slate-50 via-blue-50/50 to-purple-50/30" style={{ touchAction: 'pan-y', overscrollBehaviorX: 'none' }}>
+    <div
+      className="relative overflow-hidden overflow-x-hidden bg-gradient-to-br from-slate-50 via-blue-50/50 to-purple-50/30"
+      style={{ touchAction: 'pan-y', overscrollBehaviorX: 'none', minHeight: 'var(--app-height, 100vh)' }}
+    >
       <div className="aurora-ambient" />
       {/* Mobile Layout */}
-      <div className="lg:hidden flex flex-col h-full min-h-0 max-h-screen pt-16">
+      <div
+        className="lg:hidden flex flex-col min-h-0 pt-16"
+        style={{ minHeight: 'calc(var(--app-height, 100vh) - 4rem)' }}
+      >
         
         {/* Mobile Sidebar using Sheet */}
         <Sheet open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
@@ -241,7 +273,10 @@ export default function AiPage() {
           </SheetContent>
           
           {/* Mobile Main Interface with SheetTrigger */}
-          <div className="flex-1 min-h-0 pb-safe overflow-y-auto overflow-x-hidden overscroll-contain" style={{ touchAction: 'pan-y', overscrollBehaviorX: 'none' }}>
+          <div
+            className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain"
+            style={{ touchAction: 'pan-y', overscrollBehaviorX: 'none' }}
+          >
             <AIInterface
               key={resetKey}
               inputValue={inputValue}

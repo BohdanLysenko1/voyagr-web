@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo, useLayoutEffect } from 'react';
 import { Sparkles, Send, Bot, User, Menu, ArrowRight, Settings } from 'lucide-react';
 import Image from 'next/image';
 
@@ -62,9 +62,23 @@ export default function AIInterface({
   const scrollContainerRef = useRef<HTMLElement | null>(null);
   const isUserScrollingRef = useRef(false);
   const autoScrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const inputContainerRef = useRef<HTMLDivElement | null>(null);
+  const [inputShellHeight, setInputShellHeight] = useState(96);
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
 
+  // Auto-grow the compact composer so longer prompts remain visible on mobile
+  const adjustTextareaHeight = useCallback(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    const maxHeight = isMobile ? 160 : 120;
+    const nextHeight = Math.max(Math.min(el.scrollHeight, maxHeight), 24);
+    el.style.height = `${nextHeight}px`;
+  }, [isMobile]);
 
-  // Keep input focused for quick subsequent typing
+  const showChat = chatMessages.length > 0 || isAITyping;
+
+  // Keep input focused for quick subsequent typing and ensure the height matches content
   const focusInput = useCallback(() => {
     const el = textareaRef.current;
     if (!el) return;
@@ -74,6 +88,7 @@ export default function AIInterface({
     } catch {
       el.focus();
     }
+    adjustTextareaHeight();
     // Place caret at the end
     const len = el.value.length;
     try { el.setSelectionRange(len, len); } catch {}
@@ -86,7 +101,20 @@ export default function AIInterface({
         }
       }, 0);
     }
-  }, []);
+  }, [adjustTextareaHeight]);
+
+  const mobileInputBottom = useMemo(() => {
+    if (!isMobile) return undefined;
+    const offset = Math.max(0, keyboardOffset);
+    return `calc(env(safe-area-inset-bottom) + ${16 + offset}px)`;
+  }, [isMobile, keyboardOffset]);
+
+  const mobileMessagePadding = useMemo(() => {
+    if (!isMobile) return undefined;
+    const offset = Math.max(0, keyboardOffset);
+    const baseGap = 24;
+    return `calc(env(safe-area-inset-bottom) + ${inputShellHeight + offset + baseGap}px)`;
+  }, [isMobile, inputShellHeight, keyboardOffset]);
 
   // Animated globe nodes with slight randomization at mount
   const globeNodes = useMemo(() => {
@@ -149,6 +177,74 @@ export default function AIInterface({
   useEffect(() => {
     registerClearChat?.(clearChat);
   }, [registerClearChat, clearChat]);
+
+  // Track the compact composer height so the message list can reserve space for it
+  useLayoutEffect(() => {
+    if (!isMobile) {
+      setInputShellHeight(96);
+      return;
+    }
+
+    const measure = () => {
+      if (!inputContainerRef.current) return;
+      const next = inputContainerRef.current.offsetHeight;
+      setInputShellHeight(prev => (next && next !== prev ? next : prev));
+    };
+
+    measure();
+
+    const element = inputContainerRef.current;
+    let observer: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined' && element) {
+      observer = new ResizeObserver(measure);
+      observer.observe(element);
+    }
+
+    window.addEventListener('resize', measure);
+
+    return () => {
+      window.removeEventListener('resize', measure);
+      observer?.disconnect();
+    };
+  }, [isMobile, showChat]);
+
+  // Detect keyboard overlays (notably on iOS Safari) and lift the composer accordingly
+  useEffect(() => {
+    if (!isMobile || typeof window === 'undefined') {
+      setKeyboardOffset(0);
+      return;
+    }
+
+    const viewport = window.visualViewport;
+    if (!viewport) {
+      setKeyboardOffset(0);
+      return;
+    }
+
+    const updateKeyboardOffset = () => {
+      const diff = window.innerHeight - viewport.height - viewport.offsetTop;
+      setKeyboardOffset(diff > 0 ? diff : 0);
+    };
+
+    updateKeyboardOffset();
+    viewport.addEventListener('resize', updateKeyboardOffset);
+    viewport.addEventListener('scroll', updateKeyboardOffset);
+    window.addEventListener('orientationchange', updateKeyboardOffset);
+
+    return () => {
+      viewport.removeEventListener('resize', updateKeyboardOffset);
+      viewport.removeEventListener('scroll', updateKeyboardOffset);
+      window.removeEventListener('orientationchange', updateKeyboardOffset);
+    };
+  }, [isMobile]);
+
+  useEffect(() => {
+    adjustTextareaHeight();
+  }, [inputValue, adjustTextareaHeight]);
+
+  useEffect(() => {
+    adjustTextareaHeight();
+  }, [isMobile, adjustTextareaHeight]);
 
   // Check if user is near the bottom of the scroll container
   const isNearBottom = useCallback((threshold = 100) => {
@@ -284,6 +380,7 @@ export default function AIInterface({
     onInputChange('');
     // Keep focus in the compact input so user can continue typing immediately
     focusInput();
+    requestAnimationFrame(() => adjustTextareaHeight());
     
     // Immediately scroll to show the user's message
     setTimeout(() => scrollToBottom(true), 50);
@@ -314,7 +411,7 @@ export default function AIInterface({
     }, 600 + Math.random() * 1000);
 
     onSubmit?.();
-  }, [inputValue, chatMessages.length, onInputChange, onFirstMessage, onMessageSent, generateAIResponse, onSubmit]);
+  }, [inputValue, chatMessages.length, onInputChange, onFirstMessage, onMessageSent, generateAIResponse, onSubmit, focusInput, adjustTextareaHeight, scrollToBottom]);
 
   const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
     const ke = e as unknown as KeyboardEvent;
@@ -419,7 +516,6 @@ export default function AIInterface({
   };
 
   const content = getContentByTab();
-  const showChat = chatMessages.length > 0 || isAITyping;
 
   // Initialize scroll container ref
   useEffect(() => {
@@ -574,7 +670,14 @@ export default function AIInterface({
   }, [isMobile]);
 
   return (
-    <div className={`flex-1 relative overflow-x-hidden ${isMobile ? 'min-h-full flex flex-col' : 'h-full flex flex-col min-h-0'} ${showChat ? 'max-h-[calc(100vh-100px)]' : ''}`} style={{ touchAction: 'pan-y', overscrollBehaviorX: 'none' }}>
+    <div
+      className={`flex-1 relative overflow-x-hidden flex flex-col ${isMobile ? 'min-h-0' : 'h-full min-h-0'}`}
+      style={{
+        touchAction: 'pan-y',
+        overscrollBehaviorX: 'none',
+        minHeight: isMobile ? 'var(--app-height, 100vh)' : undefined
+      }}
+    >
       
       {/* Mobile Floating Menu Button */}
       {isMobile && !isSidebarOpen && (
@@ -613,7 +716,10 @@ export default function AIInterface({
         {/* Chat Interface or Welcome Screen */}
         {showChat ? (
         /* Chat Mode */
-        <div className={`relative flex flex-col min-h-0 ${isMobile ? 'h-[calc(100vh-100px)] p-4 pt-0' : 'h-[calc(100vh-100px)] p-6 pt-0'} overflow-hidden`}>
+        <div
+          className={`relative flex flex-col min-h-0 ${isMobile ? 'flex-1 p-4 pt-0' : 'h-[calc(100vh-100px)] p-6 pt-0'} overflow-hidden`}
+          style={isMobile ? { minHeight: 'calc(var(--app-height, 100vh) - 4.5rem)' } : undefined}
+        >
           
           <div className={`${isMobile ? 'w-full' : 'max-w-4xl w-full mx-auto'} ${isMobile ? 'mt-2' : 'mt-6'} h-full min-h-0 flex flex-col relative`}>
             {/* Chat Header - Desktop only */}
@@ -632,7 +738,14 @@ export default function AIInterface({
 
             {/* Messages Container */}
             <div className={`flex-1 min-h-0 relative overflow-hidden overflow-x-hidden ${isMobile ? 'mt-4' : 'glass-panel rounded-b-[2rem] max-h-[calc(100vh-180px)]'}`} style={{ touchAction: 'pan-y', overscrollBehaviorX: 'none' }}>
-              <div className={`h-full overflow-y-auto overflow-x-hidden overscroll-contain ${isMobile ? 'p-4 pb-[calc(env(safe-area-inset-bottom)+100px)]' : 'p-6 pb-28'} ${isMobile ? 'space-y-6' : 'space-y-5'} scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400 scroll-smooth`} style={{ touchAction: 'pan-y', overscrollBehaviorX: 'none' }}>
+              <div
+                className={`h-full overflow-y-auto overflow-x-hidden overscroll-contain ${isMobile ? 'p-4' : 'p-6 pb-28'} ${isMobile ? 'space-y-6' : 'space-y-5'} scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400 scroll-smooth`}
+                style={{
+                  touchAction: 'pan-y',
+                  overscrollBehaviorX: 'none',
+                  paddingBottom: isMobile ? mobileMessagePadding : undefined
+                }}
+              >
                 {chatMessages.map((message) => (
                   <div
                     key={message.id}
@@ -690,7 +803,11 @@ export default function AIInterface({
             </div>
 
             {/* Compact Chat Input */}
-            <div className={`${isMobile ? 'fixed left-4 right-4 bottom-[calc(env(safe-area-inset-bottom)+16px)]' : 'absolute bottom-6 left-0 right-0'} z-10 transition-all duration-300 ${isFooterVisible ? 'opacity-0 translate-y-2 pointer-events-none' : 'opacity-100 translate-y-0'}`}>
+            <div
+              ref={inputContainerRef}
+              className={`${isMobile ? 'fixed' : 'absolute bottom-6 left-0 right-0'} z-10 transition-all duration-300 ${isFooterVisible ? 'opacity-0 translate-y-2 pointer-events-none' : 'opacity-100 translate-y-0'}`}
+              style={isMobile ? { left: '1rem', right: '1rem', bottom: mobileInputBottom } : undefined}
+            >
               <div className={`glass-input glow-ring ${
                 activeTab === 'flights' ? 'neon-glow-flights' :
                 activeTab === 'hotels' ? 'neon-glow-hotels' :
@@ -708,8 +825,9 @@ export default function AIInterface({
                       placeholder="Ask anything..."
                       autoFocus
                       enterKeyHint="send"
-                      className="w-full bg-transparent border-none resize-none focus:outline-none focus:ring-0 focus:border-transparent text-gray-800 placeholder-gray-500 text-base leading-6 h-6 py-0 max-h-6 overflow-hidden"
+                      className="w-full bg-transparent border-none resize-none focus:outline-none focus:ring-0 focus:border-transparent text-gray-800 placeholder-gray-500 text-base leading-6 py-0 min-h-[24px] overflow-y-auto"
                       rows={1}
+                      style={{ maxHeight: isMobile ? '160px' : '120px' }}
                     />
                   </div>
                   <button
