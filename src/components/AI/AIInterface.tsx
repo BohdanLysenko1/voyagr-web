@@ -117,25 +117,21 @@ export default function AIInterface({
 
   const keyboardLift = useMemo(() => {
     if (!isMobile) return 0;
-    return Math.max(0, keyboardOffset);
+    return Math.max(0, Math.round(keyboardOffset));
   }, [isMobile, keyboardOffset]);
 
   const mobileInputBottom = useMemo(() => {
     if (!isMobile) return undefined;
-    return 'calc(env(safe-area-inset-bottom) + 16px)';
-  }, [isMobile]);
-
-  const mobileInputTransform = useMemo(() => {
-    if (!isMobile) return undefined;
-    return keyboardLift ? `translateY(-${keyboardLift}px)` : undefined;
+    const baseGap = 16;
+    return `calc(env(safe-area-inset-bottom) + ${baseGap}px + ${keyboardLift}px)`;
   }, [isMobile, keyboardLift]);
 
   const mobileMessagePadding = useMemo(() => {
     if (!isMobile) return undefined;
     const baseGap = 24;
-    const padding = Math.max(0, Math.round(inputShellHeight + baseGap));
+    const padding = Math.max(0, Math.round(inputShellHeight + baseGap + keyboardLift));
     return `calc(env(safe-area-inset-bottom) + ${padding}px)`;
-  }, [isMobile, inputShellHeight]);
+  }, [isMobile, inputShellHeight, keyboardLift]);
 
   const isKeyboardVisible = useMemo(() => isMobile && keyboardLift > 0, [isMobile, keyboardLift]);
 
@@ -290,7 +286,13 @@ export default function AIInterface({
 
       const layoutDiff = window.innerHeight - viewportHeight;
       const shouldApply = normalizedDiff > 0 && layoutDiff > 48;
-      const nextOffset = shouldApply ? Math.round(normalizedDiff) : 0;
+
+      let nextOffset = 0;
+      if (shouldApply) {
+        const maxExpected = Math.max(0, Math.min(480, Math.floor((baseline || 0) * 0.65)));
+        const clampedDiff = Math.min(normalizedDiff, maxExpected || normalizedDiff);
+        nextOffset = Math.round(clampedDiff);
+      }
 
       setKeyboardOffset((prev) => (prev !== nextOffset ? nextOffset : prev));
     };
@@ -1107,7 +1109,7 @@ export default function AIInterface({
             <div
               ref={inputContainerRef}
               className={`${isMobile ? 'fixed' : 'absolute bottom-6 left-1/2 transform -translate-x-1/2 w-[85%] max-w-4xl'} z-[60] transition-all duration-300 ${isFooterVisible ? 'opacity-0 translate-y-2 pointer-events-none' : 'opacity-100 translate-y-0'}`}
-              style={isMobile ? { left: '1rem', right: '1rem', bottom: mobileInputBottom, transform: mobileInputTransform } : undefined}
+              style={isMobile ? { left: '1rem', right: '1rem', bottom: mobileInputBottom } : undefined}
             >
               <div className={`glass-input glow-ring ${
                 activeTab === 'flights' ? 'neon-glow-flights' :
