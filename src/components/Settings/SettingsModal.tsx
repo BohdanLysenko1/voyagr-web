@@ -1,7 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import type { ReactNode, KeyboardEvent as ReactKeyboardEvent } from "react";
+import { useEffect, useMemo, useRef, useState, useId } from "react";
+import type {
+  ReactNode,
+  KeyboardEvent as ReactKeyboardEvent,
+  ChangeEvent,
+  SVGProps,
+} from "react";
 import { createPortal } from "react-dom";
 
 // Types
@@ -26,6 +31,7 @@ export default function SettingsModal({ open, onClose }: SettingsModalProps) {
   const closeBtnRef = useRef<HTMLButtonElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);
+  const baseId = useId();
 
   // Close on Escape and focus the close button when opened
   useEffect(() => {
@@ -88,6 +94,75 @@ export default function SettingsModal({ open, onClose }: SettingsModalProps) {
     []
   );
 
+  const navButtonRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const getTabId = (key: NavKey) => `${baseId}-${key}-tab`;
+  const getPanelId = (key: NavKey) => `${baseId}-${key}-panel`;
+  const tablistId = `${baseId}-tablist`;
+  const selectId = `${baseId}-section-select`;
+  const activePanelId = getPanelId(active);
+
+  const sectionContent = useMemo(() => {
+    switch (active) {
+      case "payments":
+        return <PaymentsSection />;
+      case "general":
+        return <GeneralSection />;
+      case "notifications":
+        return <NotificationsSection />;
+      case "preferences":
+        return <PreferencesSection />;
+      case "security":
+        return <SecuritySection />;
+      case "account":
+        return <AccountSection />;
+      case "communication":
+        return <CommunicationSection />;
+      case "privacy":
+        return <PrivacySection />;
+      default:
+        return null;
+    }
+  }, [active]);
+
+  const handleMobileSelect = (event: ChangeEvent<HTMLSelectElement>) => {
+    setActive(event.target.value as NavKey);
+  };
+
+  const handleTabKeyDown = (
+    event: ReactKeyboardEvent<HTMLButtonElement>,
+    index: number
+  ) => {
+    if (event.key === "ArrowDown" || event.key === "ArrowRight") {
+      event.preventDefault();
+      const nextIndex = (index + 1) % nav.length;
+      setActive(nav[nextIndex].id);
+      navButtonRefs.current[nextIndex]?.focus();
+      return;
+    }
+
+    if (event.key === "ArrowUp" || event.key === "ArrowLeft") {
+      event.preventDefault();
+      const prevIndex = (index - 1 + nav.length) % nav.length;
+      setActive(nav[prevIndex].id);
+      navButtonRefs.current[prevIndex]?.focus();
+      return;
+    }
+
+    if (event.key === "Home") {
+      event.preventDefault();
+      setActive(nav[0].id);
+      navButtonRefs.current[0]?.focus();
+      return;
+    }
+
+    if (event.key === "End") {
+      event.preventDefault();
+      const lastIndex = nav.length - 1;
+      setActive(nav[lastIndex].id);
+      navButtonRefs.current[lastIndex]?.focus();
+    }
+  };
+
   if (!open || !mounted) return null;
   return createPortal(
     <div
@@ -106,9 +181,12 @@ export default function SettingsModal({ open, onClose }: SettingsModalProps) {
       />
 
       {/* Modal shell */}
-      <div ref={modalRef} className="absolute inset-2 sm:inset-6 md:inset-10 z-10 rounded-2xl border border-black/10 bg-white/90 shadow-[0_20px_80px_rgba(0,0,0,0.35)] backdrop-blur-xl overflow-hidden flex flex-col">
+      <div
+        ref={modalRef}
+        className="absolute inset-2 sm:inset-6 md:inset-10 z-10 flex max-h-[calc(100%-1rem)] flex-col overflow-hidden rounded-2xl border border-black/10 bg-white/90 shadow-[0_20px_80px_rgba(0,0,0,0.35)] backdrop-blur-xl max-md:inset-0 max-md:max-h-full max-md:rounded-none max-md:border-0 max-md:bg-white max-md:shadow-none"
+      >
         {/* Header */}
-        <div className="flex items-center justify-between gap-2 border-b border-black/10 px-4 sm:px-6 py-3 bg-gradient-to-b from-white/70 to-white/40">
+        <div className="flex items-center justify-between gap-2 border-b border-black/10 px-4 py-3 sm:px-6 bg-gradient-to-b from-white/70 to-white/40 max-md:pb-3 max-md:pt-[calc(env(safe-area-inset-top,0)+0.75rem)]">
           <h2 id="settings-title" className="text-base sm:text-lg md:text-xl font-semibold tracking-tight">
             Profile Management
           </h2>
@@ -123,69 +201,98 @@ export default function SettingsModal({ open, onClose }: SettingsModalProps) {
         </div>
 
         {/* Body */}
-        <div className="flex min-h-0 flex-1">
+        <div className="flex min-h-0 flex-1 flex-col md:flex-row">
           {/* Sidebar - desktop */}
-          <aside className="hidden md:flex w-72 shrink-0 flex-col border-r border-black/10 p-3 bg-gradient-to-b from-white/60 to-white/30 relative">
-            <nav className="flex-1 space-y-1">
-              {nav.map((item) => {
+          <aside className="relative hidden w-72 shrink-0 flex-col border-r border-black/10 bg-gradient-to-b from-white/60 to-white/30 p-3 md:flex">
+            <nav
+              id={tablistId}
+              role="tablist"
+              aria-orientation="vertical"
+              aria-label="Settings sections"
+              className="flex-1 space-y-1 overflow-y-auto pr-1"
+            >
+              {nav.map((item, index) => {
                 const activeItem = active === item.id;
                 return (
                   <button
                     key={item.id}
+                    type="button"
+                    role="tab"
+                    id={getTabId(item.id)}
+                    aria-controls={getPanelId(item.id)}
+                    aria-selected={activeItem}
+                    tabIndex={activeItem ? 0 : -1}
+                    ref={(element) => {
+                      navButtonRefs.current[index] = element;
+                    }}
+                    onKeyDown={(event) => handleTabKeyDown(event, index)}
                     onClick={() => setActive(item.id)}
-                    className={`w-full flex items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors ${
+                    className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#5271FF] focus-visible:ring-offset-2 focus-visible:ring-offset-white ${
                       activeItem
                         ? "bg-[#E9EEFF] text-[#5271FF]"
                         : "text-neutral-700 hover:bg-black/5"
                     }`}
-                    aria-current={activeItem ? "page" : undefined}
                   >
-                    <item.Icon className={`h-5 w-5 ${activeItem ? "text-[#5271FF]" : "text-neutral-500"}`} />
+                    <item.Icon
+                      className={`h-5 w-5 ${
+                        activeItem ? "text-[#5271FF]" : "text-neutral-500"
+                      }`}
+                    />
                     <span className="truncate">{item.label}</span>
                   </button>
                 );
               })}
             </nav>
-            <div className="pt-3 mt-2 border-t border-black/10">
-              <button className="w-full rounded-lg bg-red-100 text-red-700 hover:bg-red-200 px-3 py-2 text-left font-medium">
+            <div className="mt-2 border-t border-black/10 pt-3">
+              <button
+                type="button"
+                className="w-full rounded-lg bg-red-100 px-3 py-2 text-left font-medium text-red-700 hover:bg-red-200"
+              >
                 Log Out
               </button>
             </div>
           </aside>
 
-          {/* Top nav - mobile */}
-          <div className="md:hidden border-b border-black/10 overflow-x-auto">
-            <div className="flex gap-2 p-2 min-w-max">
-              {nav.map(({ id, label }) => {
-                const activeItem = active === id;
-                return (
-                  <button
-                    key={id}
-                    onClick={() => setActive(id)}
-                    className={`whitespace-nowrap rounded-full border px-3 py-1.5 text-sm ${
-                      activeItem
-                        ? "border-[#5271FF] bg-[#E9EEFF] text-[#5271FF]"
-                        : "border-neutral-200 text-neutral-700"
-                    }`}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
           {/* Content */}
-          <main className="flex-1 p-4 sm:p-6 overflow-y-auto">
-            {active === "payments" && <PaymentsSection />}
-            {active === "general" && <GeneralSection />}
-            {active === "notifications" && <NotificationsSection />}
-            {active === "preferences" && <PreferencesSection />}
-            {active === "security" && <SecuritySection />}
-            {active === "account" && <AccountSection />}
-            {active === "communication" && <CommunicationSection />}
-            {active === "privacy" && <PrivacySection />}
-          </main>
+          <section className="flex flex-1 flex-col overflow-hidden">
+            <div className="md:hidden border-b border-black/10 bg-white/95 px-4 py-3 shadow-sm">
+              <label htmlFor={selectId} className="sr-only">
+                Select a settings section
+              </label>
+              <select
+                id={selectId}
+                value={active}
+                onChange={handleMobileSelect}
+                className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm font-medium text-neutral-800 shadow-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#5271FF]"
+              >
+                {nav.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex-1 overflow-y-auto">
+              <section
+                id={activePanelId}
+                role="tabpanel"
+                aria-labelledby={getTabId(active)}
+                className="p-4 pb-16 sm:p-6 md:pb-8"
+              >
+                {sectionContent}
+              </section>
+            </div>
+
+            <div className="md:hidden border-t border-neutral-200 bg-white px-4 py-3 pb-[calc(env(safe-area-inset-bottom,0)+0.75rem)]">
+              <button
+                type="button"
+                className="w-full rounded-lg bg-red-100 px-3 py-2 text-left font-medium text-red-700 hover:bg-red-200"
+              >
+                Log Out
+              </button>
+            </div>
+          </section>
         </div>
       </div>
     </div>,
@@ -1046,43 +1153,90 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean
 
 // --- Icons ------------------------------------------------------------------
 
-function CloseIcon({ className = "h-5 w-5" }: { className?: string }) {
+type IconProps = SVGProps<SVGSVGElement> & { className?: string };
+
+function CloseIcon({ className = "h-5 w-5", ...props }: IconProps) {
   return (
-    <svg className={className} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.75">
+    <svg
+      className={className}
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      focusable="false"
+      aria-hidden="true"
+      {...props}
+    >
       <path strokeLinecap="round" d="M6 6l8 8M14 6l-8 8" />
     </svg>
   );
 }
 
-function GearIcon({ className = "h-5 w-5" }: { className?: string }) {
+function GearIcon({ className = "h-5 w-5", ...props }: IconProps) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      focusable="false"
+      aria-hidden="true"
+      {...props}
+    >
       <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317a1 1 0 011.35-.936l.862.287a2 2 0 001.314 0l.862-.287a1 1 0 011.35.936l.054.908a2 2 0 00.586 1.282l.653.653a1 1 0 010 1.414l-.653.653a2 2 0 00-.586 1.282l-.054.908a1 1 0 01-1.35.936l-.862-.287a2 2 0 00-1.314 0l-.862.287a1 1 0 01-1.35-.936l-.054-.908a2 2 0 00-.586-1.282l-.653-.653a1 1 0 010-1.414l.653-.653a2 2 0 00.586-1.282l.054-.908z" />
       <circle cx="12" cy="12" r="3" />
     </svg>
   );
 }
 
-function BellIcon({ className = "h-5 w-5" }: { className?: string }) {
+function BellIcon({ className = "h-5 w-5", ...props }: IconProps) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      focusable="false"
+      aria-hidden="true"
+      {...props}
+    >
       <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
     </svg>
   );
 }
 
-function CardIcon({ className = "h-5 w-5" }: { className?: string }) {
+function CardIcon({ className = "h-5 w-5", ...props }: IconProps) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      focusable="false"
+      aria-hidden="true"
+      {...props}
+    >
       <rect x="3" y="5" width="18" height="14" rx="2" />
       <path d="M3 10h18" />
     </svg>
   );
 }
 
-function SlidersIcon({ className = "h-5 w-5" }: { className?: string }) {
+function SlidersIcon({ className = "h-5 w-5", ...props }: IconProps) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      focusable="false"
+      aria-hidden="true"
+      {...props}
+    >
       <path d="M4 21v-7" />
       <path d="M4 10V3" />
       <path d="M12 21v-9" />
@@ -1096,35 +1250,71 @@ function SlidersIcon({ className = "h-5 w-5" }: { className?: string }) {
   );
 }
 
-function LockIcon({ className = "h-5 w-5" }: { className?: string }) {
+function LockIcon({ className = "h-5 w-5", ...props }: IconProps) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      focusable="false"
+      aria-hidden="true"
+      {...props}
+    >
       <rect x="5" y="11" width="14" height="10" rx="2" />
       <path d="M7 11V7a5 5 0 0110 0v4" />
     </svg>
   );
 }
 
-function UserIcon({ className = "h-5 w-5" }: { className?: string }) {
+function UserIcon({ className = "h-5 w-5", ...props }: IconProps) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      focusable="false"
+      aria-hidden="true"
+      {...props}
+    >
       <circle cx="12" cy="7" r="4" />
       <path d="M6 21v-2a6 6 0 0112 0v2" />
     </svg>
   );
 }
 
-function ChatIcon({ className = "h-5 w-5" }: { className?: string }) {
+function ChatIcon({ className = "h-5 w-5", ...props }: IconProps) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      focusable="false"
+      aria-hidden="true"
+      {...props}
+    >
       <path d="M21 15a4 4 0 01-4 4H7l-4 4V7a4 4 0 014-4h10a4 4 0 014 4z" />
     </svg>
   );
 }
 
-function ShieldIcon({ className = "h-5 w-5" }: { className?: string }) {
+function ShieldIcon({ className = "h-5 w-5", ...props }: IconProps) {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      focusable="false"
+      aria-hidden="true"
+      {...props}
+    >
       <path d="M12 2l7 4v6c0 5-3.5 9-7 10-3.5-1-7-5-7-10V6z" />
     </svg>
   );

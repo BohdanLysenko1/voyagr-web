@@ -1,14 +1,17 @@
-import { useCallback } from 'react';
-import { Flight, Hotel, Package } from '@/types/ai';
+import { useCallback, useState } from 'react';
+import Link from 'next/link';
+import { Flight, Hotel, Restaurant } from '@/types/ai';
 import SearchTripsSection from './SearchTripsSection';
 import FlightSection from './FlightSection';
 import HotelSection from './HotelSection';
-import PackageSection from './PackageSection';
+import RestaurantSection from './RestaurantSection';
 import MapOutSection from './MapOutSection';
 import DrawerButtonGrid from './DrawerButtonGrid';
-import { X } from 'lucide-react';
+import NotificationModal from '@/components/Notifications/NotificationModal';
+import type { NotificationItem } from '@/components/Notifications/NotificationModal';
+import { X, Home, Bell } from 'lucide-react';
 
-type TabKey = 'plan' | 'preferences' | 'flights' | 'hotels' | 'packages' | 'mapout';
+type TabKey = 'plan' | 'preferences' | 'flights' | 'hotels' | 'restaurants' | 'mapout';
 
 interface RecentConversation {
   id: string;
@@ -19,12 +22,12 @@ interface RecentConversation {
 interface AISidebarProps {
   flights: Flight[];
   hotels: Hotel[];
-  packages: Package[];
+  restaurants: Restaurant[];
   onFlightHeartToggle: (id: number) => void;
   onHotelHeartToggle: (id: number) => void;
-  onPackageHeartToggle: (id: number) => void;
+  onRestaurantHeartToggle: (id: number) => void;
   onNewTrip?: () => void;
-  onSectionReset?: (targetTab: 'flights' | 'hotels' | 'packages' | 'mapout') => void;
+  onSectionReset?: (targetTab: 'flights' | 'hotels' | 'restaurants' | 'mapout') => void;
   onPreferencesOpen?: () => void;
   activeTab: TabKey;
   onTabChange: (tab: TabKey) => void;
@@ -40,10 +43,10 @@ interface AISidebarProps {
 export default function AISidebar({
   flights,
   hotels,
-  packages,
+  restaurants,
   onFlightHeartToggle,
   onHotelHeartToggle,
-  onPackageHeartToggle,
+  onRestaurantHeartToggle,
   onNewTrip,
   onSectionReset,
   onPreferencesOpen,
@@ -63,14 +66,45 @@ export default function AISidebar({
     onSectionReset?.('hotels');
   }, [onSectionReset]);
 
-  const handlePackageNewTrip = useCallback(() => {
-    onSectionReset?.('packages');
+
+  const handleRestaurantNewTrip = useCallback(() => {
+    onSectionReset?.('restaurants');
   }, [onSectionReset]);
 
   const handleMapOutNewTrip = useCallback(() => {
     onSectionReset?.('mapout');
   }, [onSectionReset]);
 
+  // Notification state and data
+  const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
+  
+  // Sample notification data
+  const notifications: NotificationItem[] = [
+    {
+      id: 1,
+      title: 'New Deal Alert!',
+      message: 'Amazing 50% off flights to Europe this weekend only',
+      time: '2 minutes ago',
+      type: 'deal',
+      unread: true
+    },
+    {
+      id: 2,
+      title: 'Trip Reminder',
+      message: 'Your flight to Tokyo departs in 3 days',
+      time: '1 hour ago',
+      type: 'reminder',
+      unread: true
+    },
+    {
+      id: 3,
+      title: 'Welcome to Voyagr!',
+      message: 'Complete your profile to get personalized recommendations',
+      time: '1 day ago',
+      type: 'welcome',
+      unread: false
+    }
+  ];
 
   return (
     <div className={`${isMobile ? 'w-full h-full' : 'w-[480px] min-w-[480px] h-[calc(100vh-100px)]'} flex-shrink-0 ${isMobile ? 'p-0' : 'p-6 pt-0'} flex flex-col`}>
@@ -95,7 +129,26 @@ export default function AISidebar({
       {isMobile && onClose && (
         <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-white/50 px-6 py-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-xl font-bold text-gray-800">Voyagr AI</h3>
+            <div className="flex items-center gap-3">
+              <h3 className="text-xl font-semibold text-white px-4 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 shadow-lg shadow-blue-500/25 border border-white/20">
+                Voyagr AI
+              </h3>
+              <div className="flex items-center gap-2">
+                <Link href="/" className="p-1 rounded-lg hover:bg-gray-100 transition-colors duration-200">
+                  <Home className="w-5 h-5 text-gray-500 hover:text-gray-700" />
+                </Link>
+                <button 
+                  onClick={() => setIsNotificationModalOpen(!isNotificationModalOpen)}
+                  className="p-1 rounded-lg hover:bg-gray-100 transition-colors duration-200 relative"
+                >
+                  <Bell className="w-5 h-5 text-gray-500 hover:text-gray-700" />
+                  {/* Notification badge */}
+                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full flex items-center justify-center">
+                    <span className="text-xs font-bold text-white">2</span>
+                  </div>
+                </button>
+              </div>
+            </div>
             <button
               onClick={onClose}
               className="p-2.5 rounded-2xl hover:bg-white/80 text-gray-600 hover:text-gray-800 transition-all duration-300 border border-white/60 shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95"
@@ -162,15 +215,15 @@ export default function AISidebar({
           <HotelSection hotels={hotels} onHeartToggle={onHotelHeartToggle} onNewTrip={handleHotelNewTrip} />
         </div>
 
-        {/* Packages */}
+        {/* Restaurants */}
         <div
           role="tabpanel"
-          id="panel-packages"
-          aria-labelledby="tab-packages"
-          hidden={activeTab !== 'packages'}
+          id="panel-restaurants"
+          aria-labelledby="tab-restaurants"
+          hidden={activeTab !== 'restaurants'}
           className="outline-none"
         >
-          <PackageSection packages={packages} onHeartToggle={onPackageHeartToggle} onNewTrip={handlePackageNewTrip} />
+          <RestaurantSection restaurants={restaurants} onHeartToggle={onRestaurantHeartToggle} onNewTrip={handleRestaurantNewTrip} />
         </div>
 
         {/* Map Out */}
@@ -185,6 +238,13 @@ export default function AISidebar({
         </div>
       </div>
     </aside>
+    
+    {/* Notification Modal */}
+    <NotificationModal
+      open={isNotificationModalOpen}
+      notifications={notifications}
+      onClose={() => setIsNotificationModalOpen(false)}
+    />
     </div>
   );
 }

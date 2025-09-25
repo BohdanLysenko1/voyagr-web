@@ -1,6 +1,7 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
+import { useNavbarVisibility } from '@/contexts/NavbarVisibilityContext';
 
 interface MainWrapperProps {
   children: React.ReactNode;
@@ -8,17 +9,16 @@ interface MainWrapperProps {
 
 export default function MainWrapper({ children }: MainWrapperProps) {
   const pathname = usePathname();
+  const { isNavbarVisible } = useNavbarVisibility();
   const isHomePage = pathname === '/';
   const isAIRoute = pathname.startsWith('/ai');
 
-  // For AI routes: add padding on desktop (where navbar is visible), no padding on mobile
-  // For other routes: add padding everywhere except homepage
-  const shouldAddPadding = isHomePage ? false : 
-                          isAIRoute ? false : // AI routes handle their own spacing
-                          true;
+  // Only reserve space for the global navbar/footer when they are actually rendered.
+  const shouldOffsetNavbar = !isHomePage && !isAIRoute && isNavbarVisible;
+  const shouldOffsetAINavbar = isAIRoute && isNavbarVisible;
 
   return (
-    <main className={`flex-1 ${shouldAddPadding ? 'pt-20' : ''} ${isAIRoute ? 'lg:pt-20' : ''}`}>
+    <main className={`flex-1 ${shouldOffsetNavbar ? 'pt-20' : ''} ${shouldOffsetAINavbar ? 'lg:pt-20' : ''}`}>
       {children}
     </main>
   );

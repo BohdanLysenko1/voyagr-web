@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback, useMemo, useLayoutEffect } fr
 import { Sparkles, Send, Bot, User, Menu, ArrowRight, Settings } from 'lucide-react';
 import Image from 'next/image';
 
-type TabKey = 'plan' | 'preferences' | 'flights' | 'hotels' | 'packages' | 'mapout';
+type TabKey = 'plan' | 'preferences' | 'flights' | 'hotels' | 'restaurants' | 'mapout';
 
 interface ChatMessage {
   id: string;
@@ -21,7 +21,7 @@ interface AIInterfaceProps {
   preferences?: any;
   activeTab: TabKey;
   isMobile?: boolean;
-  onSidebarToggle?: () => void;
+  onSidebarOpen?: () => void;
   isSidebarOpen?: boolean;
   onNewTrip?: () => void;
   registerClearChat?: (fn: () => void) => void;
@@ -41,7 +41,7 @@ export default function AIInterface({
   preferences,
   activeTab,
   isMobile = false,
-  onSidebarToggle,
+  onSidebarOpen,
   isSidebarOpen = false,
   onNewTrip,
   registerClearChat,
@@ -65,6 +65,12 @@ export default function AIInterface({
   const inputContainerRef = useRef<HTMLDivElement | null>(null);
   const [inputShellHeight, setInputShellHeight] = useState(96);
   const [keyboardOffset, setKeyboardOffset] = useState(0);
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Track mounted state to prevent hydration mismatch
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // Auto-grow the compact composer so longer prompts remain visible on mobile
   const adjustTextareaHeight = useCallback(() => {
@@ -83,8 +89,13 @@ export default function AIInterface({
     const el = textareaRef.current;
     if (!el) return;
     try {
-      // preventScroll keeps the viewport stable when focusing
-      (el as any).focus({ preventScroll: true });
+      // On mobile, don't prevent scroll so the browser can adjust viewport properly
+      if (isMobile) {
+        el.focus();
+      } else {
+        // preventScroll keeps the viewport stable when focusing on desktop
+        (el as any).focus({ preventScroll: true });
+      }
     } catch {
       el.focus();
     }
@@ -101,7 +112,7 @@ export default function AIInterface({
         }
       }, 0);
     }
-  }, [adjustTextareaHeight]);
+  }, [adjustTextareaHeight, isMobile]);
 
   const keyboardLift = useMemo(() => {
     if (!isMobile) return 0;
@@ -124,8 +135,11 @@ export default function AIInterface({
     return `calc(env(safe-area-inset-bottom) + ${inputShellHeight + keyboardLift + baseGap}px)`;
   }, [isMobile, inputShellHeight, keyboardLift]);
 
-  // Animated globe nodes with slight randomization at mount
+  // Animated globe nodes with slight randomization at mount (client-side only)
   const globeNodes = useMemo(() => {
+    // Only generate on client to prevent hydration mismatch
+    if (!isMounted) return [];
+    
     const rand = (min: number, max: number) => min + Math.random() * (max - min);
     type NodeCfg = {
       pos: { top: string; left?: string; right?: string };
@@ -166,7 +180,7 @@ export default function AIInterface({
         },
       };
     });
-  }, []);
+  }, [isMounted]);
 
 
   // Clear chat messages to return to welcome screen
@@ -177,17 +191,29 @@ export default function AIInterface({
   
   // Also clear chat when activeTab changes to ensure clean state
   useEffect(() => {
-    setChatMessages([]);
-    setIsAITyping(false);
-  }, [activeTab]);
+    if (!isMounted) return; // Only run after component is mounted
+    
+    // Use requestAnimationFrame to ensure this runs after render cycle
+    requestAnimationFrame(() => {
+      setChatMessages([]);
+      setIsAITyping(false);
+    });
+  }, [activeTab, isMounted]);
 
   // Expose clearChat function to parent component
   useEffect(() => {
-    registerClearChat?.(clearChat);
-  }, [registerClearChat, clearChat]);
+    if (!isMounted) return; // Only run after component is mounted
+    
+    // Use requestAnimationFrame to ensure this runs after render cycle
+    requestAnimationFrame(() => {
+      registerClearChat?.(clearChat);
+    });
+  }, [registerClearChat, clearChat, isMounted]);
 
   // Track the compact composer height so the message list can reserve space for it
   useLayoutEffect(() => {
+    if (!isMounted) return; // Only run after component is mounted
+    
     if (!isMobile) {
       setInputShellHeight(96);
       return;
@@ -214,18 +240,26 @@ export default function AIInterface({
       window.removeEventListener('resize', measure);
       observer?.disconnect();
     };
-  }, [isMobile, showChat]);
+  }, [isMobile, showChat, isMounted]);
 
   // Detect keyboard overlays (notably on iOS Safari) and lift the composer accordingly
   useEffect(() => {
+    if (!isMounted) return; // Only run after component is mounted to prevent SSR issues
+    
     if (!isMobile || typeof window === 'undefined') {
-      setKeyboardOffset(0);
+      // Use requestAnimationFrame to ensure this runs after render cycle
+      requestAnimationFrame(() => {
+        setKeyboardOffset(0);
+      });
       return;
     }
 
     const viewport = window.visualViewport;
     if (!viewport) {
-      setKeyboardOffset(0);
+      // Use requestAnimationFrame to ensure this runs after render cycle
+      requestAnimationFrame(() => {
+        setKeyboardOffset(0);
+      });
       return;
     }
 
@@ -234,7 +268,8 @@ export default function AIInterface({
       setKeyboardOffset(diff > 0 ? diff : 0);
     };
 
-    updateKeyboardOffset();
+    // Use requestAnimationFrame to ensure this runs after render cycle
+    requestAnimationFrame(updateKeyboardOffset);
     viewport.addEventListener('resize', updateKeyboardOffset);
     viewport.addEventListener('scroll', updateKeyboardOffset);
     window.addEventListener('orientationchange', updateKeyboardOffset);
@@ -244,7 +279,7 @@ export default function AIInterface({
       viewport.removeEventListener('scroll', updateKeyboardOffset);
       window.removeEventListener('orientationchange', updateKeyboardOffset);
     };
-  }, [isMobile]);
+  }, [isMobile, isMounted]);
 
   useEffect(() => {
     adjustTextareaHeight();
@@ -257,53 +292,146 @@ export default function AIInterface({
   // Check if user is near the bottom of the scroll container
   const isNearBottom = useCallback((threshold = 100) => {
     const scrollContainer = scrollContainerRef.current;
-    if (!scrollContainer) return true;
+    if (!scrollContainer) {
+      // Fallback: try to find scroll container again
+      const container = document.querySelector('[data-scroll-container="true"]') as HTMLElement;
+      if (container) {
+        scrollContainerRef.current = container;
+        const { scrollTop, scrollHeight, clientHeight } = container;
+        return scrollHeight - scrollTop - clientHeight < threshold;
+      }
+      return true;
+    }
     
     const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
     return scrollHeight - scrollTop - clientHeight < threshold;
   }, []);
 
-  // Smooth scroll to bottom with better UX handling
+  // Robust scroll to bottom with mobile-first approach
   const scrollToBottom = useCallback((force = false) => {
     if (autoScrollTimeoutRef.current) {
       clearTimeout(autoScrollTimeoutRef.current);
     }
 
-    // Only auto-scroll if user is near bottom or force is true
-    if (!force && !isNearBottom()) {
+    // More aggressive scrolling on mobile, always scroll when forced
+    const shouldScroll = force || isNearBottom(isMobile ? 300 : 100);
+    if (!shouldScroll) {
       return;
     }
 
-    let scrollContainer = scrollContainerRef.current;
-    
-    // Fallback: try to find scroll container if not set
-    if (!scrollContainer && messagesEndRef.current) {
-      scrollContainer = messagesEndRef.current.parentElement;
-      scrollContainerRef.current = scrollContainer;
-    }
-    
-    if (!scrollContainer) return;
+    // Multi-strategy scroll container detection
+    const findScrollContainer = () => {
+      // Strategy 1: Use cached reference
+      if (scrollContainerRef.current) {
+        return scrollContainerRef.current;
+      }
 
-    // Use requestAnimationFrame for smooth scrolling
-    const smoothScroll = () => {
-      if (!scrollContainer) return;
-      
-      scrollContainer.scrollTo({
-        top: scrollContainer.scrollHeight,
-        behavior: 'smooth'
-      });
-      
-      // Focus input after scrolling animation completes
-      autoScrollTimeoutRef.current = setTimeout(() => {
-        focusInput();
-      }, 300); // Give time for smooth scroll to complete
+      // Strategy 2: Find by data attribute
+      const explicitContainer = document.querySelector('[data-scroll-container="true"]') as HTMLElement;
+      if (explicitContainer) {
+        scrollContainerRef.current = explicitContainer;
+        return explicitContainer;
+      }
+
+      // Strategy 3: Find relative to messages end ref
+      if (messagesEndRef.current) {
+        const container = messagesEndRef.current.closest('[data-scroll-container="true"]') as HTMLElement;
+        if (container) {
+          scrollContainerRef.current = container;
+          return container;
+        }
+
+        // Strategy 4: Find scrollable parent
+        let parent = messagesEndRef.current.parentElement;
+        while (parent) {
+          const style = window.getComputedStyle(parent);
+          if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
+            scrollContainerRef.current = parent;
+            return parent;
+          }
+          parent = parent.parentElement;
+        }
+      }
+
+      return null;
     };
 
-    // Delay scroll slightly to allow DOM updates to complete
-    requestAnimationFrame(() => {
-      requestAnimationFrame(smoothScroll);
-    });
-  }, [isNearBottom, focusInput]);
+    const performScroll = () => {
+      const targetContainer = findScrollContainer();
+      
+      if (!targetContainer) {
+        // Ultimate fallback: scroll window or use scrollIntoView
+        if (messagesEndRef.current) {
+          try {
+            messagesEndRef.current.scrollIntoView({ 
+              behavior: isMobile ? 'auto' : 'smooth', 
+              block: 'end',
+              inline: 'nearest'
+            });
+          } catch (e) {
+            console.warn('ScrollIntoView failed:', e);
+          }
+        }
+        return;
+      }
+
+      // Robust scrolling with fallbacks
+      const maxScroll = targetContainer.scrollHeight - targetContainer.clientHeight;
+      
+      try {
+        // Try smooth scroll first
+        targetContainer.scrollTo({
+          top: maxScroll,
+          behavior: isMobile ? 'auto' : 'smooth'
+        });
+      } catch {
+        // Fallback to direct assignment
+        targetContainer.scrollTop = maxScroll;
+      }
+
+      // Mobile-specific: Ensure we reach the bottom with retries
+      if (isMobile) {
+        const ensureBottom = (retries = 0) => {
+          if (retries > 5) return; // Prevent infinite loops
+          
+          requestAnimationFrame(() => {
+            if (!targetContainer) return;
+            
+            const currentScroll = targetContainer.scrollTop;
+            const targetScroll = targetContainer.scrollHeight - targetContainer.clientHeight;
+            
+            // If we're not at the bottom (with 10px tolerance), keep trying
+            if (Math.abs(currentScroll - targetScroll) > 10) {
+              targetContainer.scrollTop = targetScroll;
+              ensureBottom(retries + 1);
+            }
+          });
+        };
+        
+        // Start the retry process immediately
+        ensureBottom();
+        
+        // Also set a delayed check
+        setTimeout(() => {
+          if (targetContainer) {
+            targetContainer.scrollTop = targetContainer.scrollHeight - targetContainer.clientHeight;
+          }
+        }, 100);
+      }
+
+      // Focus input after scroll completes
+      autoScrollTimeoutRef.current = setTimeout(() => {
+        focusInput();
+      }, isMobile ? 25 : 250);
+    };
+
+    // Execute immediately on mobile, with small delay on desktop
+    if (isMobile) {
+      performScroll();
+    } else {
+      requestAnimationFrame(performScroll);
+    }
+  }, [isNearBottom, focusInput, isMobile]);
 
 
   // Auto-scroll on new messages with improved logic
@@ -312,15 +440,16 @@ export default function AIInterface({
     
     // Wait for DOM updates, then check if we should scroll
     const scrollTimeout = setTimeout(() => {
-      // Don't auto-scroll if user is actively scrolling up to read history
-      if (isUserScrollingRef.current && !isNearBottom(300)) return;
+      // On mobile, always scroll to new messages unless user is actively scrolling up
+      const skipAutoScroll = !isMobile && isUserScrollingRef.current && !isNearBottom(300);
+      if (skipAutoScroll) return;
       
-      // Force scroll to new messages - be more aggressive for new content
+      // Force scroll to new messages - always scroll on mobile for better UX
       scrollToBottom(true);
-    }, 100); // Slightly longer delay to ensure DOM rendering is complete
+    }, isMobile ? 25 : 100); // Even faster response on mobile
     
     return () => clearTimeout(scrollTimeout);
-  }, [chatMessages, scrollToBottom, isNearBottom]);
+  }, [chatMessages, scrollToBottom, isNearBottom, isMobile]);
 
   // Auto-scroll when AI starts typing
   useEffect(() => {
@@ -328,11 +457,68 @@ export default function AIInterface({
       // Give AI typing a moment to render, then scroll
       const typingScrollTimeout = setTimeout(() => {
         scrollToBottom(true); // Force scroll when AI starts typing
-      }, 150);
+      }, isMobile ? 25 : 150); // Much faster on mobile
       
       return () => clearTimeout(typingScrollTimeout);
     }
-  }, [isAITyping, scrollToBottom]);
+  }, [isAITyping, scrollToBottom, isMobile]);
+
+  // Handle input focus to ensure proper scrolling on mobile
+  useEffect(() => {
+    if (!isMobile) return;
+
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const handleInputFocus = () => {
+      // When input is focused on mobile, ensure we scroll to bottom after a short delay
+      // to account for keyboard appearance
+      setTimeout(() => {
+        scrollToBottom(true);
+      }, 100);
+    };
+
+    const handleInputBlur = () => {
+      // When input loses focus, ensure we're still at the bottom
+      setTimeout(() => {
+        scrollToBottom(true);
+      }, 50);
+    };
+
+    textarea.addEventListener('focus', handleInputFocus);
+    textarea.addEventListener('blur', handleInputBlur);
+
+    return () => {
+      textarea.removeEventListener('focus', handleInputFocus);
+      textarea.removeEventListener('blur', handleInputBlur);
+    };
+  }, [isMobile, scrollToBottom]);
+
+  // Mobile-specific: Gentle scroll correction only for new messages
+  useEffect(() => {
+    if (!isMobile || chatMessages.length === 0) return;
+
+    // Only run gentle correction when new messages arrive, not continuously
+    const lastMessage = chatMessages[chatMessages.length - 1];
+    if (!lastMessage) return;
+
+    // Wait a moment for the message to render, then check if we should scroll
+    const correctionTimeout = setTimeout(() => {
+      const container = scrollContainerRef.current || document.querySelector('[data-scroll-container="true"]') as HTMLElement;
+      if (!container) return;
+
+      const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+      
+      // Only auto-scroll if user is near bottom and not actively scrolling up
+      if (isAtBottom && !isUserScrollingRef.current) {
+        container.scrollTop = container.scrollHeight - container.clientHeight;
+      }
+    }, 200);
+
+    return () => {
+      clearTimeout(correctionTimeout);
+    };
+  }, [isMobile, chatMessages.length]);
 
   const generateAIResponse = useCallback((userMessage: string): string => {
     const responses: Record<string, string[]> = {
@@ -346,10 +532,10 @@ export default function AIInterface({
         `I love helping with hotel searches! Based on "${userMessage}", I can suggest properties with great amenities and reviews. Are you looking for luxury, boutique, or budget-friendly options?`,
         `Perfect request! For "${userMessage}", I'll find accommodations that offer the best value and experience. Would you like properties with specific amenities like pools, spas, or business centers?`
       ],
-      packages: [
-        `Fantastic! For your package request "${userMessage}", I can create comprehensive travel deals that include flights, hotels, and activities all in one bundle.`,
-        `Great idea! Based on "${userMessage}", I'll design complete travel packages that save you time and money. These packages can include transportation, accommodation, meals, and experiences.`,
-        `Perfect! For "${userMessage}", I can bundle everything together - flights, hotels, transfers, and activities. Package deals often provide better value than booking separately.`
+      restaurants: [
+        `Excellent choice! For your restaurant request "${userMessage}", I can recommend amazing dining experiences that match your taste preferences and location.`,
+        `Perfect! Based on "${userMessage}", I'll find restaurants with exceptional cuisine, great ambiance, and stellar reviews. Are you looking for fine dining, casual spots, or specific cuisines?`,
+        `Great taste! For "${userMessage}", I can suggest restaurants that offer authentic flavors, memorable experiences, and excellent value for your dining preferences.`
       ],
       plan: [
         `I'm excited to help plan your trip! Based on "${userMessage}", I can create a detailed itinerary with recommendations for flights, accommodations, activities, and dining.`,
@@ -390,8 +576,8 @@ export default function AIInterface({
     focusInput();
     requestAnimationFrame(() => adjustTextareaHeight());
     
-    // Immediately scroll to show the user's message
-    setTimeout(() => scrollToBottom(true), 50);
+    // Immediately scroll to show the user's message - immediate on mobile for better UX
+    setTimeout(() => scrollToBottom(true), isMobile ? 10 : 50);
     
     // If this is the first message, save it to recent conversations
     if (isFirstMessage) {
@@ -444,7 +630,7 @@ export default function AIInterface({
         return {
           title: 'Flight Search',
           description: 'Find the perfect flights for your journey',
-          placeholder: 'Tell me about your flight preferences: destinations, dates, budget, seat class...',
+          placeholder: '',
           prompts: [
             { text: 'Round-trip to London for 2 weeks', emoji: '🇬🇧', color: 'from-blue-400/20 to-indigo-400/20 hover:from-blue-400/30 hover:to-indigo-400/30 border-blue-300/40' },
             { text: 'Business class to Tokyo in March', emoji: '🛩️', color: 'from-purple-400/20 to-violet-400/20 hover:from-purple-400/30 hover:to-violet-400/30 border-purple-300/40' },
@@ -460,7 +646,7 @@ export default function AIInterface({
         return {
           title: 'Hotel Search',
           description: 'Discover amazing accommodations for your stay',
-          placeholder: 'Describe your ideal hotel: location, amenities, budget, check-in dates...',
+          placeholder: '',
           prompts: [
             { text: 'Luxury resort in Maldives', emoji: '🏝️', color: 'from-teal-400/20 to-cyan-400/20 hover:from-teal-400/30 hover:to-cyan-400/30 border-teal-300/40' },
             { text: 'Boutique hotel in Paris', emoji: '🏨', color: 'from-pink-400/20 to-rose-400/20 hover:from-pink-400/30 hover:to-rose-400/30 border-pink-300/40' },
@@ -472,27 +658,27 @@ export default function AIInterface({
           gradientColors: 'from-emerald-500/30 to-teal-500/30',
           accentColor: 'text-emerald-600'
         };
-      case 'packages':
+      case 'restaurants':
         return {
-          title: 'Package Deals',
-          description: 'Complete travel packages tailored just for you',
-          placeholder: 'Tell me about your dream vacation package: destination, duration, activities, group size...',
+          title: 'Restaurant Finder',
+          description: 'Discover amazing dining experiences worldwide',
+          placeholder: '',
           prompts: [
-            { text: '7-day Italy tour with flights & hotels', emoji: '🍝', color: 'from-red-400/20 to-orange-400/20 hover:from-red-400/30 hover:to-orange-400/30 border-red-300/40' },
-            { text: 'All-inclusive Caribbean cruise', emoji: '🚢', color: 'from-blue-400/20 to-cyan-400/20 hover:from-blue-400/30 hover:to-cyan-400/30 border-blue-300/40' },
-            { text: 'Adventure package to Costa Rica', emoji: '🦜', color: 'from-green-400/20 to-emerald-400/20 hover:from-green-400/30 hover:to-emerald-400/30 border-green-300/40' },
-            { text: 'Romantic honeymoon in Bali', emoji: '💕', color: 'from-pink-400/20 to-rose-400/20 hover:from-pink-400/30 hover:to-rose-400/30 border-pink-300/40' },
-            { text: 'Family Disney World vacation', emoji: '🎢', color: 'from-purple-400/20 to-violet-400/20 hover:from-purple-400/30 hover:to-violet-400/30 border-purple-300/40' },
-            { text: 'Cultural tour of Southeast Asia', emoji: '🕌', color: 'from-amber-400/20 to-yellow-400/20 hover:from-amber-400/30 hover:to-yellow-400/30 border-amber-300/40' },
+            { text: 'Best sushi restaurants in Tokyo', emoji: '🍣', color: 'from-red-400/20 to-orange-400/20 hover:from-red-400/30 hover:to-orange-400/30 border-red-300/40' },
+            { text: 'Romantic dinner spots in Paris', emoji: '🥂', color: 'from-pink-400/20 to-rose-400/20 hover:from-pink-400/30 hover:to-rose-400/30 border-pink-300/40' },
+            { text: 'Authentic Italian trattorias in Rome', emoji: '🍝', color: 'from-green-400/20 to-emerald-400/20 hover:from-green-400/30 hover:to-emerald-400/30 border-green-300/40' },
+            { text: 'Michelin-starred restaurants in NYC', emoji: '⭐', color: 'from-yellow-400/20 to-amber-400/20 hover:from-yellow-400/30 hover:to-amber-400/30 border-amber-300/40' },
+            { text: 'Vegetarian-friendly cafes in London', emoji: '🥗', color: 'from-green-400/20 to-lime-400/20 hover:from-green-400/30 hover:to-lime-400/30 border-green-300/40' },
+            { text: 'Street food gems in Bangkok', emoji: '🍜', color: 'from-orange-400/20 to-red-400/20 hover:from-orange-400/30 hover:to-red-400/30 border-orange-300/40' },
           ],
-          gradientColors: 'from-purple-500/30 to-pink-500/30',
+          gradientColors: 'from-purple-500/30 to-violet-500/30',
           accentColor: 'text-purple-600'
         };
       case 'mapout':
         return {
           title: 'Map Out Planner',
           description: 'Create detailed day-by-day itineraries with optimal routing',
-          placeholder: 'Describe your trip details: destinations, duration, preferred activities, travel pace...',
+          placeholder: '',
           prompts: [
             { text: '5-day New York City itinerary', emoji: '🗽', color: 'from-blue-400/20 to-indigo-400/20 hover:from-blue-400/30 hover:to-indigo-400/30 border-blue-300/40' },
             { text: 'Weekend food tour in Paris', emoji: '🥐', color: 'from-amber-400/20 to-orange-400/20 hover:from-amber-400/30 hover:to-orange-400/30 border-amber-300/40' },
@@ -508,7 +694,7 @@ export default function AIInterface({
         return {
           title: 'Voyagr',
           description: 'Plan your perfect trip with assistance',
-          placeholder: placeholderText || 'Describe your dream trip and I\'ll help plan it...',
+          placeholder: '',
           prompts: suggestedPrompts || [
             { text: "Romantic weekend in Paris", emoji: "💕", color: "from-pink-400/20 to-rose-400/20 hover:from-pink-400/30 hover:to-rose-400/30 border-pink-300/40" },
             { text: "Adventure trip to New Zealand", emoji: "🏔️", color: "from-emerald-400/20 to-green-400/20 hover:from-emerald-400/30 hover:to-green-400/30 border-emerald-300/40" },
@@ -525,24 +711,49 @@ export default function AIInterface({
 
   const content = getContentByTab();
 
-  // Initialize scroll container ref
+  // Initialize and maintain scroll container reference
   useEffect(() => {
     const updateScrollContainer = () => {
-      if (messagesEndRef.current?.parentElement) {
-        scrollContainerRef.current = messagesEndRef.current.parentElement;
-      }
+      // Clear existing reference to force re-detection
+      scrollContainerRef.current = null;
+      
+      // Wait for DOM to be ready
+      requestAnimationFrame(() => {
+        const container = document.querySelector('[data-scroll-container="true"]') as HTMLElement;
+        if (container) {
+          scrollContainerRef.current = container;
+          
+          // On mobile, ensure the container has proper scroll properties
+          if (isMobile) {
+            container.style.overflowY = 'auto';
+            (container.style as any).WebkitOverflowScrolling = 'touch';
+            container.style.overscrollBehavior = 'contain';
+          }
+        }
+      });
     };
-    
+
     updateScrollContainer();
-    
-    // Also update on resize or DOM changes
+
+    // Re-detect container on chat state changes
+    const timeoutId = setTimeout(updateScrollContainer, 100);
+
+    // Listen for DOM changes
     const observer = new MutationObserver(updateScrollContainer);
-    if (messagesEndRef.current) {
-      observer.observe(messagesEndRef.current, { childList: true, subtree: true });
+    if (document.body) {
+      observer.observe(document.body, { childList: true, subtree: true });
     }
-    
-    return () => observer.disconnect();
-  }, [showChat]);
+
+    window.addEventListener('resize', updateScrollContainer);
+    window.addEventListener('orientationchange', updateScrollContainer);
+
+    return () => {
+      clearTimeout(timeoutId);
+      observer?.disconnect();
+      window.removeEventListener('resize', updateScrollContainer);
+      window.removeEventListener('orientationchange', updateScrollContainer);
+    };
+  }, [showChat, isMobile]);
 
   // Handle user scrolling detection
   useEffect(() => {
@@ -552,15 +763,33 @@ export default function AIInterface({
     let scrollTimeout: NodeJS.Timeout;
     
     const handleScroll = () => {
-      isUserScrollingRef.current = true;
+      // On mobile, be more responsive to user scroll intentions
+      if (isMobile) {
+        const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
+        const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+        // Consider it user scrolling if they're more than 50px from bottom
+        isUserScrollingRef.current = distanceFromBottom > 50;
+      } else {
+        isUserScrollingRef.current = true;
+      }
       
       // Clear existing timeout
       if (scrollTimeout) clearTimeout(scrollTimeout);
       
-      // Reset user scrolling flag after a delay
+      // Reset user scrolling flag after a delay - give users more control time
       scrollTimeout = setTimeout(() => {
-        isUserScrollingRef.current = false;
-      }, 1000);
+        // Only reset if user is very close to bottom (within 20px)
+        const container = scrollContainerRef.current;
+        if (container) {
+          const { scrollTop, scrollHeight, clientHeight } = container;
+          const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+          if (distanceFromBottom <= 20) {
+            isUserScrollingRef.current = false;
+          }
+        } else {
+          isUserScrollingRef.current = false;
+        }
+      }, isMobile ? 1000 : 1500); // Longer delay to give users more control
     };
 
     scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
@@ -569,7 +798,7 @@ export default function AIInterface({
       scrollContainer.removeEventListener('scroll', handleScroll);
       if (scrollTimeout) clearTimeout(scrollTimeout);
     };
-  }, [showChat]);
+  }, [showChat, isMobile]);
 
   const globeTint = useMemo(() => {
     switch (activeTab) {
@@ -577,8 +806,8 @@ export default function AIInterface({
         return { from: 'rgba(14,165,233,0.40)', to: 'rgba(56,189,248,0.35)', opacity: '0.32' }; // sky blue
       case 'hotels':
         return { from: 'rgba(251,146,60,0.40)', to: 'rgba(245,158,11,0.35)', opacity: '0.32' }; // orange/amber
-      case 'packages':
-        return { from: 'rgba(168,85,247,0.40)', to: 'rgba(217,70,239,0.35)', opacity: '0.32' }; // purple/fuchsia
+      case 'restaurants':
+        return { from: 'rgba(168,85,247,0.40)', to: 'rgba(139,92,246,0.35)', opacity: '0.32' }; // purple/violet
       case 'mapout':
         return { from: 'rgba(34,197,94,0.40)', to: 'rgba(132,204,22,0.35)', opacity: '0.32' }; // green/lime
       default:
@@ -587,12 +816,13 @@ export default function AIInterface({
   }, [activeTab]);
 
   useEffect(() => {
+    if (!isMounted) return; // Only run after component is mounted
+    
     if (showChat && !isAITyping) {
-      // Defer to the next tick to ensure elements are mounted
-      const t = setTimeout(() => focusInput(), 0);
-      return () => clearTimeout(t);
+      // Use requestAnimationFrame to ensure this runs after render cycle
+      requestAnimationFrame(() => focusInput());
     }
-  }, [showChat, isAITyping, chatMessages.length, focusInput]);
+  }, [showChat, isAITyping, chatMessages.length, focusInput, isMounted]);
 
   // Global fallback: if user starts typing anywhere in chat view, focus the input.
   useEffect(() => {
@@ -693,12 +923,13 @@ export default function AIInterface({
           {renderMenuTrigger ? (
             renderMenuTrigger({
               children: <Menu className="w-5 h-5 text-gray-700" />,
-              onClick: onSidebarToggle,
+              onClick: onSidebarOpen,
             })
           ) : (
             <button
-              onClick={onSidebarToggle}
-              className="fixed top-4 left-4 z-10 p-3 rounded-full bg-white/95 border border-gray-200 hover:bg-white transition-all duration-200 shadow-md hover:shadow-lg min-h-[44px] min-w-[44px] flex items-center justify-center"
+              type="button"
+              onClick={onSidebarOpen}
+              className="fixed top-4 left-4 z-[70] p-3 rounded-full bg-white/95 border border-gray-200 hover:bg-white transition-all duration-200 shadow-md hover:shadow-lg min-h-[44px] min-w-[44px] flex items-center justify-center"
             >
               <Menu className="w-5 h-5 text-gray-700" />
             </button>
@@ -713,7 +944,7 @@ export default function AIInterface({
         data-force-motion="true"
         style={{ ['--tintFrom' as any]: globeTint.from, ['--tintTo' as any]: globeTint.to, ['--tintOpacity' as any]: globeTint.opacity }}
       >
-        {globeNodes.map((n, idx) => (
+        {isMounted && globeNodes.map((n, idx) => (
           <div key={idx} className="globe-node" style={n.nodeStyle as any}>
             <div className="globe-sprite" style={n.spriteStyle as any} />
           </div>
@@ -725,8 +956,12 @@ export default function AIInterface({
         {showChat ? (
         /* Chat Mode */
         <div
-          className={`relative flex flex-col min-h-0 ${isMobile ? 'flex-1 p-4 pt-0' : 'h-[calc(100vh-100px)] p-6 pt-0'} overflow-hidden`}
-          style={isMobile ? { minHeight: 'calc(var(--app-height, 100vh) - 4.5rem)' } : undefined}
+          className={`relative flex flex-col ${isMobile ? 'flex-1 p-4 pt-0 h-full' : 'h-[calc(100vh-100px)] p-6 pt-0'} ${isMobile ? '' : 'overflow-hidden'}`}
+          style={isMobile ? { 
+            minHeight: 'calc(var(--app-height, 100vh) - 4.5rem)',
+            maxHeight: 'calc(var(--app-height, 100vh) - 4.5rem)',
+            height: 'calc(var(--app-height, 100vh) - 4.5rem)'
+          } : undefined}
         >
           
           <div className={`${isMobile ? 'w-full' : 'max-w-4xl w-full mx-auto'} ${isMobile ? 'mt-2' : 'mt-6'} h-full min-h-0 flex flex-col relative`}>
@@ -745,19 +980,25 @@ export default function AIInterface({
             )}
 
             {/* Messages Container */}
-            <div className={`flex-1 min-h-0 relative overflow-hidden overflow-x-hidden ${isMobile ? 'mt-4' : 'glass-panel rounded-b-[2rem] max-h-[calc(100vh-180px)]'}`} style={{ touchAction: 'pan-y', overscrollBehaviorX: 'none' }}>
+            <div className={`flex-1 min-h-0 relative ${isMobile ? 'mt-4' : 'glass-panel rounded-b-[2rem] max-h-[calc(100vh-180px)]'}`}>
               <div
-                className={`h-full overflow-y-auto overflow-x-hidden overscroll-contain ${isMobile ? 'p-4' : 'p-6 pb-28'} ${isMobile ? 'space-y-6' : 'space-y-5'} scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400 scroll-smooth`}
+                data-scroll-container="true"
+                className={`h-full overflow-y-auto overflow-x-hidden ${isMobile ? 'px-4 py-4' : 'p-6 pb-28'} ${isMobile ? 'space-y-6' : 'space-y-5'} scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400`}
                 style={{
                   touchAction: 'pan-y',
-                  overscrollBehaviorX: 'none',
-                  paddingBottom: isMobile ? mobileMessagePadding : undefined
+                  overscrollBehavior: 'contain',
+                  WebkitOverflowScrolling: 'touch',
+                  paddingBottom: isMobile ? mobileMessagePadding : undefined,
+                  position: 'relative',
+                  zIndex: 1,
+                  scrollBehavior: isMobile ? 'auto' : 'smooth'
                 }}
               >
                 {chatMessages.map((message) => (
                   <div
                     key={message.id}
-                    className={`flex items-start ${isMobile ? 'gap-4' : 'gap-3'} ${message.sender === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
+                    className={`flex items-start ${isMobile ? 'gap-4' : 'gap-3'} ${message.sender === 'user' ? 'flex-row-reverse' : 'flex-row'} w-full max-w-full overflow-hidden`}
+                    style={{ position: 'relative', zIndex: 1 }}
                   >
                     {/* Avatar */}
                     <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
@@ -813,13 +1054,13 @@ export default function AIInterface({
             {/* Compact Chat Input */}
             <div
               ref={inputContainerRef}
-              className={`${isMobile ? 'fixed' : 'absolute bottom-6 left-0 right-0'} z-[60] transition-all duration-300 ${isFooterVisible ? 'opacity-0 translate-y-2 pointer-events-none' : 'opacity-100 translate-y-0'}`}
+              className={`${isMobile ? 'fixed' : 'absolute bottom-6 left-1/2 transform -translate-x-1/2 w-[85%] max-w-4xl'} z-[60] transition-all duration-300 ${isFooterVisible ? 'opacity-0 translate-y-2 pointer-events-none' : 'opacity-100 translate-y-0'}`}
               style={isMobile ? { left: '1rem', right: '1rem', bottom: mobileInputBottom, transform: mobileInputTransform } : undefined}
             >
               <div className={`glass-input glow-ring ${
                 activeTab === 'flights' ? 'neon-glow-flights' :
                 activeTab === 'hotels' ? 'neon-glow-hotels' :
-                activeTab === 'packages' ? 'neon-glow-packages' :
+                activeTab === 'restaurants' ? 'neon-glow-restaurants' :
                 activeTab === 'mapout' ? 'neon-glow-mapout' :
                 'neon-glow'
               } rounded-3xl hover:shadow-xl transition-all duration-300`}>
@@ -830,12 +1071,12 @@ export default function AIInterface({
                       value={inputValue}
                       onChange={(e) => onInputChange(e.target.value)}
                       onKeyDown={handleKeyPress}
-                      placeholder="Ask anything..."
+                      placeholder=""
                       autoFocus
                       enterKeyHint="send"
                       className="w-full bg-transparent border-none resize-none focus:outline-none focus:ring-0 focus:border-transparent text-gray-800 placeholder-gray-500 text-base leading-6 py-0 min-h-[24px] overflow-y-auto"
                       rows={1}
-                      style={{ maxHeight: isMobile ? '160px' : '120px' }}
+                      style={{ maxHeight: isMobile ? '160px' : '80px' }}
                     />
                   </div>
                   <button
@@ -916,7 +1157,7 @@ export default function AIInterface({
                 <h1 className={`${isMobile ? (preferences ? 'text-2xl' : 'text-3xl') : 'text-6xl'} font-bold leading-tight md:leading-[1.1] transition-all duration-700 ${
                   activeTab === 'flights' ? 'gradient-text-flights' :
                   activeTab === 'hotels' ? 'gradient-text-hotels' :
-                  activeTab === 'packages' ? 'gradient-text-packages' :
+                  activeTab === 'restaurants' ? 'gradient-text-restaurants' :
                   activeTab === 'mapout' ? 'gradient-text-mapout' :
                   'gradient-text'
                 } drop-shadow-sm pb-0.5`}>
@@ -938,7 +1179,7 @@ export default function AIInterface({
                   <div className={`glass-input ${
                     activeTab === 'flights' ? 'neon-glow-flights' :
                     activeTab === 'hotels' ? 'neon-glow-hotels' :
-                    activeTab === 'packages' ? 'neon-glow-packages' :
+                    activeTab === 'restaurants' ? 'neon-glow-restaurants' :
                     activeTab === 'mapout' ? 'neon-glow-mapout' :
                     'neon-glow'
                   } rounded-2xl`}>
@@ -946,8 +1187,8 @@ export default function AIInterface({
                       value={inputValue}
                       onChange={(e) => onInputChange(e.target.value)}
                       onKeyDown={handleKeyPress}
-                      placeholder={content.placeholder}
-                      className={`w-full ${isMobile ? (preferences ? 'p-4 text-base h-[80px] max-h-[80px]' : 'p-5 text-lg h-[100px] max-h-[100px]') : 'p-6 text-lg h-[120px] max-h-[120px]'} bg-transparent resize-none focus:outline-none focus:ring-0 focus:border-transparent border-0 transition-all duration-300 placeholder-gray-500 text-gray-800 relative z-10 overflow-y-auto`}
+                      placeholder=""
+                      className={`w-full ${isMobile ? (preferences ? 'p-4 text-base h-[80px] max-h-[80px]' : 'p-5 text-lg h-[100px] max-h-[100px]') : 'p-6 text-lg h-[90px] max-h-[90px]'} bg-transparent resize-none focus:outline-none focus:ring-0 focus:border-transparent border-0 transition-all duration-300 placeholder-gray-500 text-gray-800 relative z-10 overflow-y-auto`}
                       rows={4}
                     />
                   </div>
@@ -993,7 +1234,7 @@ export default function AIInterface({
                       className={`relative overflow-hidden ${isMobile ? 'px-6 py-3 text-base w-full' : 'px-8 py-4 text-lg'} bg-gradient-to-r ${
                         activeTab === 'flights' ? 'from-sky-500 to-blue-500 hover:from-sky-400 hover:to-blue-400' :
                         activeTab === 'hotels' ? 'from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400' :
-                        activeTab === 'packages' ? 'from-purple-500 to-fuchsia-500 hover:from-purple-400 hover:to-fuchsia-400' :
+                        activeTab === 'restaurants' ? 'from-purple-500 to-violet-500 hover:from-purple-400 hover:to-violet-400' :
                         activeTab === 'mapout' ? 'from-green-500 to-lime-500 hover:from-green-400 hover:to-lime-400' :
                         'from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90'
                       } text-white rounded-2xl font-bold shadow-2xl hover:shadow-xl transition-all duration-300 transform hover:scale-105 active:scale-95 backdrop-blur-sm border border-white/20 before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/20 before:via-white/5 before:to-white/5 min-h-[48px]`}
@@ -1014,7 +1255,7 @@ export default function AIInterface({
                 <p className={`text-gray-600 font-medium ${isMobile ? (preferences ? 'mb-2 text-xs' : 'mb-3 text-sm') : 'mb-4 text-base'} text-center transition-all duration-500`}>
                   {activeTab === 'flights' ? 'Popular flight searches:' : 
                    activeTab === 'hotels' ? 'Find your perfect accommodation:' :
-                   activeTab === 'packages' ? 'Discover amazing packages:' :
+                   activeTab === 'restaurants' ? 'Find perfect dining spots:' :
                    'Get inspired with these travel ideas:'}
                 </p>
                 

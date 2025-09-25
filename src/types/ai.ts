@@ -19,6 +19,14 @@ export interface Package {
   hearted: boolean;
 }
 
+export interface Restaurant {
+  id: number;
+  name: string;
+  cuisine: string;
+  location: string;
+  hearted: boolean;
+}
+
 export interface SidebarSection {
   title: string;
   icon: React.ComponentType<{ className?: string }>;
@@ -27,7 +35,7 @@ export interface SidebarSection {
   iconColor: string;
 }
 
-export type HeartableItem = Flight | Hotel | Package;
+export type HeartableItem = Flight | Hotel | Package | Restaurant;
 export type StarrableItem = HeartableItem; // For backward compatibility
 
 export interface AIPageState {

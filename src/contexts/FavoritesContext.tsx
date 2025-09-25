@@ -1,9 +1,9 @@
 "use client"
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { SearchDeal } from '@/components/DealsPage/SearchDeals';
-import { Flight, Hotel, Package } from '@/types/ai';
+import { Flight, Hotel, Package, Restaurant } from '@/types/ai';
 
-type AIItem = Flight | Hotel | Package;
+type AIItem = Flight | Hotel | Package | Restaurant;
 
 interface FavoritesContextType {
   favorites: SearchDeal[];
@@ -12,10 +12,10 @@ interface FavoritesContextType {
   isFavorite: (dealId: number) => boolean;
   toggleFavorite: (deal: SearchDeal) => void;
   // AI page specific methods
-  addAIItemToFavorites: (item: AIItem, type: 'flight' | 'hotel' | 'package') => void;
+  addAIItemToFavorites: (item: AIItem, type: 'flight' | 'hotel' | 'package' | 'restaurant') => void;
   removeAIItemFromFavorites: (itemId: number) => void;
   isAIItemFavorite: (itemId: number) => boolean;
-  toggleAIItemFavorite: (item: AIItem, type: 'flight' | 'hotel' | 'package') => void;
+  toggleAIItemFavorite: (item: AIItem, type: 'flight' | 'hotel' | 'package' | 'restaurant') => void;
 }
 
 const FavoritesContext = createContext<FavoritesContextType | undefined>(undefined);
@@ -78,7 +78,7 @@ export const FavoritesProvider: React.FC<FavoritesProviderProps> = ({ children }
   };
 
   // AI item conversion to SearchDeal format
-  const convertAIItemToSearchDeal = (item: AIItem, type: 'flight' | 'hotel' | 'package'): SearchDeal => {
+  const convertAIItemToSearchDeal = (item: AIItem, type: 'flight' | 'hotel' | 'package' | 'restaurant'): SearchDeal => {
     let title, description, image, price, location;
     
     if (type === 'flight') {
@@ -95,13 +95,20 @@ export const FavoritesProvider: React.FC<FavoritesProviderProps> = ({ children }
       image = '/images/AIPage/hotel-placeholder.jpg';
       price = 150; // Default price since not in type
       location = hotel.location;
-    } else {
+    } else if (type === 'package') {
       const pkg = item as Package;
       title = pkg.name;
       description = pkg.duration;
       image = '/images/AIPage/package-placeholder.jpg';
       price = 899; // Default price since not in type
       location = 'Multiple Destinations';
+    } else {
+      const restaurant = item as Restaurant;
+      title = restaurant.name;
+      description = `${restaurant.cuisine} cuisine in ${restaurant.location}`;
+      image = '/images/AIPage/restaurant-placeholder.jpg';
+      price = 75; // Default price since not in type
+      location = restaurant.location;
     }
 
     return {
@@ -119,7 +126,7 @@ export const FavoritesProvider: React.FC<FavoritesProviderProps> = ({ children }
     };
   };
 
-  const addAIItemToFavorites = (item: AIItem, type: 'flight' | 'hotel' | 'package') => {
+  const addAIItemToFavorites = (item: AIItem, type: 'flight' | 'hotel' | 'package' | 'restaurant') => {
     const searchDeal = convertAIItemToSearchDeal(item, type);
     addToFavorites(searchDeal);
   };
@@ -132,7 +139,7 @@ export const FavoritesProvider: React.FC<FavoritesProviderProps> = ({ children }
     return isFavorite(itemId);
   };
 
-  const toggleAIItemFavorite = (item: AIItem, type: 'flight' | 'hotel' | 'package') => {
+  const toggleAIItemFavorite = (item: AIItem, type: 'flight' | 'hotel' | 'package' | 'restaurant') => {
     if (isAIItemFavorite(item.id)) {
       removeAIItemFromFavorites(item.id);
     } else {

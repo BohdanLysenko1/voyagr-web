@@ -6,7 +6,7 @@ import { useFavorites } from '@/contexts/FavoritesContext';
 
 export interface SearchDeal {
   id: number;
-  type: 'flight' | 'hotel' | 'package';
+  type: 'flight' | 'hotel' | 'package' | 'restaurant';
   title: string;
   location: string;
   continent: string;

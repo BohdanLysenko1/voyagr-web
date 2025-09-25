@@ -1,18 +1,18 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAIPageState } from '@/hooks/useAIPageState';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { useNavbarVisibility } from '@/contexts/NavbarVisibilityContext';
 import { useFooterVisibility } from '@/contexts/FooterVisibilityContext';
-import { SAMPLE_FLIGHTS, SAMPLE_HOTELS, SAMPLE_PACKAGES, SUGGESTED_PROMPTS, PLACEHOLDER_TEXT } from '@/constants/aiData';
-import { Flight, Hotel, Package } from '@/types/ai';
+import { SAMPLE_FLIGHTS, SAMPLE_HOTELS, SAMPLE_RESTAURANTS, SUGGESTED_PROMPTS, PLACEHOLDER_TEXT } from '@/constants/aiData';
+import { Flight, Hotel, Restaurant } from '@/types/ai';
 import AISidebar from '@/components/AI/AISidebar';
 import AIInterface from '@/components/AI/AIInterface';
 import AIPreferencesModal from '@/components/AI/AIPreferencesModal';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/Sheet';
 
-type TabKey = 'plan' | 'preferences' | 'flights' | 'hotels' | 'packages' | 'mapout';
+type TabKey = 'plan' | 'preferences' | 'flights' | 'hotels' | 'restaurants' | 'mapout';
 
 interface RecentConversation {
   id: string;
@@ -150,9 +150,10 @@ export default function AiPage() {
     hearted: isAIItemFavorite(hotel.id)
   }));
   
-  const updatedPackages = SAMPLE_PACKAGES.map((pkg: Package) => ({
-    ...pkg,
-    hearted: isAIItemFavorite(pkg.id)
+  
+  const updatedRestaurants = SAMPLE_RESTAURANTS.map((restaurant: Restaurant) => ({
+    ...restaurant,
+    hearted: isAIItemFavorite(restaurant.id)
   }));
 
   const toggleFlightHeart = useCallback((id: number) => {
@@ -165,9 +166,10 @@ export default function AiPage() {
     if (hotel) toggleAIItemFavorite(hotel, 'hotel');
   }, [toggleAIItemFavorite]);
 
-  const togglePackageHeart = useCallback((id: number) => {
-    const pkg = SAMPLE_PACKAGES.find((p: Package) => p.id === id);
-    if (pkg) toggleAIItemFavorite(pkg, 'package');
+
+  const toggleRestaurantHeart = useCallback((id: number) => {
+    const restaurant = SAMPLE_RESTAURANTS.find((r: Restaurant) => r.id === id);
+    if (restaurant) toggleAIItemFavorite(restaurant, 'restaurant');
   }, [toggleAIItemFavorite]);
 
   const handleNewTrip = useCallback(() => {
@@ -195,19 +197,23 @@ export default function AiPage() {
   }, [currentConversationMessages, recentConversations, saveConversationHistory, setInputValue]);
 
   // Section-specific reset handlers that don't reload the page
-  const [clearChatFunction, setClearChatFunction] = useState<(() => void) | null>(null);
+  const clearChatFunctionRef = useRef<(() => void) | null>(null);
   const [resetKey, setResetKey] = useState(0);
   
-  const handleSectionReset = useCallback((targetTab: 'flights' | 'hotels' | 'packages' | 'mapout') => {
+  const registerClearChat = useCallback((fn: () => void) => {
+    clearChatFunctionRef.current = fn;
+  }, []);
+  
+  const handleSectionReset = useCallback((targetTab: 'flights' | 'hotels' | 'restaurants' | 'mapout') => {
     setInputValue('');
     
-    if (clearChatFunction) {
-      clearChatFunction();
+    if (clearChatFunctionRef.current) {
+      clearChatFunctionRef.current();
     }
     
     setResetKey(prev => prev + 1);
     setActiveTab(targetTab);
-  }, [clearChatFunction, setInputValue]);
+  }, [setInputValue]);
 
   const handleFirstMessage = useCallback((firstMessage: string) => {
     setCurrentConversationMessages([firstMessage]);
@@ -249,14 +255,14 @@ export default function AiPage() {
         
         {/* Mobile Sidebar using Sheet */}
         <Sheet open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
-          <SheetContent side="left" className="p-0 border-0 bg-white/95 backdrop-blur-xl backdrop-saturate-150 border-r border-white/40">
+          <SheetContent side="left" className="p-0 border-0 bg-white/95 backdrop-blur-xl backdrop-saturate-150 border-r border-white/40 z-50">
             <AISidebar
               flights={updatedFlights}
               hotels={updatedHotels}
-              packages={updatedPackages}
+              restaurants={updatedRestaurants}
               onFlightHeartToggle={toggleFlightHeart}
               onHotelHeartToggle={toggleHotelHeart}
-              onPackageHeartToggle={togglePackageHeart}
+              onRestaurantHeartToggle={toggleRestaurantHeart}
               onNewTrip={handleNewTrip}
               onSectionReset={handleSectionReset}
               onPreferencesOpen={handlePreferencesOpen}
@@ -274,8 +280,8 @@ export default function AiPage() {
           
           {/* Mobile Main Interface with SheetTrigger */}
           <div
-            className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain"
-            style={{ touchAction: 'pan-y', overscrollBehaviorX: 'none' }}
+            className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain relative"
+            style={{ touchAction: 'pan-y', overscrollBehaviorX: 'none', zIndex: 1 }}
           >
             <AIInterface
               key={resetKey}
@@ -288,17 +294,18 @@ export default function AiPage() {
               preferences={preferences}
               activeTab={activeTab}
               isMobile={true}
-              onSidebarToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+              onSidebarOpen={() => setIsSidebarOpen(true)}
               isSidebarOpen={isSidebarOpen}
-              registerClearChat={setClearChatFunction}
+              registerClearChat={registerClearChat}
               onFirstMessage={handleFirstMessage}
               onMessageSent={handleMessageSent}
               onPreferencesOpen={handlePreferencesOpen}
               renderMenuTrigger={(triggerProps: { children: React.ReactNode; onClick?: () => void }) => (
                 <SheetTrigger asChild>
                   <button
+                    type="button"
                     onClick={triggerProps.onClick}
-                    className="fixed top-4 left-4 z-10 p-3 rounded-full bg-white/95 backdrop-blur-md border border-white/40 hover:bg-white transition-all duration-200 shadow-lg hover:shadow-xl min-h-[48px] min-w-[48px] flex items-center justify-center glass-morphism"
+                    className="fixed top-4 left-4 z-[70] p-3 rounded-full bg-white/95 backdrop-blur-md border border-white/40 hover:bg-white transition-all duration-200 shadow-lg hover:shadow-xl min-h-[48px] min-w-[48px] flex items-center justify-center glass-morphism"
                   >
                     {triggerProps.children}
                   </button>
@@ -314,10 +321,10 @@ export default function AiPage() {
         <AISidebar
           flights={updatedFlights}
           hotels={updatedHotels}
-          packages={updatedPackages}
+          restaurants={updatedRestaurants}
           onFlightHeartToggle={toggleFlightHeart}
           onHotelHeartToggle={toggleHotelHeart}
-          onPackageHeartToggle={togglePackageHeart}
+          onRestaurantHeartToggle={toggleRestaurantHeart}
           onNewTrip={handleNewTrip}
           onSectionReset={handleSectionReset}
           onPreferencesOpen={handlePreferencesOpen}
@@ -339,7 +346,7 @@ export default function AiPage() {
             preferences={preferences}
             activeTab={activeTab}
             isMobile={false}
-            registerClearChat={setClearChatFunction}
+            registerClearChat={registerClearChat}
             onNewTrip={handleNewTrip}
             onFirstMessage={handleFirstMessage}
             onMessageSent={handleMessageSent}

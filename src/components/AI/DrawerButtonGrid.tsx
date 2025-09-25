@@ -2,7 +2,7 @@ import React from 'react';
 import { 
   Plane, 
   Building, 
-  Map, 
+  UtensilsCrossed, 
   MapPin, 
   Search, 
   Settings, 
@@ -55,12 +55,12 @@ export default function DrawerButtonGrid({
       color: 'from-orange-500/20 to-amber-500/20 border-orange-300/40 text-orange-700 hover:from-orange-500/30 hover:to-amber-500/30'
     },
     {
-      id: 'travel-packages',
-      icon: Map,
-      label: 'Packages',
-      ariaLabel: 'Browse travel packages and deals',
-      onClick: () => onTabChange?.('packages'),
-      color: 'from-purple-500/20 to-fuchsia-500/20 border-purple-300/40 text-purple-700 hover:from-purple-500/30 hover:to-fuchsia-500/30'
+      id: 'find-restaurants',
+      icon: UtensilsCrossed,
+      label: 'Restaurants',
+      ariaLabel: 'Find amazing dining experiences',
+      onClick: () => onTabChange?.('restaurants'),
+      color: 'from-purple-500/20 to-violet-500/20 border-purple-300/40 text-purple-700 hover:from-purple-500/30 hover:to-violet-500/30'
     },
     {
       id: 'map-planner',

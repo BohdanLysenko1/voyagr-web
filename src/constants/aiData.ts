@@ -1,8 +1,9 @@
-import { Flight, Hotel, Package } from '@/types/ai';
+import { Flight, Hotel, Package, Restaurant } from '@/types/ai';
 import { 
   Plane,
   Building,
-  Map
+  Map,
+  UtensilsCrossed
 } from 'lucide-react';
 
 export const SAMPLE_FLIGHTS: Flight[] = [
@@ -23,6 +24,13 @@ export const SAMPLE_PACKAGES: Package[] = [
   { id: 2, name: 'Soul of Japan', duration: 'Jun 16 - Jun 27', hearted: false },
   { id: 3, name: 'Tokyo Drift', duration: 'Mar 21 - Mar 25', hearted: false },
   { id: 4, name: 'Midnight in Paris', duration: 'Sep 1 - Sep 8', hearted: false },
+];
+
+export const SAMPLE_RESTAURANTS: Restaurant[] = [
+  { id: 1, name: 'Le Bernardin', cuisine: 'French Seafood', location: 'New York, NY', hearted: true },
+  { id: 2, name: 'Osteria Francescana', cuisine: 'Italian', location: 'Modena, Italy', hearted: false },
+  { id: 3, name: 'Sukiyabashi Jiro', cuisine: 'Sushi', location: 'Tokyo, Japan', hearted: false },
+  { id: 4, name: 'Noma', cuisine: 'Nordic', location: 'Copenhagen, Denmark', hearted: false },
 ];
 
 export const SUGGESTED_PROMPTS = [
@@ -56,6 +64,13 @@ export const SIDEBAR_SECTIONS = {
     icon: Map,
     gradientFrom: 'from-purple-100',
     gradientTo: 'to-pink-100',
+    iconColor: 'text-purple-600'
+  },
+  restaurants: {
+    title: 'Find Restaurants',
+    icon: UtensilsCrossed,
+    gradientFrom: 'from-purple-100',
+    gradientTo: 'to-violet-100',
     iconColor: 'text-purple-600'
   }
 };
