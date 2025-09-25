@@ -121,19 +121,18 @@ export default function AIInterface({
 
   const mobileInputBottom = useMemo(() => {
     if (!isMobile) return undefined;
-    return 'calc(env(safe-area-inset-bottom) + 16px)';
-  }, [isMobile]);
-
-  const mobileInputTransform = useMemo(() => {
-    if (!isMobile) return undefined;
-    return keyboardLift ? `translateY(-${keyboardLift}px)` : undefined;
+    const baseGap = 16;
+    const roundedLift = Math.max(0, Math.round(keyboardLift));
+    const keyboardAdjustment = roundedLift ? ` + ${roundedLift}px` : '';
+    return `calc(env(safe-area-inset-bottom) + ${baseGap}px${keyboardAdjustment})`;
   }, [isMobile, keyboardLift]);
 
   const mobileMessagePadding = useMemo(() => {
     if (!isMobile) return undefined;
     const baseGap = 24;
-    return `calc(env(safe-area-inset-bottom) + ${inputShellHeight + keyboardLift + baseGap}px)`;
-  }, [isMobile, inputShellHeight, keyboardLift]);
+    const padding = Math.max(0, Math.round(inputShellHeight + baseGap));
+    return `calc(env(safe-area-inset-bottom) + ${padding}px)`;
+  }, [isMobile, inputShellHeight]);
 
   // Animated globe nodes with slight randomization at mount (client-side only)
   const globeNodes = useMemo(() => {
@@ -1055,7 +1054,7 @@ export default function AIInterface({
             <div
               ref={inputContainerRef}
               className={`${isMobile ? 'fixed' : 'absolute bottom-6 left-1/2 transform -translate-x-1/2 w-[85%] max-w-4xl'} z-[60] transition-all duration-300 ${isFooterVisible ? 'opacity-0 translate-y-2 pointer-events-none' : 'opacity-100 translate-y-0'}`}
-              style={isMobile ? { left: '1rem', right: '1rem', bottom: mobileInputBottom, transform: mobileInputTransform } : undefined}
+              style={isMobile ? { left: '1rem', right: '1rem', bottom: mobileInputBottom } : undefined}
             >
               <div className={`glass-input glow-ring ${
                 activeTab === 'flights' ? 'neon-glow-flights' :

@@ -96,10 +96,12 @@ export const SheetContent = forwardRef<HTMLDivElement, SheetContentProps>(
     const { open, onOpenChange } = useSheet();
     const [isVisible, setIsVisible] = useState(false);
     const [isDragging, setIsDragging] = useState(false);
-    const [dragStart, setDragStart] = useState(0);
     const [dragOffset, setDragOffset] = useState(0);
     const contentRef = useRef<HTMLDivElement>(null);
     const overlayRef = useRef<HTMLDivElement>(null);
+    const dragStartRef = useRef(0);
+    const touchStartRef = useRef({ x: 0, y: 0 });
+    const dragIntentRef = useRef<'horizontal' | 'vertical' | null>(null);
 
     // Handle escape key
     useEffect(() => {
@@ -128,17 +130,56 @@ export const SheetContent = forwardRef<HTMLDivElement, SheetContentProps>(
 
     // Handle swipe gestures for mobile
     const handleTouchStart = (e: React.TouchEvent) => {
+      if (side !== 'left' && side !== 'right') {
+        return;
+      }
       const touch = e.touches[0];
-      setIsDragging(true);
-      setDragStart(side === 'left' ? touch.clientX : window.innerWidth - touch.clientX);
+      touchStartRef.current = { x: touch.clientX, y: touch.clientY };
+      dragIntentRef.current = null;
+      dragStartRef.current = side === 'left'
+        ? touch.clientX
+        : window.innerWidth - touch.clientX;
+      setIsDragging(false);
+      setDragOffset(0);
     };
 
     const handleTouchMove = (e: React.TouchEvent) => {
-      if (!isDragging) return;
-      
+      if (side !== 'left' && side !== 'right') {
+        return;
+      }
       const touch = e.touches[0];
-      let currentPosition = side === 'left' ? touch.clientX : window.innerWidth - touch.clientX;
-      let offset = currentPosition - dragStart;
+      const deltaX = touch.clientX - touchStartRef.current.x;
+      const deltaY = touch.clientY - touchStartRef.current.y;
+
+      if (!isDragging) {
+        if (dragIntentRef.current === 'vertical') {
+          return;
+        }
+
+        if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > 10) {
+          dragIntentRef.current = 'vertical';
+          return;
+        }
+
+        if (Math.abs(deltaX) > 10 && Math.abs(deltaX) > Math.abs(deltaY)) {
+          dragIntentRef.current = 'horizontal';
+          setIsDragging(true);
+          dragStartRef.current = side === 'left'
+            ? touch.clientX
+            : window.innerWidth - touch.clientX;
+        } else {
+          return;
+        }
+      }
+
+      if (!isDragging || dragIntentRef.current !== 'horizontal') {
+        return;
+      }
+
+      const currentPosition = side === 'left'
+        ? touch.clientX
+        : window.innerWidth - touch.clientX;
+      const offset = currentPosition - dragStartRef.current;
       
       // Only allow dragging in the close direction
       if (side === 'left' && offset < 0) {
@@ -149,7 +190,13 @@ export const SheetContent = forwardRef<HTMLDivElement, SheetContentProps>(
     };
 
     const handleTouchEnd = () => {
-      if (!isDragging) return;
+      if (side !== 'left' && side !== 'right') {
+        return;
+      }
+      if (!isDragging) {
+        dragIntentRef.current = null;
+        return;
+      }
       
       const threshold = -100; // 100px threshold to close
       
@@ -159,8 +206,9 @@ export const SheetContent = forwardRef<HTMLDivElement, SheetContentProps>(
       }
       
       setIsDragging(false);
-      setDragStart(0);
       setDragOffset(0);
+      dragStartRef.current = 0;
+      dragIntentRef.current = null;
     };
 
     const handleBackdropClick = (e: React.MouseEvent) => {
