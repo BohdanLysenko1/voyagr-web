@@ -65,6 +65,7 @@ export default function AIInterface({
   const inputContainerRef = useRef<HTMLDivElement | null>(null);
   const [inputShellHeight, setInputShellHeight] = useState(96);
   const [keyboardOffset, setKeyboardOffset] = useState(0);
+  const initialViewportHeightRef = useRef<number | null>(null);
   const [isMounted, setIsMounted] = useState(false);
 
   // Track mounted state to prevent hydration mismatch
@@ -121,10 +122,12 @@ export default function AIInterface({
 
   const mobileInputBottom = useMemo(() => {
     if (!isMobile) return undefined;
-    const baseGap = 16;
-    const roundedLift = Math.max(0, Math.round(keyboardLift));
-    const keyboardAdjustment = roundedLift ? ` + ${roundedLift}px` : '';
-    return `calc(env(safe-area-inset-bottom) + ${baseGap}px${keyboardAdjustment})`;
+    return 'calc(env(safe-area-inset-bottom) + 16px)';
+  }, [isMobile]);
+
+  const mobileInputTransform = useMemo(() => {
+    if (!isMobile) return undefined;
+    return keyboardLift ? `translateY(-${keyboardLift}px)` : undefined;
   }, [isMobile, keyboardLift]);
 
   const mobileMessagePadding = useMemo(() => {
@@ -133,6 +136,8 @@ export default function AIInterface({
     const padding = Math.max(0, Math.round(inputShellHeight + baseGap));
     return `calc(env(safe-area-inset-bottom) + ${padding}px)`;
   }, [isMobile, inputShellHeight]);
+
+  const isKeyboardVisible = useMemo(() => isMobile && keyboardLift > 0, [isMobile, keyboardLift]);
 
   // Animated globe nodes with slight randomization at mount (client-side only)
   const globeNodes = useMemo(() => {
@@ -243,40 +248,78 @@ export default function AIInterface({
 
   // Detect keyboard overlays (notably on iOS Safari) and lift the composer accordingly
   useEffect(() => {
-    if (!isMounted) return; // Only run after component is mounted to prevent SSR issues
-    
+    if (!isMounted) return;
+
     if (!isMobile || typeof window === 'undefined') {
-      // Use requestAnimationFrame to ensure this runs after render cycle
-      requestAnimationFrame(() => {
-        setKeyboardOffset(0);
-      });
+      initialViewportHeightRef.current = null;
+      setKeyboardOffset(0);
       return;
     }
 
     const viewport = window.visualViewport;
     if (!viewport) {
-      // Use requestAnimationFrame to ensure this runs after render cycle
-      requestAnimationFrame(() => {
-        setKeyboardOffset(0);
-      });
+      initialViewportHeightRef.current = null;
+      setKeyboardOffset(0);
       return;
     }
 
-    const updateKeyboardOffset = () => {
-      const diff = window.innerHeight - viewport.height - viewport.offsetTop;
-      setKeyboardOffset(diff > 0 ? diff : 0);
+    let destroyed = false;
+    let rafId: number | null = null;
+    let orientationRafId: number | null = null;
+
+    const ensureBaseline = () => {
+      const candidate = window.innerHeight || document.documentElement.clientHeight || viewport.height;
+      initialViewportHeightRef.current = candidate;
     };
 
-    // Use requestAnimationFrame to ensure this runs after render cycle
-    requestAnimationFrame(updateKeyboardOffset);
-    viewport.addEventListener('resize', updateKeyboardOffset);
-    viewport.addEventListener('scroll', updateKeyboardOffset);
-    window.addEventListener('orientationchange', updateKeyboardOffset);
+    if (initialViewportHeightRef.current === null) {
+      ensureBaseline();
+    }
+
+    const computeKeyboardOffset = () => {
+      if (destroyed) return;
+      const baseline = initialViewportHeightRef.current ?? window.innerHeight;
+      const viewportHeight = viewport.height;
+      const offsetTop = viewport.offsetTop;
+      const rawDiff = baseline - (viewportHeight + offsetTop);
+      const normalizedDiff = rawDiff > 0 ? rawDiff : 0;
+
+      if (normalizedDiff <= 0) {
+        ensureBaseline();
+      }
+
+      const layoutDiff = window.innerHeight - viewportHeight;
+      const shouldApply = normalizedDiff > 0 && layoutDiff > 48;
+      const nextOffset = shouldApply ? Math.round(normalizedDiff) : 0;
+
+      setKeyboardOffset((prev) => (prev !== nextOffset ? nextOffset : prev));
+    };
+
+    const handleViewportChange = () => {
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(computeKeyboardOffset);
+    };
+
+    const handleOrientationChange = () => {
+      if (orientationRafId) cancelAnimationFrame(orientationRafId);
+      orientationRafId = requestAnimationFrame(() => {
+        ensureBaseline();
+        computeKeyboardOffset();
+      });
+    };
+
+    handleViewportChange();
+    viewport.addEventListener('resize', handleViewportChange);
+    viewport.addEventListener('scroll', handleViewportChange);
+    window.addEventListener('orientationchange', handleOrientationChange);
 
     return () => {
-      viewport.removeEventListener('resize', updateKeyboardOffset);
-      viewport.removeEventListener('scroll', updateKeyboardOffset);
-      window.removeEventListener('orientationchange', updateKeyboardOffset);
+      destroyed = true;
+      if (rafId) cancelAnimationFrame(rafId);
+      if (orientationRafId) cancelAnimationFrame(orientationRafId);
+      viewport.removeEventListener('resize', handleViewportChange);
+      viewport.removeEventListener('scroll', handleViewportChange);
+      window.removeEventListener('orientationchange', handleOrientationChange);
     };
   }, [isMobile, isMounted]);
 
@@ -881,30 +924,40 @@ export default function AIInterface({
     if (typeof window === 'undefined') return;
     const footer = document.querySelector('footer');
     if (!footer) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        let anyVisible = false;
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            anyVisible = true;
-            setIsFooterVisible(true);
-            // If on mobile and scrolling down and not already snapping, finish scroll to footer top
-            if (isMobile && isScrollingDownRef.current && !isSnappingRef.current) {
-              isSnappingRef.current = true;
-              const footerTop = window.scrollY + entry.boundingClientRect.top;
-              window.scrollTo({ top: footerTop, behavior: 'smooth' });
-              // release the snapping lock shortly after
-              setTimeout(() => { isSnappingRef.current = false; }, 500);
+
+    let observer: IntersectionObserver | null = null;
+
+    if (isKeyboardVisible) {
+      setIsFooterVisible(false);
+    } else {
+      observer = new IntersectionObserver(
+        (entries) => {
+          let anyVisible = false;
+          for (const entry of entries) {
+            if (entry.isIntersecting) {
+              anyVisible = true;
+              setIsFooterVisible(true);
+              // If on mobile and scrolling down and not already snapping, finish scroll to footer top
+              if (isMobile && isScrollingDownRef.current && !isSnappingRef.current) {
+                isSnappingRef.current = true;
+                const footerTop = window.scrollY + entry.boundingClientRect.top;
+                window.scrollTo({ top: footerTop, behavior: 'smooth' });
+                // release the snapping lock shortly after
+                setTimeout(() => { isSnappingRef.current = false; }, 500);
+              }
             }
           }
-        }
-        if (!anyVisible) setIsFooterVisible(false);
-      },
-      { root: null, threshold: 0.01, rootMargin: '0px 0px -60%' }
-    );
-    observer.observe(footer);
-    return () => observer.disconnect();
-  }, [isMobile]);
+          if (!anyVisible) setIsFooterVisible(false);
+        },
+        { root: null, threshold: 0.01, rootMargin: '0px 0px -60%' }
+      );
+      observer.observe(footer);
+    }
+
+    return () => {
+      observer?.disconnect();
+    };
+  }, [isMobile, isKeyboardVisible]);
 
   return (
     <div
@@ -1054,7 +1107,7 @@ export default function AIInterface({
             <div
               ref={inputContainerRef}
               className={`${isMobile ? 'fixed' : 'absolute bottom-6 left-1/2 transform -translate-x-1/2 w-[85%] max-w-4xl'} z-[60] transition-all duration-300 ${isFooterVisible ? 'opacity-0 translate-y-2 pointer-events-none' : 'opacity-100 translate-y-0'}`}
-              style={isMobile ? { left: '1rem', right: '1rem', bottom: mobileInputBottom } : undefined}
+              style={isMobile ? { left: '1rem', right: '1rem', bottom: mobileInputBottom, transform: mobileInputTransform } : undefined}
             >
               <div className={`glass-input glow-ring ${
                 activeTab === 'flights' ? 'neon-glow-flights' :
