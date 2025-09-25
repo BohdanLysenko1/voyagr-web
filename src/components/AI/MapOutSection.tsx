@@ -108,7 +108,7 @@ export default function MapOutSection({ onNewTrip }: MapOutSectionProps) {
         <div className="p-2 rounded-lg bg-gradient-to-r from-primary/20 to-purple-500/20">
           <MapPin className="w-5 h-5 text-primary" />
         </div>
-        <h2 className="text-lg font-bold text-gray-800">AI Map Out</h2>
+        <h2 className="text-lg font-bold text-gray-800">Map Out</h2>
       </div>
       
       {/* Header */}

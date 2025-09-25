@@ -48,7 +48,7 @@ export default function RestaurantSection({ restaurants, onHeartToggle, onNewTri
         <div className="p-2 rounded-lg bg-gradient-to-r from-primary/20 to-purple-500/20">
           <UtensilsCrossed className="w-5 h-5 text-primary" />
         </div>
-        <h2 className="text-lg font-bold text-gray-800">AI Restaurant Search</h2>
+        <h2 className="text-lg font-bold text-gray-800">Restaurant Search</h2>
       </div>
       
       <div className="flex items-center justify-between w-full mb-6 p-4 rounded-2xl bg-gradient-to-r from-white/80 to-white/60 border border-white/50 hover:border-purple-200/60 backdrop-blur-sm hover:bg-gradient-to-r hover:from-white/90 hover:to-white/70 transition-all duration-500 shadow-sm hover:shadow-lg transform hover:scale-[1.01] group">
