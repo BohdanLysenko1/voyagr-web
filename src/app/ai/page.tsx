@@ -35,25 +35,48 @@ export default function AiPage() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const updateViewportHeight = () => {
+    const updateViewportMetrics = () => {
       const viewport = window.visualViewport;
       const height = viewport ? viewport.height : window.innerHeight;
+      const offsetTop = viewport ? viewport.offsetTop : 0;
       document.documentElement.style.setProperty('--app-height', `${height}px`);
+      document.documentElement.style.setProperty('--app-viewport-offset', `${offsetTop}px`);
     };
 
-    updateViewportHeight();
-    window.addEventListener('resize', updateViewportHeight);
-    window.addEventListener('orientationchange', updateViewportHeight);
+    updateViewportMetrics();
+    window.addEventListener('resize', updateViewportMetrics);
+    window.addEventListener('orientationchange', updateViewportMetrics);
     const viewport = window.visualViewport;
-    viewport?.addEventListener('resize', updateViewportHeight);
-    viewport?.addEventListener('scroll', updateViewportHeight);
+    viewport?.addEventListener('resize', updateViewportMetrics);
+    viewport?.addEventListener('scroll', updateViewportMetrics);
 
     return () => {
-      window.removeEventListener('resize', updateViewportHeight);
-      window.removeEventListener('orientationchange', updateViewportHeight);
-      viewport?.removeEventListener('resize', updateViewportHeight);
-      viewport?.removeEventListener('scroll', updateViewportHeight);
+      window.removeEventListener('resize', updateViewportMetrics);
+      window.removeEventListener('orientationchange', updateViewportMetrics);
+      viewport?.removeEventListener('resize', updateViewportMetrics);
+      viewport?.removeEventListener('scroll', updateViewportMetrics);
       document.documentElement.style.removeProperty('--app-height');
+      document.documentElement.style.removeProperty('--app-viewport-offset');
+    };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousBodyPosition = document.body.style.position;
+
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+    document.body.style.position = 'relative';
+    document.body.classList.add('voyagr-no-scroll');
+
+    return () => {
+      document.documentElement.style.overflow = previousHtmlOverflow;
+      document.body.style.overflow = previousBodyOverflow;
+      document.body.style.position = previousBodyPosition;
+      document.body.classList.remove('voyagr-no-scroll');
     };
   }, []);
   
@@ -243,15 +266,18 @@ export default function AiPage() {
 
   return (
     <div
-      className="relative overflow-hidden overflow-x-hidden bg-gradient-to-br from-slate-50 via-blue-50/50 to-purple-50/30"
-      style={{ touchAction: 'pan-y', overscrollBehaviorX: 'none', minHeight: 'var(--app-height, 100vh)' }}
+      className="relative flex flex-col overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50/50 to-purple-50/30"
+      style={{
+        touchAction: 'pan-y',
+        overscrollBehaviorX: 'none',
+        minHeight: 'var(--app-height, 100dvh)',
+        paddingTop: 'calc(var(--safe-area-top) + var(--app-viewport-offset, 0px))',
+        paddingBottom: 'var(--safe-area-bottom)',
+      }}
     >
       <div className="aurora-ambient" />
       {/* Mobile Layout */}
-      <div
-        className="lg:hidden flex flex-col min-h-0 pt-16"
-        style={{ minHeight: 'calc(var(--app-height, 100vh) - 4rem)' }}
-      >
+      <div className="lg:hidden flex flex-1 flex-col min-h-0 pt-16">
         
         {/* Mobile Sidebar using Sheet */}
         <Sheet open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
@@ -280,7 +306,7 @@ export default function AiPage() {
           
           {/* Mobile Main Interface with SheetTrigger */}
           <div
-            className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain relative"
+            className="flex-1 min-h-0 overflow-hidden relative"
             style={{ touchAction: 'pan-y', overscrollBehaviorX: 'none', zIndex: 1 }}
           >
             <AIInterface
@@ -317,7 +343,10 @@ export default function AiPage() {
       </div>
 
       {/* Desktop Layout */}
-      <div className="hidden lg:flex h-full min-h-0 max-h-screen overflow-hidden">
+      <div
+        className="hidden lg:flex flex-1 min-h-0 overflow-hidden"
+        style={{ maxHeight: 'var(--app-height, 100dvh)' }}
+      >
         <AISidebar
           flights={updatedFlights}
           hotels={updatedHotels}

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, useMemo, useLayoutEffect } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Sparkles, Send, Bot, User, Menu, ArrowRight, Settings } from 'lucide-react';
 import Image from 'next/image';
 
@@ -63,9 +63,8 @@ export default function AIInterface({
   const isUserScrollingRef = useRef(false);
   const autoScrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const inputContainerRef = useRef<HTMLDivElement | null>(null);
-  const [inputShellHeight, setInputShellHeight] = useState(96);
-  const [keyboardOffset, setKeyboardOffset] = useState(0);
   const initialViewportHeightRef = useRef<number | null>(null);
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
   // Track mounted state to prevent hydration mismatch
@@ -115,25 +114,7 @@ export default function AIInterface({
     }
   }, [adjustTextareaHeight, isMobile]);
 
-  const keyboardLift = useMemo(() => {
-    if (!isMobile) return 0;
-    return Math.max(0, Math.round(keyboardOffset));
-  }, [isMobile, keyboardOffset]);
-
-  const mobileInputBottom = useMemo(() => {
-    if (!isMobile) return undefined;
-    const baseGap = 16;
-    return `calc(env(safe-area-inset-bottom) + ${baseGap}px + ${keyboardLift}px)`;
-  }, [isMobile, keyboardLift]);
-
-  const mobileMessagePadding = useMemo(() => {
-    if (!isMobile) return undefined;
-    const baseGap = 24;
-    const padding = Math.max(0, Math.round(inputShellHeight + baseGap + keyboardLift));
-    return `calc(env(safe-area-inset-bottom) + ${padding}px)`;
-  }, [isMobile, inputShellHeight, keyboardLift]);
-
-  const isKeyboardVisible = useMemo(() => isMobile && keyboardLift > 0, [isMobile, keyboardLift]);
+  const isKeyboardVisible = useMemo(() => isMobile && isKeyboardOpen, [isMobile, isKeyboardOpen]);
 
   // Animated globe nodes with slight randomization at mount (client-side only)
   const globeNodes = useMemo(() => {
@@ -210,58 +191,24 @@ export default function AIInterface({
     });
   }, [registerClearChat, clearChat, isMounted]);
 
-  // Track the compact composer height so the message list can reserve space for it
-  useLayoutEffect(() => {
-    if (!isMounted) return; // Only run after component is mounted
-    
-    if (!isMobile) {
-      setInputShellHeight(96);
-      return;
-    }
-
-    const measure = () => {
-      if (!inputContainerRef.current) return;
-      const next = inputContainerRef.current.offsetHeight;
-      setInputShellHeight(prev => (next && next !== prev ? next : prev));
-    };
-
-    measure();
-
-    const element = inputContainerRef.current;
-    let observer: ResizeObserver | null = null;
-    if (typeof ResizeObserver !== 'undefined' && element) {
-      observer = new ResizeObserver(measure);
-      observer.observe(element);
-    }
-
-    window.addEventListener('resize', measure);
-
-    return () => {
-      window.removeEventListener('resize', measure);
-      observer?.disconnect();
-    };
-  }, [isMobile, showChat, isMounted]);
-
-  // Detect keyboard overlays (notably on iOS Safari) and lift the composer accordingly
+  // Detect keyboard overlays (notably on iOS Safari) and adjust layout affordances
   useEffect(() => {
     if (!isMounted) return;
 
     if (!isMobile || typeof window === 'undefined') {
       initialViewportHeightRef.current = null;
-      setKeyboardOffset(0);
+      setIsKeyboardOpen(false);
       return;
     }
 
     const viewport = window.visualViewport;
     if (!viewport) {
       initialViewportHeightRef.current = null;
-      setKeyboardOffset(0);
+      setIsKeyboardOpen(false);
       return;
     }
 
-    let destroyed = false;
     let rafId: number | null = null;
-    let orientationRafId: number | null = null;
 
     const ensureBaseline = () => {
       const candidate = window.innerHeight || document.documentElement.clientHeight || viewport.height;
@@ -272,56 +219,34 @@ export default function AIInterface({
       ensureBaseline();
     }
 
-    const computeKeyboardOffset = () => {
-      if (destroyed) return;
+    const evaluateKeyboardState = () => {
       const baseline = initialViewportHeightRef.current ?? window.innerHeight;
-      const viewportHeight = viewport.height;
-      const offsetTop = viewport.offsetTop;
-      const rawDiff = baseline - (viewportHeight + offsetTop);
-      const normalizedDiff = rawDiff > 0 ? rawDiff : 0;
+      const heightWithOffset = viewport.height + viewport.offsetTop;
+      const diff = baseline - heightWithOffset;
+      const keyboardEngaged = diff > 80;
 
-      if (normalizedDiff <= 0) {
+      if (!keyboardEngaged && diff <= 0) {
         ensureBaseline();
       }
 
-      const layoutDiff = window.innerHeight - viewportHeight;
-      const shouldApply = normalizedDiff > 0 && layoutDiff > 48;
-
-      let nextOffset = 0;
-      if (shouldApply) {
-        const maxExpected = Math.max(0, Math.min(480, Math.floor((baseline || 0) * 0.65)));
-        const clampedDiff = Math.min(normalizedDiff, maxExpected || normalizedDiff);
-        nextOffset = Math.round(clampedDiff);
-      }
-
-      setKeyboardOffset((prev) => (prev !== nextOffset ? nextOffset : prev));
+      setIsKeyboardOpen((prev) => (prev !== keyboardEngaged ? keyboardEngaged : prev));
     };
 
     const handleViewportChange = () => {
       if (rafId) cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(computeKeyboardOffset);
+      rafId = requestAnimationFrame(evaluateKeyboardState);
     };
 
-    const handleOrientationChange = () => {
-      if (orientationRafId) cancelAnimationFrame(orientationRafId);
-      orientationRafId = requestAnimationFrame(() => {
-        ensureBaseline();
-        computeKeyboardOffset();
-      });
-    };
-
-    handleViewportChange();
+    evaluateKeyboardState();
     viewport.addEventListener('resize', handleViewportChange);
     viewport.addEventListener('scroll', handleViewportChange);
-    window.addEventListener('orientationchange', handleOrientationChange);
+    window.addEventListener('orientationchange', handleViewportChange);
 
     return () => {
-      destroyed = true;
       if (rafId) cancelAnimationFrame(rafId);
-      if (orientationRafId) cancelAnimationFrame(orientationRafId);
       viewport.removeEventListener('resize', handleViewportChange);
       viewport.removeEventListener('scroll', handleViewportChange);
-      window.removeEventListener('orientationchange', handleOrientationChange);
+      window.removeEventListener('orientationchange', handleViewportChange);
     };
   }, [isMobile, isMounted]);
 
@@ -967,7 +892,7 @@ export default function AIInterface({
       style={{
         touchAction: 'pan-y',
         overscrollBehaviorX: 'none',
-        minHeight: isMobile ? 'var(--app-height, 100vh)' : undefined
+        minHeight: isMobile ? 'var(--app-height, 100dvh)' : undefined
       }}
     >
       
@@ -1010,15 +935,9 @@ export default function AIInterface({
         {showChat ? (
         /* Chat Mode */
         <div
-          className={`relative flex flex-col ${isMobile ? 'flex-1 p-4 pt-0 h-full' : 'h-[calc(100vh-100px)] p-6 pt-0'} ${isMobile ? '' : 'overflow-hidden'}`}
-          style={isMobile ? { 
-            minHeight: 'calc(var(--app-height, 100vh) - 4.5rem)',
-            maxHeight: 'calc(var(--app-height, 100vh) - 4.5rem)',
-            height: 'calc(var(--app-height, 100vh) - 4.5rem)'
-          } : undefined}
+          className={`relative flex flex-col ${isMobile ? 'flex-1 min-h-0 px-4 pt-0 pb-4 gap-4' : 'h-full p-6 pt-0'} ${isMobile ? '' : 'overflow-hidden'}`}
         >
-          
-          <div className={`${isMobile ? 'w-full' : 'max-w-4xl w-full mx-auto'} ${isMobile ? 'mt-2' : 'mt-6'} h-full min-h-0 flex flex-col relative`}>
+          <div className={`${isMobile ? 'w-full flex-1 min-h-0 flex flex-col gap-4 relative' : 'max-w-4xl w-full mx-auto mt-6 h-full min-h-0 flex flex-col relative'}`}>
             {/* Chat Header - Desktop only */}
             {!isMobile && (
               <div className="glass-card border-b-0 rounded-t-[2rem] p-6 text-center transition-all duration-700 ease-in-out">
@@ -1034,15 +953,18 @@ export default function AIInterface({
             )}
 
             {/* Messages Container */}
-            <div className={`flex-1 min-h-0 relative ${isMobile ? 'mt-4' : 'glass-panel rounded-b-[2rem] max-h-[calc(100vh-180px)]'}`}>
+            <div
+              className={`flex-1 min-h-0 relative flex flex-col ${isMobile ? '' : 'glass-panel rounded-b-[2rem]'}`}
+              style={!isMobile ? { maxHeight: 'calc(var(--app-height, 100dvh) - 180px)' } : undefined}
+            >
               <div
                 data-scroll-container="true"
-                className={`h-full overflow-y-auto overflow-x-hidden ${isMobile ? 'px-4 py-4' : 'p-6 pb-28'} ${isMobile ? 'space-y-6' : 'space-y-5'} scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400`}
+                className={`flex-1 h-full overflow-y-auto overflow-x-hidden ${isMobile ? 'px-4 py-4 space-y-6' : 'p-6 pb-28 space-y-5'} scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400`}
                 style={{
                   touchAction: 'pan-y',
                   overscrollBehavior: 'contain',
                   WebkitOverflowScrolling: 'touch',
-                  paddingBottom: isMobile ? mobileMessagePadding : undefined,
+                  paddingBottom: isMobile ? 'calc(env(safe-area-inset-bottom) + 32px)' : undefined,
                   position: 'relative',
                   zIndex: 1,
                   scrollBehavior: isMobile ? 'auto' : 'smooth'
@@ -1108,8 +1030,8 @@ export default function AIInterface({
             {/* Compact Chat Input */}
             <div
               ref={inputContainerRef}
-              className={`${isMobile ? 'fixed' : 'absolute bottom-6 left-1/2 transform -translate-x-1/2 w-[85%] max-w-4xl'} z-[60] transition-all duration-300 ${isFooterVisible ? 'opacity-0 translate-y-2 pointer-events-none' : 'opacity-100 translate-y-0'}`}
-              style={isMobile ? { left: '1rem', right: '1rem', bottom: mobileInputBottom } : undefined}
+              className={`${isMobile ? 'sticky bottom-0 w-full' : 'absolute bottom-6 left-1/2 transform -translate-x-1/2 w-[85%] max-w-4xl'} z-[60] transition-all duration-300 ${isFooterVisible ? 'opacity-0 translate-y-2 pointer-events-none' : 'opacity-100 translate-y-0'}`}
+              style={isMobile ? { padding: '0 1rem calc(env(safe-area-inset-bottom) + 16px)' } : undefined}
             >
               <div className={`glass-input glow-ring ${
                 activeTab === 'flights' ? 'neon-glow-flights' :

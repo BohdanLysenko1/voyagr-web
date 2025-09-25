@@ -107,7 +107,10 @@ export default function AISidebar({
   ];
 
   return (
-    <div className={`${isMobile ? 'w-full h-full' : 'w-[480px] min-w-[480px] h-[calc(100vh-100px)]'} flex-shrink-0 ${isMobile ? 'p-0' : 'p-6 pt-0'} flex flex-col`}>
+    <div
+      className={`${isMobile ? 'w-full h-full' : 'w-[480px] min-w-[480px]'} flex-shrink-0 ${isMobile ? 'p-0' : 'p-6 pt-0'} flex flex-col`}
+      style={isMobile ? undefined : { height: 'calc(var(--app-height, 100dvh) - 100px)' }}
+    >
       <aside className={`w-full flex-1 min-h-0 ${isMobile ? 'mt-0' : 'mt-4'} flex flex-col overflow-hidden relative transition-all duration-300 scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent hover:scrollbar-thumb-primary/30 ${isMobile 
         ? 'bg-white border-r border-gray-200 shadow-lg rounded-none' 
         : 'glass-panel rounded-[2rem]'

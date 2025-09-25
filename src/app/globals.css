@@ -45,6 +45,10 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --app-height: 100dvh;
+  --app-viewport-offset: 0px;
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
   /* Design tokens for aurora + glass */
   --primary-500: #5271FF;
   --accent-violet: #8B5CF6;
@@ -55,10 +59,22 @@
 }
 
 /* Force light theme always - ignore system dark mode preference */
+html,
+body {
+  min-height: 100%;
+}
+
 body {
   color: var(--foreground);
   background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
+  overscroll-behavior-y: none;
+}
+
+body.voyagr-no-scroll {
+  overflow: hidden;
+  position: relative;
+  width: 100%;
 }
 
 @layer utilities {
