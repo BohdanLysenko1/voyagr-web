@@ -588,7 +588,7 @@ export default function AIInterface({
   const messageContainerStyle = useMemo(() => ({
     touchAction: iosDevice ? 'pan-y' : 'auto',
     overscrollBehavior: 'contain' as const,
-    WebkitOverflowScrolling: 'touch',
+    WebkitOverflowScrolling: 'touch' as const,
     scrollBehavior: 'smooth' as const,
     position: 'relative' as const,
     zIndex: 1,
