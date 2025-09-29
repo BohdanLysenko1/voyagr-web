@@ -583,7 +583,7 @@ export default function AIInterface({
     const mobileNavHeight = isMobile ? 64 : 0;
     const totalOffset = keyboardOffset + mobileNavHeight;
     return {
-      paddingBottom: isMobile ? `calc(env(safe-area-inset-bottom) + ${mobileNavHeight}px + 12px)` : 'calc(env(safe-area-inset-bottom) + 12px)',
+      paddingBottom: isMobile ? `calc(env(safe-area-inset-bottom) + ${mobileNavHeight}px + 12px)` : 'calc(env(safe-area-inset-bottom) + 24px)',
       transform: totalOffset ? `translateY(-${totalOffset}px)` : 'none',
       transition: 'transform 0.24s ease-out',
       willChange: 'transform' as const,
@@ -767,8 +767,8 @@ export default function AIInterface({
         {/* Chat Interface or Welcome Screen */}
         {showChat ? (
         /* Chat Mode */
-        <div className="relative flex flex-col px-4 pb-0 pt-0 sm:px-6" style={{ height: '100%', maxHeight: '100%', display: 'flex', flexDirection: 'column' }}>
-          <div className="mx-auto flex w-full max-w-4xl flex-col" style={{ marginTop: isMobile ? '12px' : '24px', flex: '1 1 auto', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+        <div className="relative flex flex-col px-4 pb-0 pt-0 sm:px-6" style={{ height: isMobile ? '100%' : 'auto', maxHeight: '100%', display: 'flex', flexDirection: 'column' }}>
+          <div className="mx-auto flex w-full max-w-4xl flex-col" style={{ marginTop: isMobile ? '12px' : '0.75rem', flex: '1 1 auto', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
             {/* Hide title card on mobile to save space, show on desktop */}
             {!isMobile && (
               <div className="glass-card border-b-0 rounded-3xl p-6 text-center shadow-[0_22px_45px_rgba(15,23,42,0.12)] transition-all duration-700 ease-in-out">
@@ -784,13 +784,13 @@ export default function AIInterface({
             )}
 
             {/* Chat container with fixed sizing */}
-            <div className="glass-panel flex flex-col overflow-hidden" style={{ 
-              borderRadius: isMobile ? '1.5rem' : '2rem', 
-              minHeight: 0, 
+            <div className="glass-panel flex flex-col overflow-hidden" style={{
+              borderRadius: isMobile ? '1.5rem' : '2rem',
+              minHeight: 0,
               flex: '1 1 auto',
               // Mobile: viewport - (header 64px + mobile nav 64px + input ~80px + margins ~40px)
-              // Desktop: viewport - (title + input + margins)
-              maxHeight: isMobile ? 'calc(100dvh - 250px)' : 'calc(100vh - 280px)',
+              // Desktop: viewport - (title ~80px + input ~100px + margins + padding ~100px) = ~280px
+              maxHeight: isMobile ? 'calc(100dvh - 250px)' : 'calc(100vh - 320px)',
               height: isMobile ? 'calc(100dvh - 250px)' : 'auto'
             }}>
               <div
