@@ -44,7 +44,6 @@ export default function AiPage() {
   const [resetKey, setResetKey] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
   const [isIOSDevice, setIsIOSDevice] = useState(false);
-  const [keyboardOffset, setKeyboardOffset] = useState(0);
 
   // Detect mobile and iOS devices
   useEffect(() => {
@@ -79,62 +78,21 @@ export default function AiPage() {
     };
   }, []);
 
-  // iOS keyboard detection and viewport handling
+  // Lock body scroll so only the chat surface scrolls
   useEffect(() => {
-    if (typeof window === 'undefined' || !isIOSDevice) return;
+    if (typeof window === 'undefined') return;
 
-    let isKeyboardOpen = false;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+    const previousBodyOverflow = document.body.style.overflow;
 
-    const handleViewportChange = () => {
-      const viewport = window.visualViewport;
-      if (!viewport) return;
-      
-      const keyboardHeight = window.innerHeight - viewport.height;
-      const keyboardThreshold = 150; // Minimum height to consider keyboard open
-      
-      if (keyboardHeight > keyboardThreshold && !isKeyboardOpen) {
-        // Keyboard is opening
-        isKeyboardOpen = true;
-        setKeyboardOffset(keyboardHeight);
-        document.body.classList.add('ios-keyboard-active');
-        
-        // Prevent body scrolling when keyboard is open
-        document.body.style.position = 'fixed';
-        document.body.style.top = `-${window.scrollY}px`;
-        document.body.style.width = '100%';
-        
-      } else if (keyboardHeight <= keyboardThreshold && isKeyboardOpen) {
-        // Keyboard is closing
-        isKeyboardOpen = false;
-        setKeyboardOffset(0);
-        document.body.classList.remove('ios-keyboard-active');
-        
-        // Restore body scrolling
-        const scrollY = document.body.style.top;
-        document.body.style.position = '';
-        document.body.style.top = '';
-        document.body.style.width = '';
-        if (scrollY) {
-          window.scrollTo(0, parseInt(scrollY || '0', 10) * -1);
-        }
-      }
-    };
-
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', handleViewportChange);
-    }
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
 
     return () => {
-      if (window.visualViewport) {
-        window.visualViewport.removeEventListener('resize', handleViewportChange);
-      }
-      document.body.classList.remove('ios-keyboard-active');
-      // Clean up any fixed positioning
-      document.body.style.position = '';
-      document.body.style.top = '';
-      document.body.style.width = '';
+      document.documentElement.style.overflow = previousHtmlOverflow;
+      document.body.style.overflow = previousBodyOverflow;
     };
-  }, [isIOSDevice]);
+  }, []);
 
   // Keep a CSS custom property in sync with the real viewport height to avoid 100vh jumps on mobile
   useEffect(() => {
@@ -363,12 +321,12 @@ export default function AiPage() {
       style={{
         touchAction: isIOSDevice ? 'pan-y' : 'auto',
         overscrollBehaviorX: 'none',
-        overscrollBehaviorY: isIOSDevice ? 'contain' : 'auto',
+        overscrollBehaviorY: 'contain',
         WebkitOverflowScrolling: 'touch',
+        height: '100dvh',
+        minHeight: '100dvh',
         paddingTop: 'calc(var(--safe-area-top) + var(--app-viewport-offset, 0px))',
-        paddingBottom: isIOSDevice ? `calc(var(--safe-area-bottom) + ${keyboardOffset}px)` : 'var(--safe-area-bottom)',
-        transform: isIOSDevice && keyboardOffset > 0 ? `translateY(-${Math.min(keyboardOffset / 4, 50)}px)` : 'none',
-        transition: 'transform 0.3s ease-in-out',
+        paddingBottom: 'var(--safe-area-bottom)',
       }}
     >
       <div className="aurora-ambient" aria-hidden="true" />
@@ -443,7 +401,6 @@ export default function AiPage() {
             isMobile={isMobile}
             isIOSDevice={isIOSDevice}
             isSidebarOpen={isSidebarOpen}
-            keyboardOffset={keyboardOffset}
           />
         </main>
       </div>

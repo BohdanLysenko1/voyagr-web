@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Sparkles, Send, Bot, User, ArrowRight, Settings } from 'lucide-react';
 import Image from 'next/image';
+import { KeyboardState, subscribeToKeyboardState, isIOS as detectIOS } from '@/utils/mobileKeyboard';
+import { isNearBottom as evaluateNearBottom, shouldAutoScroll } from '@/utils/scrollLock';
 
 type TabKey = 'plan' | 'preferences' | 'flights' | 'hotels' | 'restaurants' | 'mapout';
 
@@ -28,7 +30,6 @@ interface AIInterfaceProps {
   isMobile?: boolean;
   isIOSDevice?: boolean;
   isSidebarOpen?: boolean;
-  keyboardOffset?: number;
 }
 
 export default function AIInterface({ 
@@ -46,9 +47,8 @@ export default function AIInterface({
   onMessageSent,
   onPreferencesOpen,
   isMobile = false,
-  isIOSDevice = false,
-  isSidebarOpen = false,
-  keyboardOffset = 0
+  isIOSDevice: isIOSDeviceProp = false,
+  isSidebarOpen = false
 }: AIInterfaceProps) {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [isAITyping, setIsAITyping] = useState(false);
@@ -56,17 +56,54 @@ export default function AIInterface({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const globeFieldRef = useRef<HTMLDivElement>(null);
   const [isFooterVisible, setIsFooterVisible] = useState(false);
-  const isSnappingRef = useRef(false);
-  const lastScrollYRef = useRef(0);
-  const isScrollingDownRef = useRef(false);
   const scrollContainerRef = useRef<HTMLElement | null>(null);
   const isUserScrollingRef = useRef(false);
   const autoScrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isMounted, setIsMounted] = useState(false);
+  const composerWrapperRef = useRef<HTMLDivElement | null>(null);
+  const [composerHeight, setComposerHeight] = useState(0);
+  const [keyboardState, setKeyboardState] = useState<KeyboardState>({
+    isOpen: false,
+    height: 0,
+    viewportHeight: 0,
+  });
+  const [resolvedIsIOS, setResolvedIsIOS] = useState(isIOSDeviceProp);
+  const iosDevice = resolvedIsIOS;
+  const [scrollNode, setScrollNode] = useState<HTMLElement | null>(null);
+  const handleScrollContainerRef = useCallback((node: HTMLDivElement | null) => {
+    scrollContainerRef.current = node ?? null;
+    setScrollNode(node);
+  }, []);
 
   // Track mounted state to prevent hydration mismatch
   useEffect(() => {
     setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (isIOSDeviceProp) {
+      setResolvedIsIOS(true);
+      return;
+    }
+    setResolvedIsIOS(detectIOS());
+  }, [isIOSDeviceProp]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const unsubscribe = subscribeToKeyboardState((state) => {
+      setKeyboardState((prev) => {
+        if (
+          prev.isOpen === state.isOpen &&
+          prev.height === state.height &&
+          prev.viewportHeight === state.viewportHeight
+        ) {
+          return prev;
+        }
+        return state;
+      });
+    });
+    return unsubscribe;
   }, []);
   // Auto-grow the compact composer
   const adjustTextareaHeight = useCallback(() => {
@@ -86,7 +123,7 @@ export default function AIInterface({
     if (!el) return;
     
     // iOS-specific focus handling to prevent zoom
-    if (isIOSDevice) {
+    if (iosDevice) {
       // Temporarily set font-size to 16px to prevent iOS zoom
       const originalFontSize = el.style.fontSize;
       el.style.fontSize = '16px';
@@ -120,7 +157,7 @@ export default function AIInterface({
         }
       }, 0);
     }
-  }, [adjustTextareaHeight, isIOSDevice]);
+  }, [adjustTextareaHeight, iosDevice]);
 
 
   // Animated globe nodes with slight randomization at mount (client-side only)
@@ -203,26 +240,44 @@ export default function AIInterface({
     adjustTextareaHeight();
   }, [inputValue, adjustTextareaHeight]);
 
+  useEffect(() => {
+    const node = composerWrapperRef.current;
+    if (!node) return;
+
+    const updateHeight = () => {
+      const rect = node.getBoundingClientRect();
+      setComposerHeight(rect.height);
+    };
+
+    updateHeight();
+
+    if (typeof ResizeObserver === 'undefined') return;
+
+    const observer = new ResizeObserver(() => {
+      updateHeight();
+    });
+
+    observer.observe(node);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [showChat]);
+
 
   // Check if user is near the bottom of the scroll container
   const isNearBottom = useCallback((threshold = 100) => {
-    // Use more aggressive threshold for mobile
-    const mobileThreshold = isMobile ? 200 : threshold;
-    
-    const scrollContainer = scrollContainerRef.current;
-    if (!scrollContainer) {
-      // Fallback: try to find scroll container again
-      const container = document.querySelector('[data-scroll-container="true"]') as HTMLElement;
-      if (container) {
-        scrollContainerRef.current = container;
-        const { scrollTop, scrollHeight, clientHeight } = container;
-        return scrollHeight - scrollTop - clientHeight < mobileThreshold;
-      }
-      return true;
-    }
-    
-    const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
-    return scrollHeight - scrollTop - clientHeight < mobileThreshold;
+    const container = scrollContainerRef.current;
+    if (!container) return true;
+    return evaluateNearBottom(
+      {
+        scrollTop: container.scrollTop,
+        scrollHeight: container.scrollHeight,
+        clientHeight: container.clientHeight,
+      },
+      threshold,
+      isMobile,
+    );
   }, [isMobile]);
 
   // Robust scroll to bottom
@@ -231,89 +286,47 @@ export default function AIInterface({
       clearTimeout(autoScrollTimeoutRef.current);
     }
 
-    const shouldScroll = force || isNearBottom(100);
-    if (!shouldScroll) {
+    if (!force && !isNearBottom(100)) {
       return;
     }
 
-    // Multi-strategy scroll container detection
-    const findScrollContainer = () => {
-      // Strategy 1: Use cached reference
-      if (scrollContainerRef.current) {
-        return scrollContainerRef.current;
-      }
-
-      // Strategy 2: Find by data attribute
-      const explicitContainer = document.querySelector('[data-scroll-container="true"]') as HTMLElement;
-      if (explicitContainer) {
-        scrollContainerRef.current = explicitContainer;
-        return explicitContainer;
-      }
-
-      // Strategy 3: Find relative to messages end ref
-      if (messagesEndRef.current) {
-        const container = messagesEndRef.current.closest('[data-scroll-container="true"]') as HTMLElement;
-        if (container) {
-          scrollContainerRef.current = container;
-          return container;
-        }
-
-        // Strategy 4: Find scrollable parent
-        let parent = messagesEndRef.current.parentElement;
-        while (parent) {
-          const style = window.getComputedStyle(parent);
-          if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
-            scrollContainerRef.current = parent;
-            return parent;
-          }
-          parent = parent.parentElement;
-        }
-      }
-
-      return null;
-    };
-
     const performScroll = () => {
-      const targetContainer = findScrollContainer();
-      
-      if (!targetContainer) {
-        // Ultimate fallback: scroll window or use scrollIntoView
+      const container = scrollContainerRef.current;
+
+      if (!container) {
         if (messagesEndRef.current) {
           try {
-            messagesEndRef.current.scrollIntoView({ 
-              behavior: 'smooth', 
+            messagesEndRef.current.scrollIntoView({
+              behavior: 'smooth',
               block: 'end',
-              inline: 'nearest'
+              inline: 'nearest',
             });
-          } catch (e) {
-            console.warn('ScrollIntoView failed:', e);
+          } catch (error) {
+            if (process.env.NODE_ENV !== 'production') {
+              console.warn('ScrollIntoView fallback failed', error);
+            }
           }
         }
         return;
       }
 
-      // Robust scrolling with fallbacks
-      const maxScroll = targetContainer.scrollHeight - targetContainer.clientHeight;
-      
+      const maxScroll = container.scrollHeight - container.clientHeight;
+
       try {
-        // Try smooth scroll first
-        targetContainer.scrollTo({
+        container.scrollTo({
           top: maxScroll,
-          behavior: 'smooth'
+          behavior: 'smooth',
         });
       } catch {
-        // Fallback to direct assignment
-        targetContainer.scrollTop = maxScroll;
+        container.scrollTop = maxScroll;
       }
 
-      // Focus input after scroll completes - faster on mobile
       const focusDelay = isMobile ? 25 : 250;
       autoScrollTimeoutRef.current = setTimeout(() => {
         focusInput();
       }, focusDelay);
     };
 
-    // Multiple animation frames for mobile reliability
     if (isMobile) {
       requestAnimationFrame(() => {
         requestAnimationFrame(performScroll);
@@ -321,7 +334,7 @@ export default function AIInterface({
     } else {
       requestAnimationFrame(performScroll);
     }
-  }, [isNearBottom, focusInput, isMobile]);
+  }, [focusInput, isMobile, isNearBottom]);
 
 
   // Auto-scroll on new messages with improved logic
@@ -331,15 +344,31 @@ export default function AIInterface({
     // Wait for DOM updates, then check if we should scroll - faster on mobile
     const scrollDelay = isMobile ? 10 : 100;
     const scrollTimeout = setTimeout(() => {
-      const skipAutoScroll = isUserScrollingRef.current && !isNearBottom(300);
-      if (skipAutoScroll) return;
-      
-      // Force scroll to new messages
+      const container = scrollContainerRef.current;
+      const metrics = container
+        ? {
+            scrollTop: container.scrollTop,
+            scrollHeight: container.scrollHeight,
+            clientHeight: container.clientHeight,
+          }
+        : undefined;
+
+      const allowAutoScroll = metrics
+        ? shouldAutoScroll({
+            metrics,
+            threshold: 300,
+            isMobile,
+            userInitiated: !isUserScrollingRef.current,
+          })
+        : true;
+
+      if (!allowAutoScroll) return;
+
       scrollToBottom(true);
     }, scrollDelay);
     
     return () => clearTimeout(scrollTimeout);
-  }, [chatMessages, scrollToBottom, isNearBottom, isMobile]);
+  }, [chatMessages, scrollToBottom, isMobile]);
 
   // Auto-scroll when AI starts typing
   useEffect(() => {
@@ -546,61 +575,44 @@ export default function AIInterface({
 
   const content = getContentByTab();
 
-  // Initialize and maintain scroll container reference
+  const keyboardOffset = keyboardState.isOpen ? Math.max(0, Math.round(keyboardState.height)) : 0;
+  const composerHeightValue = Math.max(0, Math.round(composerHeight));
+
+  const composerWrapperStyle = useMemo(() => ({
+    paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)',
+    transform: keyboardOffset ? `translateY(-${keyboardOffset}px)` : 'none',
+    transition: 'transform 0.24s ease-out',
+    willChange: 'transform' as const,
+  }), [keyboardOffset]);
+
+  const messageContainerStyle = useMemo(() => ({
+    touchAction: iosDevice ? 'pan-y' : 'auto',
+    overscrollBehavior: 'contain' as const,
+    WebkitOverflowScrolling: 'touch',
+    scrollBehavior: 'smooth' as const,
+    position: 'relative' as const,
+    zIndex: 1,
+    ['--composer-height' as any]: `${composerHeightValue}px`,
+    paddingBottom: `calc(env(safe-area-inset-bottom) + 12px + ${keyboardOffset}px + var(--composer-height))`,
+  }), [iosDevice, composerHeightValue, keyboardOffset]);
+  const messageSpacingClass = isMobile ? 'space-y-6 p-6' : 'space-y-5 p-4 sm:p-6';
+
   useEffect(() => {
-    const updateScrollContainer = () => {
-      // Clear existing reference to force re-detection
-      scrollContainerRef.current = null;
-      
-      // Wait for DOM to be ready
-      requestAnimationFrame(() => {
-        const container = document.querySelector('[data-scroll-container="true"]') as HTMLElement;
-        if (container) {
-          scrollContainerRef.current = container;
-        }
-      });
-    };
-
-    updateScrollContainer();
-
-    // Re-detect container on chat state changes
-    const timeoutId = setTimeout(updateScrollContainer, 100);
-
-    // Listen for DOM changes
-    const observer = new MutationObserver(updateScrollContainer);
-    if (document.body) {
-      observer.observe(document.body, { childList: true, subtree: true });
-    }
-
-    window.addEventListener('resize', updateScrollContainer);
-
-    return () => {
-      clearTimeout(timeoutId);
-      observer?.disconnect();
-      window.removeEventListener('resize', updateScrollContainer);
-    };
-  }, [showChat]);
-
-  // Handle user scrolling detection
-  useEffect(() => {
-    const scrollContainer = scrollContainerRef.current;
-    if (!scrollContainer) return;
+    const container = scrollNode;
+    if (!container) return;
 
     let scrollTimeout: NodeJS.Timeout;
-    
+
     const handleScroll = () => {
       isUserScrollingRef.current = true;
-      
-      // Clear existing timeout
+
       if (scrollTimeout) clearTimeout(scrollTimeout);
-      
-      // Reset user scrolling flag after a delay - faster reset on mobile
+
       const resetDelay = isMobile ? 1000 : 1500;
       scrollTimeout = setTimeout(() => {
-        // Only reset if user is close to bottom (more tolerant on mobile)
-        const container = scrollContainerRef.current;
-        if (container) {
-          const { scrollTop, scrollHeight, clientHeight } = container;
+        const currentContainer = scrollContainerRef.current;
+        if (currentContainer) {
+          const { scrollTop, scrollHeight, clientHeight } = currentContainer;
           const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
           const tolerance = isMobile ? 50 : 20;
           if (distanceFromBottom <= tolerance) {
@@ -612,13 +624,13 @@ export default function AIInterface({
       }, resetDelay);
     };
 
-    scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
-    
+    container.addEventListener('scroll', handleScroll, { passive: true });
+
     return () => {
-      scrollContainer.removeEventListener('scroll', handleScroll);
+      container.removeEventListener('scroll', handleScroll);
       if (scrollTimeout) clearTimeout(scrollTimeout);
     };
-  }, [showChat, isMobile]);
+  }, [scrollNode, isMobile]);
 
   const globeTint = useMemo(() => {
     switch (activeTab) {
@@ -686,17 +698,6 @@ export default function AIInterface({
     return () => window.removeEventListener('mousemove', onMove as any);
   }, []);
 
-  // Track scroll direction for snap behavior
-  useEffect(() => {
-    const onScroll = () => {
-      const y = window.scrollY || document.documentElement.scrollTop || 0;
-      isScrollingDownRef.current = y > lastScrollYRef.current;
-      lastScrollYRef.current = y;
-    };
-    window.addEventListener('scroll', onScroll, { passive: true } as any);
-    return () => window.removeEventListener('scroll', onScroll as any);
-  }, []);
-
   // Detect when the global footer enters the viewport to hide the floating input
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -725,10 +726,13 @@ export default function AIInterface({
 
   return (
     <div
-      className="flex-1 relative overflow-x-hidden flex flex-col h-full min-h-0"
+      className="flex-1 relative overflow-x-hidden flex flex-col min-h-0"
       style={{
         touchAction: 'auto',
-        overscrollBehaviorX: 'none'
+        overscrollBehaviorX: 'none',
+        overscrollBehaviorY: 'contain',
+        height: '100dvh',
+        minHeight: '100dvh'
       }}
     >
       
@@ -751,15 +755,12 @@ export default function AIInterface({
         {/* Chat Interface or Welcome Screen */}
         {showChat ? (
         /* Chat Mode */
-        <div
-          className="relative flex h-full flex-col overflow-hidden px-4 pt-0 pb-4 sm:px-6"
-        >
-          <div className="max-w-4xl w-full mx-auto mt-6 flex flex-1 min-h-0 flex-col gap-4">
-            {/* Chat Header */}
-            <div className="glass-card border-b-0 rounded-t-[2rem] p-6 text-center transition-all duration-700 ease-in-out">
+        <div className="relative flex h-full flex-col px-4 pb-0 pt-0 sm:px-6">
+          <div className="mx-auto mt-6 flex w-full max-w-4xl flex-1 flex-col gap-4">
+            <div className="glass-card border-b-0 rounded-3xl p-6 text-center shadow-[0_22px_45px_rgba(15,23,42,0.12)] transition-all duration-700 ease-in-out">
               <div className="flex items-center justify-center gap-3">
-                <div className={`p-2 rounded-xl bg-gradient-to-br ${content.gradientColors} border border-white/40`}>
-                  <Sparkles className={`w-6 h-6 ${content.accentColor}`} />
+                <div className={`rounded-xl border border-white/40 bg-gradient-to-br ${content.gradientColors} p-2`}>
+                  <Sparkles className={`h-6 w-6 ${content.accentColor}`} />
                 </div>
                 <h2 className={`text-2xl font-bold ${content.accentColor}`}>
                   {content.title}
@@ -767,175 +768,169 @@ export default function AIInterface({
               </div>
             </div>
 
-            <div className="flex flex-1 min-h-0 flex-col gap-4">
-              {/* Messages Container */}
+            <div className="glass-panel flex flex-1 min-h-0 flex-col overflow-hidden rounded-[2rem]">
               <div
-                className="glass-panel flex flex-1 min-h-0 flex-col overflow-hidden rounded-[2rem]"
-                style={{ maxHeight: 'calc(var(--app-height, 100dvh) - 200px)' }}
+                ref={handleScrollContainerRef}
+                data-scroll-container="true"
+                className={`${messageSpacingClass} flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400`}
+                style={messageContainerStyle}
               >
-                <div
-                  data-scroll-container="true"
-                  className={`flex-1 h-full overflow-y-auto overflow-x-hidden ${isMobile ? 'space-y-6 p-6 pb-32' : 'space-y-5 p-4 pb-28'} sm:p-6 sm:pb-28 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400 ${isIOSDevice ? 'ios-scroll-smooth' : ''}`}
-                  style={{
-                    touchAction: isIOSDevice ? 'pan-y' : 'auto',
-                    overscrollBehavior: isIOSDevice ? 'contain' : 'auto',
-                    overscrollBehaviorY: isIOSDevice ? 'contain' : 'auto',
-                    WebkitOverflowScrolling: 'touch',
-                    position: 'relative',
-                    zIndex: 1,
-                    scrollBehavior: 'smooth',
-                    ...(isIOSDevice && {
-                      transform: 'translate3d(0, 0, 0)',
-                      WebkitTransform: 'translate3d(0, 0, 0)',
-                      willChange: 'scroll-position',
-                      backfaceVisibility: 'hidden',
-                      WebkitBackfaceVisibility: 'hidden'
-                    })
-                  }}
-                >
-                  {chatMessages.map((message) => (
+                {chatMessages.map((message) => {
+                  const bubbleWidth = isMobile
+                    ? 'max-w-[calc(100%_-_5rem)]'
+                    : 'max-w-[calc(100%_-_4rem)] sm:max-w-[70ch] lg:max-w-[80ch]';
+                  const bubbleTone =
+                    message.sender === 'user'
+                      ? 'bg-gradient-to-br from-primary/16 via-white/96 to-white/88 border border-primary/25 shadow-[0_16px_32px_rgba(82,113,255,0.18)]'
+                      : 'bg-gradient-to-br from-white/96 via-white/88 to-white/78 border border-white/60 shadow-[0_12px_28px_rgba(15,23,42,0.12)]';
+                  const bubbleRadius =
+                    message.sender === 'user'
+                      ? 'rounded-3xl rounded-tr-xl'
+                      : 'rounded-3xl rounded-tl-xl';
+                  const bubblePadding = isMobile ? 'px-5 py-4' : 'px-4 py-4';
+
+                  return (
                     <div
                       key={message.id}
-                      className={`flex items-start ${isMobile ? 'gap-4' : 'gap-3'} ${message.sender === 'user' ? 'flex-row-reverse' : 'flex-row'} w-full max-w-full overflow-hidden`}
-                      style={{ 
-                        position: 'relative', 
-                        zIndex: 1,
-                        // Add left margin for AI messages on mobile when sidebar is open to prevent avatar overlap
-                        marginLeft: isMobile && isSidebarOpen && message.sender === 'ai' ? '20px' : '0'
+                      className={`flex w-full max-w-full items-start ${isMobile ? 'gap-4' : 'gap-3'} ${message.sender === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
+                      style={{
+                        marginLeft:
+                          isMobile && isSidebarOpen && message.sender === 'ai'
+                            ? '20px'
+                            : '0',
                       }}
                     >
-                      {/* Avatar */}
-                      <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
-                        message.sender === 'user' 
-                          ? 'bg-primary/20 border-2 border-primary/30' 
-                          : `bg-gradient-to-br ${content.gradientColors} border-2 border-white/40`
-                      }`}>
+                      <div
+                        className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full ${
+                          message.sender === 'user'
+                            ? 'bg-primary/20 border-2 border-primary/30'
+                            : `bg-gradient-to-br ${content.gradientColors} border-2 border-white/40`
+                        }`}
+                      >
                         {message.sender === 'user' ? (
-                          <User className="w-5 h-5 text-primary" />
+                          <User className="h-5 w-5 text-primary" />
                         ) : (
-                          <Bot className={`w-5 h-5 ${content.accentColor}`} />
+                          <Bot className={`h-5 w-5 ${content.accentColor}`} />
                         )}
                       </div>
 
-                      {/* Message Bubble */}
-                      <div className={`w-fit ${
-                        isMobile 
-                          ? 'max-w-[calc(100%_-_5rem)]' 
-                          : 'max-w-[calc(100%_-_4rem)] sm:max-w-[70ch] lg:max-w-[80ch]'
-                      } overflow-hidden ${
-                        message.sender === 'user' 
-                          ? 'bg-primary/15 border border-primary/30 rounded-2xl rounded-tr-md backdrop-blur-md'
-                          : 'bg-white/20 border border-white/30 rounded-2xl rounded-tl-md backdrop-blur-md'
-                      } ${isMobile ? 'px-5 py-5' : 'px-4 py-4'} shadow-lg`}>
-                        <p className="text-gray-900 text-sm leading-relaxed whitespace-pre-wrap break-words font-medium">
+                      <div
+                        className={`w-fit overflow-hidden ${bubbleWidth} ${bubbleTone} ${bubbleRadius} ${bubblePadding}`}
+                      >
+                        <p className="text-sm font-medium leading-relaxed text-gray-900 whitespace-pre-wrap break-words">
                           {message.content}
                         </p>
                         <div className="mt-3 flex items-center justify-end gap-3 text-xs text-gray-600">
-                          <span>{message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                          <span>
+                            {message.timestamp.toLocaleTimeString([], {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </span>
                         </div>
                       </div>
                     </div>
-                  ))}
+                  );
+                })}
 
-                  {/* AI Typing Indicator */}
-                  {isAITyping && (
-                    <div 
-                      className={`flex items-start ${isMobile ? 'gap-4' : 'gap-3'}`}
-                      style={{
-                        // Add left margin for AI typing indicator on mobile when sidebar is open
-                        marginLeft: isMobile && isSidebarOpen ? '20px' : '0'
-                      }}
+                {isAITyping && (
+                  <div
+                    className={`flex items-start ${isMobile ? 'gap-4' : 'gap-3'}`}
+                    style={{
+                      marginLeft: isMobile && isSidebarOpen ? '20px' : '0',
+                    }}
+                  >
+                    <div
+                      className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${content.gradientColors} border-2 border-white/40`}
                     >
-                      <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center bg-gradient-to-br ${content.gradientColors} border-2 border-white/40`}>
-                        <Bot className={`w-5 h-5 ${content.accentColor}`} />
-                      </div>
-                      <div className={`w-fit ${
-                        isMobile 
-                          ? 'max-w-[calc(100%_-_5rem)]' 
+                      <Bot className={`h-5 w-5 ${content.accentColor}`} />
+                    </div>
+                    <div
+                      className={`w-fit overflow-hidden ${
+                        isMobile
+                          ? 'max-w-[calc(100%_-_5rem)]'
                           : 'max-w-[calc(100%_-_4rem)] sm:max-w-[70ch] lg:max-w-[80ch]'
-                      } bg-white/20 border border-white/30 rounded-2xl rounded-tl-md backdrop-blur-md ${
+                      } rounded-3xl rounded-tl-xl border border-white/60 bg-gradient-to-br from-white/96 via-white/88 to-white/80 ${
                         isMobile ? 'p-5' : 'p-4'
-                      } shadow-lg overflow-hidden`}>
-                        <div className="flex items-center gap-2">
-                          <div className="flex gap-1">
-                            <div className={`w-2 h-2 rounded-full animate-bounce ${content.accentColor.replace('text-', 'bg-')}`}></div>
-                            <div className={`w-2 h-2 rounded-full animate-bounce delay-100 ${content.accentColor.replace('text-', 'bg-')}`}></div>
-                            <div className={`w-2 h-2 rounded-full animate-bounce delay-200 ${content.accentColor.replace('text-', 'bg-')}`}></div>
-                          </div>
-                          <span className="text-xs text-gray-600 font-medium">AI is typing...</span>
+                      } shadow-[0_12px_28px_rgba(15,23,42,0.12)]`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <div className="flex gap-1">
+                          <div className={`h-2 w-2 rounded-full animate-bounce ${content.accentColor.replace('text-', 'bg-')}`} />
+                          <div className={`h-2 w-2 rounded-full animate-bounce delay-100 ${content.accentColor.replace('text-', 'bg-')}`} />
+                          <div className={`h-2 w-2 rounded-full animate-bounce delay-200 ${content.accentColor.replace('text-', 'bg-')}`} />
                         </div>
+                        <span className="text-xs font-medium text-gray-600">AI is typing...</span>
                       </div>
                     </div>
-                  )}
-                  <div ref={messagesEndRef} />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="lg:mt-4">
-            <div
-              className={`pointer-events-none fixed inset-x-0 z-40 px-4 sm:px-6 transition-all duration-300 lg:pointer-events-auto lg:static lg:inset-auto lg:px-0 ${
-                isFooterVisible ? 'opacity-0 lg:opacity-100' : 'opacity-100'
-              }`}
-              style={{
-                bottom: isMobile && isIOSDevice 
-                  ? `calc(${Math.max(72, keyboardOffset)}px + env(safe-area-inset-bottom, 0px))`
-                  : 'calc(env(safe-area-inset-bottom) + 72px)'
-              }}
-            >
-              <div className="pointer-events-auto">
-                <div className={`glass-input glow-ring ${
-                  activeTab === 'flights' ? 'neon-glow-flights' :
-                  activeTab === 'hotels' ? 'neon-glow-hotels' :
-                  activeTab === 'restaurants' ? 'neon-glow-restaurants' :
-                  activeTab === 'mapout' ? 'neon-glow-mapout' :
-                  'neon-glow'
-                } rounded-3xl hover:shadow-xl transition-all duration-300 lg:static`}>
-                  <div className="flex items-center gap-3 p-3 sm:p-4">
-                    <div className="relative flex-1">
-                      <label htmlFor="ai-compact-input" className="sr-only">
-                        Message Voyagr AI
-                      </label>
-                      <textarea
-                        id="ai-compact-input"
-                        ref={textareaRef}
-                        value={inputValue}
-                        onChange={(e) => onInputChange(e.target.value)}
-                        onKeyDown={handleKeyPress}
-                        placeholder="Share what you need and press send"
-                        autoFocus
-                        enterKeyHint="send"
-                        className="w-full resize-none border-none bg-transparent py-0 text-base sm:text-lg leading-6 text-gray-800 placeholder-gray-500 focus:border-none focus:outline-none focus:ring-0"
-                        rows={1}
-                        style={{ maxHeight: '120px' }}
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      onMouseDown={(e) => e.preventDefault()}
-                      onTouchStart={(e) => e.preventDefault()}
-                      onClick={() => {
-                        const currentInput = inputValue;
-                        handleSendMessage(currentInput);
-                      }}
-                      disabled={!inputValue.trim() || isAITyping}
-                      className={`inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
-                        inputValue.trim() && !isAITyping
-                          ? 'bg-gray-900 text-white hover:bg-gray-800'
-                          : 'bg-gray-200 text-gray-400'
-                      }`}
-                      aria-label="Send message"
-                    >
-                      <Send className="h-4 w-4" />
-                    </button>
                   </div>
-                </div>
+                )}
+                <div ref={messagesEndRef} />
               </div>
             </div>
           </div>
 
+          <div
+            ref={composerWrapperRef}
+            className={`mx-auto mt-auto flex w-full max-w-4xl flex-col gap-3 pt-4 transition-opacity duration-300 ${
+              isFooterVisible ? 'opacity-0 lg:opacity-100' : 'opacity-100'
+            }`}
+            style={composerWrapperStyle}
+          >
+            <div
+              className={`glass-input glow-ring ${
+                activeTab === 'flights'
+                  ? 'neon-glow-flights'
+                  : activeTab === 'hotels'
+                    ? 'neon-glow-hotels'
+                    : activeTab === 'restaurants'
+                      ? 'neon-glow-restaurants'
+                      : activeTab === 'mapout'
+                        ? 'neon-glow-mapout'
+                        : 'neon-glow'
+              } rounded-3xl transition-all duration-300 hover:shadow-xl`}
+            >
+              <div className="flex items-center gap-3 p-3 sm:p-4">
+                <div className="relative flex-1">
+                  <label htmlFor="ai-compact-input" className="sr-only">
+                    Message Voyagr AI
+                  </label>
+                  <textarea
+                    id="ai-compact-input"
+                    ref={textareaRef}
+                    value={inputValue}
+                    onChange={(e) => onInputChange(e.target.value)}
+                    onKeyDown={handleKeyPress}
+                    placeholder="Share what you need and press send"
+                    autoFocus
+                    enterKeyHint="send"
+                    className="w-full resize-none border-none bg-transparent py-0 text-base leading-6 text-gray-800 placeholder-gray-500 focus:border-none focus:outline-none focus:ring-0 sm:text-lg"
+                    rows={1}
+                    style={{ maxHeight: '120px' }}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onTouchStart={(e) => e.preventDefault()}
+                  onClick={() => {
+                    const currentInput = inputValue;
+                    handleSendMessage(currentInput);
+                  }}
+                  disabled={!inputValue.trim() || isAITyping}
+                  className={`inline-flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                    inputValue.trim() && !isAITyping
+                      ? 'bg-gray-900 text-white hover:bg-gray-800'
+                      : 'bg-gray-200 text-gray-400'
+                  }`}
+                  aria-label="Send message"
+                >
+                  <Send className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
           </div>
+        </div>
         ) : (
         /* Welcome Mode */
         <div className="relative z-10 mx-auto w-full max-w-5xl overflow-x-hidden px-4 pb-28 pt-4 sm:px-8 sm:pt-6 lg:px-10" data-force-motion="true" style={{ touchAction: 'pan-y', overscrollBehaviorX: 'none' }}>
@@ -1062,7 +1057,7 @@ export default function AIInterface({
                       type="button"
                       onClick={(e) => {
                         // Prevent iOS zoom on button tap
-                        if (isIOSDevice) {
+                        if (iosDevice) {
                           e.preventDefault();
                           e.stopPropagation();
                         }
@@ -1114,7 +1109,7 @@ export default function AIInterface({
                         key={index}
                         onClick={(e) => {
                           // Prevent iOS zoom on button tap
-                          if (isIOSDevice) {
+                          if (iosDevice) {
                             e.preventDefault();
                             e.stopPropagation();
                           }
