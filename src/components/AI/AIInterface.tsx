@@ -805,56 +805,58 @@ export default function AIInterface({
             </div>
           </div>
 
-          <div
-            className={`pointer-events-none fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+72px)] z-40 px-4 sm:px-6 transition-all duration-300 lg:pointer-events-auto lg:relative lg:inset-auto lg:bottom-auto lg:px-0 lg:mt-4 ${
-              isFooterVisible ? 'translate-y-[120%] opacity-0 lg:translate-y-0 lg:opacity-100' : 'translate-y-0 opacity-100'
-            }`}
-          >
-            <div className="pointer-events-auto">
-              <div className={`glass-input glow-ring ${
-                activeTab === 'flights' ? 'neon-glow-flights' :
-                activeTab === 'hotels' ? 'neon-glow-hotels' :
-                activeTab === 'restaurants' ? 'neon-glow-restaurants' :
-                activeTab === 'mapout' ? 'neon-glow-mapout' :
-                'neon-glow'
-              } rounded-3xl hover:shadow-xl transition-all duration-300 lg:static`}>
-                <div className="flex items-center gap-3 p-3 sm:p-4">
-                  <div className="relative flex-1">
-                    <label htmlFor="ai-compact-input" className="sr-only">
-                      Message Voyagr AI
-                    </label>
-                    <textarea
-                      id="ai-compact-input"
-                      ref={textareaRef}
-                      value={inputValue}
-                      onChange={(e) => onInputChange(e.target.value)}
-                      onKeyDown={handleKeyPress}
-                      placeholder="Share what you need and press send"
-                      autoFocus
-                      enterKeyHint="send"
-                      className="w-full resize-none border-none bg-transparent py-0 text-sm leading-6 text-gray-800 placeholder-gray-500 focus:border-none focus:outline-none focus:ring-0 sm:text-base"
-                      rows={1}
-                      style={{ maxHeight: '120px' }}
-                    />
+          <div className="lg:mt-4">
+            <div
+              className={`pointer-events-none fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+72px)] z-40 px-4 sm:px-6 transition-opacity duration-300 lg:pointer-events-auto lg:static lg:inset-auto lg:px-0 ${
+                isFooterVisible ? 'opacity-0 lg:opacity-100' : 'opacity-100'
+              }`}
+            >
+              <div className="pointer-events-auto">
+                <div className={`glass-input glow-ring ${
+                  activeTab === 'flights' ? 'neon-glow-flights' :
+                  activeTab === 'hotels' ? 'neon-glow-hotels' :
+                  activeTab === 'restaurants' ? 'neon-glow-restaurants' :
+                  activeTab === 'mapout' ? 'neon-glow-mapout' :
+                  'neon-glow'
+                } rounded-3xl hover:shadow-xl transition-all duration-300 lg:static`}>
+                  <div className="flex items-center gap-3 p-3 sm:p-4">
+                    <div className="relative flex-1">
+                      <label htmlFor="ai-compact-input" className="sr-only">
+                        Message Voyagr AI
+                      </label>
+                      <textarea
+                        id="ai-compact-input"
+                        ref={textareaRef}
+                        value={inputValue}
+                        onChange={(e) => onInputChange(e.target.value)}
+                        onKeyDown={handleKeyPress}
+                        placeholder="Share what you need and press send"
+                        autoFocus
+                        enterKeyHint="send"
+                        className="w-full resize-none border-none bg-transparent py-0 text-base sm:text-lg leading-6 text-gray-800 placeholder-gray-500 focus:border-none focus:outline-none focus:ring-0"
+                        rows={1}
+                        style={{ maxHeight: '120px' }}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onTouchStart={(e) => e.preventDefault()}
+                      onClick={() => {
+                        const currentInput = inputValue;
+                        handleSendMessage(currentInput);
+                      }}
+                      disabled={!inputValue.trim() || isAITyping}
+                      className={`inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                        inputValue.trim() && !isAITyping
+                          ? 'bg-gray-900 text-white hover:bg-gray-800'
+                          : 'bg-gray-200 text-gray-400'
+                      }`}
+                      aria-label="Send message"
+                    >
+                      <Send className="h-4 w-4" />
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onTouchStart={(e) => e.preventDefault()}
-                    onClick={() => {
-                      const currentInput = inputValue;
-                      handleSendMessage(currentInput);
-                    }}
-                    disabled={!inputValue.trim() || isAITyping}
-                    className={`inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
-                      inputValue.trim() && !isAITyping
-                        ? 'bg-gray-900 text-white hover:bg-gray-800'
-                        : 'bg-gray-200 text-gray-400'
-                    }`}
-                    aria-label="Send message"
-                  >
-                    <Send className="h-4 w-4" />
-                  </button>
                 </div>
               </div>
             </div>
@@ -949,7 +951,7 @@ export default function AIInterface({
                       onChange={(e) => onInputChange(e.target.value)}
                       onKeyDown={handleKeyPress}
                       placeholder={placeholderText || 'Tell Voyagr AI about your next adventure'}
-                      className="relative z-10 w-full resize-none border-0 bg-transparent p-4 text-base text-gray-800 placeholder-gray-500 transition-all duration-300 focus:outline-none focus:ring-0 sm:p-6 sm:text-lg"
+                      className="relative z-10 w-full resize-none border-0 bg-transparent p-4 text-base sm:text-lg text-gray-800 placeholder-gray-500 transition-all duration-300 focus:outline-none focus:ring-0 sm:p-6"
                       rows={4}
                       style={{ minHeight: '72px', maxHeight: '140px' }}
                     />
