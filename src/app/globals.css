@@ -46,6 +46,11 @@
 .ios-device {
   -webkit-text-size-adjust: none;
   text-size-adjust: none;
+  /* Key iOS scrolling optimizations */
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: none;
+  overscroll-behavior-y: none;
+  touch-action: pan-y;
 }
 
 .mobile-device {
@@ -53,6 +58,10 @@
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
+  /* Smooth scrolling for mobile */
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
 }
 
 .mobile-device input,
@@ -117,6 +126,27 @@ body {
   background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
   overscroll-behavior-y: none;
+  /* iOS scroll optimization */
+  -webkit-overflow-scrolling: touch;
+}
+
+/* iOS scroll container optimizations */
+.ios-scroll-container {
+  -webkit-overflow-scrolling: touch;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  will-change: scroll-position;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* Prevent momentum scrolling bounce on iOS containers */
+.ios-scroll-smooth {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  overscroll-behavior-y: contain;
+  transform: translate3d(0, 0, 0);
+  -webkit-transform: translate3d(0, 0, 0);
 }
 
 body.voyagr-no-scroll {

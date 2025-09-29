@@ -359,11 +359,11 @@ export default function AiPage() {
 
   return (
     <div
-      className="relative flex min-h-[var(--app-height,100dvh)] flex-col overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50/50 to-purple-50/30"
+      className={`relative flex min-h-[var(--app-height,100dvh)] flex-col overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50/50 to-purple-50/30 ${isIOSDevice ? 'ios-scroll-container' : ''}`}
       style={{
-        touchAction: 'auto',
+        touchAction: isIOSDevice ? 'pan-y' : 'auto',
         overscrollBehaviorX: 'none',
-        overscrollBehaviorY: 'auto',
+        overscrollBehaviorY: isIOSDevice ? 'contain' : 'auto',
         WebkitOverflowScrolling: 'touch',
         paddingTop: 'calc(var(--safe-area-top) + var(--app-viewport-offset, 0px))',
         paddingBottom: isIOSDevice ? `calc(var(--safe-area-bottom) + ${keyboardOffset}px)` : 'var(--safe-area-bottom)',
@@ -405,7 +405,7 @@ export default function AiPage() {
         </div>
       </header>
 
-      <div className="relative flex flex-1 min-h-0 flex-col gap-4 overflow-hidden px-4 pb-24 pt-4 sm:px-6 lg:flex-row lg:gap-6 lg:px-10 lg:pb-6 lg:pt-6">
+      <div className={`relative flex flex-1 min-h-0 flex-col gap-4 overflow-hidden px-4 pb-24 pt-4 sm:px-6 lg:flex-row lg:gap-6 lg:px-10 lg:pb-6 lg:pt-6 ${isIOSDevice ? 'ios-scroll-smooth' : ''}`}>
         <div className="hidden lg:flex lg:flex-shrink-0">
           <AISidebar
             flights={updatedFlights}

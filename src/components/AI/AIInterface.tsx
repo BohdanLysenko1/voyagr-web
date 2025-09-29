@@ -775,14 +775,22 @@ export default function AIInterface({
               >
                 <div
                   data-scroll-container="true"
-                  className={`flex-1 h-full overflow-y-auto overflow-x-hidden ${isMobile ? 'space-y-6 p-6 pb-32' : 'space-y-5 p-4 pb-28'} sm:p-6 sm:pb-28 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400`}
+                  className={`flex-1 h-full overflow-y-auto overflow-x-hidden ${isMobile ? 'space-y-6 p-6 pb-32' : 'space-y-5 p-4 pb-28'} sm:p-6 sm:pb-28 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400 ${isIOSDevice ? 'ios-scroll-smooth' : ''}`}
                   style={{
-                    touchAction: 'auto',
-                    overscrollBehavior: 'auto',
+                    touchAction: isIOSDevice ? 'pan-y' : 'auto',
+                    overscrollBehavior: isIOSDevice ? 'contain' : 'auto',
+                    overscrollBehaviorY: isIOSDevice ? 'contain' : 'auto',
                     WebkitOverflowScrolling: 'touch',
                     position: 'relative',
                     zIndex: 1,
-                    scrollBehavior: 'smooth'
+                    scrollBehavior: 'smooth',
+                    ...(isIOSDevice && {
+                      transform: 'translate3d(0, 0, 0)',
+                      WebkitTransform: 'translate3d(0, 0, 0)',
+                      willChange: 'scroll-position',
+                      backfaceVisibility: 'hidden',
+                      WebkitBackfaceVisibility: 'hidden'
+                    })
                   }}
                 >
                   {chatMessages.map((message) => (
