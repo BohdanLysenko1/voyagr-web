@@ -578,23 +578,33 @@ export default function AIInterface({
   const keyboardOffset = keyboardState.isOpen ? Math.max(0, Math.round(keyboardState.height)) : 0;
   const composerHeightValue = Math.max(0, Math.round(composerHeight));
 
-  const composerWrapperStyle = useMemo(() => ({
-    paddingBottom: 'calc(env(safe-area-inset-bottom) + 12px)',
-    transform: keyboardOffset ? `translateY(-${keyboardOffset}px)` : 'none',
-    transition: 'transform 0.24s ease-out',
-    willChange: 'transform' as const,
-  }), [keyboardOffset]);
+  const composerWrapperStyle = useMemo(() => {
+    // On mobile, push the composer above the mobile nav bar
+    const mobileNavHeight = isMobile ? 64 : 0;
+    const totalOffset = keyboardOffset + mobileNavHeight;
+    return {
+      paddingBottom: isMobile ? `calc(env(safe-area-inset-bottom) + ${mobileNavHeight}px + 12px)` : 'calc(env(safe-area-inset-bottom) + 12px)',
+      transform: totalOffset ? `translateY(-${totalOffset}px)` : 'none',
+      transition: 'transform 0.24s ease-out',
+      willChange: 'transform' as const,
+      position: 'relative' as const,
+      zIndex: 30,
+    };
+  }, [keyboardOffset, isMobile]);
 
-  const messageContainerStyle = useMemo(() => ({
-    touchAction: iosDevice ? 'pan-y' : 'auto',
-    overscrollBehavior: 'contain' as const,
-    WebkitOverflowScrolling: 'touch' as const,
-    scrollBehavior: 'smooth' as const,
-    position: 'relative' as const,
-    zIndex: 1,
-    ['--composer-height' as any]: `${composerHeightValue}px`,
-    paddingBottom: `calc(env(safe-area-inset-bottom) + 12px + ${keyboardOffset}px + var(--composer-height))`,
-  }), [iosDevice, composerHeightValue, keyboardOffset]);
+  const messageContainerStyle = useMemo(() => {
+    // Don't add mobile nav height here since the parent container already accounts for it
+    return {
+      touchAction: iosDevice ? 'pan-y' : 'auto',
+      overscrollBehavior: 'contain' as const,
+      WebkitOverflowScrolling: 'touch' as const,
+      scrollBehavior: 'smooth' as const,
+      position: 'relative' as const,
+      zIndex: 1,
+      ['--composer-height' as any]: `${composerHeightValue}px`,
+      paddingBottom: isMobile ? '80px' : `calc(env(safe-area-inset-bottom) + 12px)`,
+    };
+  }, [iosDevice, composerHeightValue, isMobile]);
   const messageSpacingClass = isMobile ? 'space-y-6 p-6' : 'space-y-5 p-4 sm:p-6';
 
   useEffect(() => {
@@ -726,13 +736,15 @@ export default function AIInterface({
 
   return (
     <div
-      className="flex-1 relative overflow-x-hidden flex flex-col min-h-0"
+      className="flex-1 relative flex flex-col"
       style={{
-        touchAction: 'auto',
+        touchAction: isMobile ? 'pan-y' : 'auto',
         overscrollBehaviorX: 'none',
         overscrollBehaviorY: 'contain',
-        height: '100dvh',
-        minHeight: '100dvh'
+        height: isMobile ? 'calc(100dvh - 64px)' : 'calc(var(--app-height, 100dvh) - 100px)',
+        maxHeight: isMobile ? 'calc(100dvh - 64px)' : 'calc(var(--app-height, 100dvh) - 100px)',
+        overflow: 'hidden',
+        WebkitOverflowScrolling: iosDevice ? 'touch' : undefined,
       }}
     >
       
@@ -755,20 +767,32 @@ export default function AIInterface({
         {/* Chat Interface or Welcome Screen */}
         {showChat ? (
         /* Chat Mode */
-        <div className="relative flex h-full flex-col px-4 pb-0 pt-0 sm:px-6">
-          <div className="mx-auto mt-6 flex w-full max-w-4xl flex-1 flex-col gap-4">
-            <div className="glass-card border-b-0 rounded-3xl p-6 text-center shadow-[0_22px_45px_rgba(15,23,42,0.12)] transition-all duration-700 ease-in-out">
-              <div className="flex items-center justify-center gap-3">
-                <div className={`rounded-xl border border-white/40 bg-gradient-to-br ${content.gradientColors} p-2`}>
-                  <Sparkles className={`h-6 w-6 ${content.accentColor}`} />
+        <div className="relative flex flex-col px-4 pb-0 pt-0 sm:px-6" style={{ height: '100%', maxHeight: '100%', display: 'flex', flexDirection: 'column' }}>
+          <div className="mx-auto flex w-full max-w-4xl flex-col" style={{ marginTop: isMobile ? '12px' : '24px', flex: '1 1 auto', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+            {/* Hide title card on mobile to save space, show on desktop */}
+            {!isMobile && (
+              <div className="glass-card border-b-0 rounded-3xl p-6 text-center shadow-[0_22px_45px_rgba(15,23,42,0.12)] transition-all duration-700 ease-in-out">
+                <div className="flex items-center justify-center gap-3">
+                  <div className={`rounded-xl border border-white/40 bg-gradient-to-br ${content.gradientColors} p-2`}>
+                    <Sparkles className={`h-6 w-6 ${content.accentColor}`} />
+                  </div>
+                  <h2 className={`text-2xl font-bold ${content.accentColor}`}>
+                    {content.title}
+                  </h2>
                 </div>
-                <h2 className={`text-2xl font-bold ${content.accentColor}`}>
-                  {content.title}
-                </h2>
               </div>
-            </div>
+            )}
 
-            <div className="glass-panel flex flex-1 min-h-0 flex-col overflow-hidden rounded-[2rem]">
+            {/* Chat container with fixed sizing */}
+            <div className="glass-panel flex flex-col overflow-hidden" style={{ 
+              borderRadius: isMobile ? '1.5rem' : '2rem', 
+              minHeight: 0, 
+              flex: '1 1 auto',
+              // Mobile: viewport - (header 64px + mobile nav 64px + input ~80px + margins ~40px)
+              // Desktop: viewport - (title + input + margins)
+              maxHeight: isMobile ? 'calc(100dvh - 250px)' : 'calc(100vh - 280px)',
+              height: isMobile ? 'calc(100dvh - 250px)' : 'auto'
+            }}>
               <div
                 ref={handleScrollContainerRef}
                 data-scroll-container="true"
@@ -872,10 +896,14 @@ export default function AIInterface({
 
           <div
             ref={composerWrapperRef}
-            className={`mx-auto mt-auto flex w-full max-w-4xl flex-col gap-3 pt-4 transition-opacity duration-300 ${
+            className={`mx-auto flex w-full max-w-4xl flex-col gap-3 transition-opacity duration-300 ${
               isFooterVisible ? 'opacity-0 lg:opacity-100' : 'opacity-100'
             }`}
-            style={composerWrapperStyle}
+            style={{
+              ...composerWrapperStyle,
+              paddingTop: isMobile ? '0.75rem' : '1rem',
+              flex: '0 0 auto',
+            }}
           >
             <div
               className={`glass-input glow-ring ${
@@ -933,7 +961,19 @@ export default function AIInterface({
         </div>
         ) : (
         /* Welcome Mode */
-        <div className="relative z-10 mx-auto w-full max-w-5xl overflow-x-hidden px-4 pb-28 pt-4 sm:px-8 sm:pt-6 lg:px-10" data-force-motion="true" style={{ touchAction: 'pan-y', overscrollBehaviorX: 'none' }}>
+        <div 
+          className="relative z-10 mx-auto w-full max-w-5xl px-4 sm:px-8 lg:px-10 overflow-y-auto overflow-x-hidden" 
+          data-force-motion="true" 
+          style={{ 
+            touchAction: 'pan-y', 
+            overscrollBehaviorX: 'none',
+            overscrollBehaviorY: 'auto',
+            WebkitOverflowScrolling: 'touch',
+            paddingBottom: isMobile ? 'calc(64px + env(safe-area-inset-bottom) + 1rem)' : '2rem',
+            paddingTop: isMobile ? '0.5rem' : '1.5rem',
+            height: '100%',
+          }}
+        >
           <div className="px-1 sm:px-2">
           <div className="mt-4 w-full max-w-4xl space-y-3">
           

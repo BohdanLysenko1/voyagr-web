@@ -149,6 +149,37 @@ body {
   -webkit-transform: translate3d(0, 0, 0);
 }
 
+/* Enable smooth scrolling on all devices */
+[data-force-motion] {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: auto;
+  scroll-behavior: smooth;
+}
+
+/* Mobile chat optimizations for smooth scrolling */
+@media (max-width: 768px) {
+  [data-scroll-container] {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+    /* Ensure scroll container doesn't expand beyond available space */
+    max-height: calc(100dvh - 250px);
+  }
+  
+  /* Fix for chat input on mobile - keep it in view */
+  .glass-input {
+    position: relative;
+    z-index: 50;
+  }
+  
+  /* Prevent message container from pushing input out of view */
+  .glass-panel {
+    max-height: calc(100dvh - 250px);
+    overflow: hidden;
+  }
+}
+
 body.voyagr-no-scroll {
   overflow: hidden;
   position: relative;

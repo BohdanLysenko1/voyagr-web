@@ -317,16 +317,17 @@ export default function AiPage() {
 
   return (
     <div
-      className={`relative flex min-h-[var(--app-height,100dvh)] flex-col overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50/50 to-purple-50/30 ${isIOSDevice ? 'ios-scroll-container' : ''}`}
+      className={`relative flex flex-col overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50/50 to-purple-50/30 ${isIOSDevice ? 'ios-scroll-container' : ''}`}
       style={{
-        touchAction: isIOSDevice ? 'pan-y' : 'auto',
+        touchAction: isMobile ? 'pan-y' : 'auto',
         overscrollBehaviorX: 'none',
         overscrollBehaviorY: 'contain',
         WebkitOverflowScrolling: 'touch',
-        height: '100dvh',
-        minHeight: '100dvh',
-        paddingTop: 'calc(var(--safe-area-top) + var(--app-viewport-offset, 0px))',
+        height: '100vh',
+        maxHeight: '100vh',
+        paddingTop: isMobile ? '0' : 'calc(var(--safe-area-top) + var(--app-viewport-offset, 0px))',
         paddingBottom: 'var(--safe-area-bottom)',
+        transform: isIOSDevice ? 'translateZ(0)' : undefined,
       }}
     >
       <div className="aurora-ambient" aria-hidden="true" />
@@ -363,7 +364,7 @@ export default function AiPage() {
         </div>
       </header>
 
-      <div className={`relative flex flex-1 min-h-0 flex-col gap-4 overflow-hidden px-4 pb-24 pt-4 sm:px-6 lg:flex-row lg:gap-6 lg:px-10 lg:pb-6 lg:pt-6 ${isIOSDevice ? 'ios-scroll-smooth' : ''}`}>
+      <div className={`relative flex flex-1 flex-col gap-4 overflow-hidden pt-4 sm:px-6 lg:flex-row lg:gap-6 lg:px-10 lg:pb-6 lg:pt-6 ${isIOSDevice ? 'ios-scroll-smooth' : ''}`} style={{ paddingLeft: isMobile ? '0' : '1rem', paddingRight: isMobile ? '0' : '1rem', paddingBottom: isMobile ? '0' : '1.5rem', minHeight: 0 }}>
         <div className="hidden lg:flex lg:flex-shrink-0">
           <AISidebar
             flights={updatedFlights}
@@ -382,7 +383,7 @@ export default function AiPage() {
             variant="desktop"
           />
         </div>
-        <main className="relative flex-1 min-h-0">
+        <main className="relative flex-1 flex flex-col" style={{ minHeight: 0 }}>
           <AIInterface
             key={resetKey}
             inputValue={inputValue}
