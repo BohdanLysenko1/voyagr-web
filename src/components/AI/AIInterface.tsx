@@ -25,6 +25,9 @@ interface AIInterfaceProps {
   onFirstMessage?: (firstMessage: string) => void;
   onMessageSent?: (message: string) => void;
   onPreferencesOpen?: () => void;
+  isMobile?: boolean;
+  isIOSDevice?: boolean;
+  isSidebarOpen?: boolean;
 }
 
 export default function AIInterface({ 
@@ -40,7 +43,10 @@ export default function AIInterface({
   registerClearChat,
   onFirstMessage,
   onMessageSent,
-  onPreferencesOpen
+  onPreferencesOpen,
+  isMobile = false,
+  isIOSDevice = false,
+  isSidebarOpen = false
 }: AIInterfaceProps) {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [isAITyping, setIsAITyping] = useState(false);
@@ -76,12 +82,29 @@ export default function AIInterface({
   const focusInput = useCallback(() => {
     const el = textareaRef.current;
     if (!el) return;
-    try {
-      // preventScroll keeps the viewport stable when focusing on desktop
-      (el as any).focus({ preventScroll: true });
-    } catch {
+    
+    // iOS-specific focus handling to prevent zoom
+    if (isIOSDevice) {
+      // Temporarily set font-size to 16px to prevent iOS zoom
+      const originalFontSize = el.style.fontSize;
+      el.style.fontSize = '16px';
+      
+      // Focus without preventing scroll on mobile to allow proper viewport adjustment
       el.focus();
+      
+      // Restore original font size after a short delay
+      setTimeout(() => {
+        el.style.fontSize = originalFontSize;
+      }, 100);
+    } else {
+      try {
+        // preventScroll keeps the viewport stable when focusing on desktop
+        (el as any).focus({ preventScroll: true });
+      } catch {
+        el.focus();
+      }
     }
+    
     adjustTextareaHeight();
     // Place caret at the end
     const len = el.value.length;
@@ -95,7 +118,7 @@ export default function AIInterface({
         }
       }, 0);
     }
-  }, [adjustTextareaHeight]);
+  }, [adjustTextareaHeight, isIOSDevice]);
 
 
   // Animated globe nodes with slight randomization at mount (client-side only)
@@ -181,6 +204,9 @@ export default function AIInterface({
 
   // Check if user is near the bottom of the scroll container
   const isNearBottom = useCallback((threshold = 100) => {
+    // Use more aggressive threshold for mobile
+    const mobileThreshold = isMobile ? 200 : threshold;
+    
     const scrollContainer = scrollContainerRef.current;
     if (!scrollContainer) {
       // Fallback: try to find scroll container again
@@ -188,14 +214,14 @@ export default function AIInterface({
       if (container) {
         scrollContainerRef.current = container;
         const { scrollTop, scrollHeight, clientHeight } = container;
-        return scrollHeight - scrollTop - clientHeight < threshold;
+        return scrollHeight - scrollTop - clientHeight < mobileThreshold;
       }
       return true;
     }
     
     const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
-    return scrollHeight - scrollTop - clientHeight < threshold;
-  }, []);
+    return scrollHeight - scrollTop - clientHeight < mobileThreshold;
+  }, [isMobile]);
 
   // Robust scroll to bottom
   const scrollToBottom = useCallback((force = false) => {
@@ -278,31 +304,40 @@ export default function AIInterface({
         targetContainer.scrollTop = maxScroll;
       }
 
-      // Focus input after scroll completes
+      // Focus input after scroll completes - faster on mobile
+      const focusDelay = isMobile ? 25 : 250;
       autoScrollTimeoutRef.current = setTimeout(() => {
         focusInput();
-      }, 250);
+      }, focusDelay);
     };
 
-    requestAnimationFrame(performScroll);
-  }, [isNearBottom, focusInput]);
+    // Multiple animation frames for mobile reliability
+    if (isMobile) {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(performScroll);
+      });
+    } else {
+      requestAnimationFrame(performScroll);
+    }
+  }, [isNearBottom, focusInput, isMobile]);
 
 
   // Auto-scroll on new messages with improved logic
   useEffect(() => {
     if (chatMessages.length === 0) return;
     
-    // Wait for DOM updates, then check if we should scroll
+    // Wait for DOM updates, then check if we should scroll - faster on mobile
+    const scrollDelay = isMobile ? 10 : 100;
     const scrollTimeout = setTimeout(() => {
       const skipAutoScroll = isUserScrollingRef.current && !isNearBottom(300);
       if (skipAutoScroll) return;
       
       // Force scroll to new messages
       scrollToBottom(true);
-    }, 100);
+    }, scrollDelay);
     
     return () => clearTimeout(scrollTimeout);
-  }, [chatMessages, scrollToBottom, isNearBottom]);
+  }, [chatMessages, scrollToBottom, isNearBottom, isMobile]);
 
   // Auto-scroll when AI starts typing
   useEffect(() => {
@@ -557,20 +592,22 @@ export default function AIInterface({
       // Clear existing timeout
       if (scrollTimeout) clearTimeout(scrollTimeout);
       
-      // Reset user scrolling flag after a delay - give users more control time
+      // Reset user scrolling flag after a delay - faster reset on mobile
+      const resetDelay = isMobile ? 1000 : 1500;
       scrollTimeout = setTimeout(() => {
-        // Only reset if user is very close to bottom (within 20px)
+        // Only reset if user is close to bottom (more tolerant on mobile)
         const container = scrollContainerRef.current;
         if (container) {
           const { scrollTop, scrollHeight, clientHeight } = container;
           const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
-          if (distanceFromBottom <= 20) {
+          const tolerance = isMobile ? 50 : 20;
+          if (distanceFromBottom <= tolerance) {
             isUserScrollingRef.current = false;
           }
         } else {
           isUserScrollingRef.current = false;
         }
-      }, 1500); // Longer delay to give users more control
+      }, resetDelay);
     };
 
     scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
@@ -579,7 +616,7 @@ export default function AIInterface({
       scrollContainer.removeEventListener('scroll', handleScroll);
       if (scrollTimeout) clearTimeout(scrollTimeout);
     };
-  }, [showChat]);
+  }, [showChat, isMobile]);
 
   const globeTint = useMemo(() => {
     switch (activeTab) {
@@ -736,11 +773,11 @@ export default function AIInterface({
               >
                 <div
                   data-scroll-container="true"
-                  className="flex-1 h-full overflow-y-auto overflow-x-hidden space-y-5 p-4 pb-28 sm:p-6 sm:pb-28 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400"
+                  className={`flex-1 h-full overflow-y-auto overflow-x-hidden ${isMobile ? 'space-y-6 p-6 pb-32' : 'space-y-5 p-4 pb-28'} sm:p-6 sm:pb-28 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400`}
                   style={{
-                    touchAction: 'pan-y',
-                    overscrollBehavior: 'contain',
-                    WebkitOverflowScrolling: 'touch',
+                    touchAction: isMobile ? 'pan-y' : 'auto',
+                    overscrollBehavior: isMobile ? 'contain' : 'auto',
+                    WebkitOverflowScrolling: isMobile ? 'touch' : 'auto',
                     position: 'relative',
                     zIndex: 1,
                     scrollBehavior: 'smooth'
@@ -749,8 +786,13 @@ export default function AIInterface({
                   {chatMessages.map((message) => (
                     <div
                       key={message.id}
-                      className={`flex items-start gap-3 ${message.sender === 'user' ? 'flex-row-reverse' : 'flex-row'} w-full max-w-full overflow-hidden`}
-                      style={{ position: 'relative', zIndex: 1 }}
+                      className={`flex items-start ${isMobile ? 'gap-4' : 'gap-3'} ${message.sender === 'user' ? 'flex-row-reverse' : 'flex-row'} w-full max-w-full overflow-hidden`}
+                      style={{ 
+                        position: 'relative', 
+                        zIndex: 1,
+                        // Add left margin for AI messages on mobile when sidebar is open to prevent avatar overlap
+                        marginLeft: isMobile && isSidebarOpen && message.sender === 'ai' ? '20px' : '0'
+                      }}
                     >
                       {/* Avatar */}
                       <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
@@ -766,11 +808,15 @@ export default function AIInterface({
                       </div>
 
                       {/* Message Bubble */}
-                      <div className={`w-fit max-w-[calc(100%_-_4rem)] sm:max-w-[70ch] lg:max-w-[80ch] overflow-hidden ${
+                      <div className={`w-fit ${
+                        isMobile 
+                          ? 'max-w-[calc(100%_-_5rem)]' 
+                          : 'max-w-[calc(100%_-_4rem)] sm:max-w-[70ch] lg:max-w-[80ch]'
+                      } overflow-hidden ${
                         message.sender === 'user' 
                           ? 'bg-primary/15 border border-primary/30 rounded-2xl rounded-tr-md backdrop-blur-md'
                           : 'bg-white/20 border border-white/30 rounded-2xl rounded-tl-md backdrop-blur-md'
-                      } px-4 py-4 shadow-lg`}>
+                      } ${isMobile ? 'px-5 py-5' : 'px-4 py-4'} shadow-lg`}>
                         <p className="text-gray-900 text-sm leading-relaxed whitespace-pre-wrap break-words font-medium">
                           {message.content}
                         </p>
@@ -783,11 +829,23 @@ export default function AIInterface({
 
                   {/* AI Typing Indicator */}
                   {isAITyping && (
-                    <div className="flex items-start gap-3">
+                    <div 
+                      className={`flex items-start ${isMobile ? 'gap-4' : 'gap-3'}`}
+                      style={{
+                        // Add left margin for AI typing indicator on mobile when sidebar is open
+                        marginLeft: isMobile && isSidebarOpen ? '20px' : '0'
+                      }}
+                    >
                       <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center bg-gradient-to-br ${content.gradientColors} border-2 border-white/40`}>
                         <Bot className={`w-5 h-5 ${content.accentColor}`} />
                       </div>
-                      <div className="w-fit max-w-[calc(100%_-_4rem)] sm:max-w-[70ch] lg:max-w-[80ch] bg-white/20 border border-white/30 rounded-2xl rounded-tl-md backdrop-blur-md p-4 shadow-lg overflow-hidden">
+                      <div className={`w-fit ${
+                        isMobile 
+                          ? 'max-w-[calc(100%_-_5rem)]' 
+                          : 'max-w-[calc(100%_-_4rem)] sm:max-w-[70ch] lg:max-w-[80ch]'
+                      } bg-white/20 border border-white/30 rounded-2xl rounded-tl-md backdrop-blur-md ${
+                        isMobile ? 'p-5' : 'p-4'
+                      } shadow-lg overflow-hidden`}>
                         <div className="flex items-center gap-2">
                           <div className="flex gap-1">
                             <div className={`w-2 h-2 rounded-full animate-bounce ${content.accentColor.replace('text-', 'bg-')}`}></div>
@@ -987,7 +1045,13 @@ export default function AIInterface({
                     {/* Start Planning Button */}
                     <button
                       type="button"
-                      onClick={() => {
+                      onClick={(e) => {
+                        // Prevent iOS zoom on button tap
+                        if (isIOSDevice) {
+                          e.preventDefault();
+                          e.stopPropagation();
+                        }
+                        
                         if (inputValue.trim()) {
                           // If user has entered text, start search with their input immediately
                           handleSendMessage(inputValue);
@@ -1033,7 +1097,14 @@ export default function AIInterface({
                     return (
                       <button
                         key={index}
-                        onClick={() => handleSendMessage(promptText)}
+                        onClick={(e) => {
+                          // Prevent iOS zoom on button tap
+                          if (isIOSDevice) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                          }
+                          handleSendMessage(promptText);
+                        }}
                         className="group relative overflow-hidden p-4 rounded-xl border border-white/40 transition-all duration-300 text-left transform hover:scale-[1.02] hover:-translate-y-1 active:scale-[0.98] bg-white/60 backdrop-blur-xl backdrop-saturate-150 bg-clip-padding shadow-[0_8px_32px_rgba(8,_112,_184,_0.12)] hover:shadow-[0_12px_40px_rgba(8,_112,_184,_0.18)] hover:bg-white/70 before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/40 before:via-white/10 before:to-white/5"
                       >
                         <div className="flex items-center gap-3 relative z-10">

@@ -42,6 +42,90 @@ export default function AiPage() {
   const [currentConversationMessages, setCurrentConversationMessages] = useState<string[]>([]);
   const clearChatFunctionRef = useRef<(() => void) | null>(null);
   const [resetKey, setResetKey] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
+  const [isIOSDevice, setIsIOSDevice] = useState(false);
+  const [keyboardOffset, setKeyboardOffset] = useState(0);
+
+  // Detect mobile and iOS devices
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const checkDevice = () => {
+      const userAgent = navigator.userAgent.toLowerCase();
+      const mobileCheck = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent) || 
+                         window.innerWidth <= 768;
+      const iOSCheck = /ipad|iphone|ipod/.test(userAgent) || (navigator.maxTouchPoints > 1 && /macintosh/.test(userAgent));
+      
+      setIsMobile(mobileCheck);
+      setIsIOSDevice(iOSCheck);
+      
+      // Add iOS-specific body classes for CSS targeting
+      if (iOSCheck) {
+        document.body.classList.add('ios-device');
+      }
+      if (mobileCheck) {
+        document.body.classList.add('mobile-device');
+      }
+    };
+
+    checkDevice();
+    window.addEventListener('resize', checkDevice);
+    window.addEventListener('orientationchange', checkDevice);
+    
+    return () => {
+      window.removeEventListener('resize', checkDevice);
+      window.removeEventListener('orientationchange', checkDevice);
+      document.body.classList.remove('ios-device', 'mobile-device');
+    };
+  }, []);
+
+  // iOS keyboard detection and viewport handling
+  useEffect(() => {
+    if (typeof window === 'undefined' || !isIOSDevice) return;
+
+    const handleKeyboardShow = () => {
+      const viewport = window.visualViewport;
+      if (!viewport) return;
+      
+      const keyboardHeight = window.innerHeight - viewport.height;
+      setKeyboardOffset(keyboardHeight);
+      
+      // Add iOS keyboard active class
+      document.body.classList.add('ios-keyboard-active');
+      
+      // Prevent viewport zoom on focus
+      const viewportMeta = document.querySelector('meta[name=viewport]') as HTMLMetaElement;
+      if (viewportMeta) {
+        const originalContent = viewportMeta.content;
+        viewportMeta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
+        
+        // Restore after keyboard hides
+        setTimeout(() => {
+          if (viewportMeta) {
+            viewportMeta.content = originalContent;
+          }
+        }, 500);
+      }
+    };
+
+    const handleKeyboardHide = () => {
+      setKeyboardOffset(0);
+      document.body.classList.remove('ios-keyboard-active');
+    };
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleKeyboardShow);
+      window.addEventListener('resize', handleKeyboardHide);
+    }
+
+    return () => {
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleKeyboardShow);
+        window.removeEventListener('resize', handleKeyboardHide);
+      }
+      document.body.classList.remove('ios-keyboard-active');
+    };
+  }, [isIOSDevice]);
 
   // Keep a CSS custom property in sync with the real viewport height to avoid 100vh jumps on mobile
   useEffect(() => {
@@ -93,12 +177,18 @@ export default function AiPage() {
     };
   }, [isSidebarOpen]);
   
-  // Manage navbar and footer visibility - Desktop only
+  // Manage navbar and footer visibility 
   useEffect(() => {
-    // Desktop: navbar toggles with sidebar, footer always visible
-    setNavbarVisible(!isSidebarOpen);
-    setFooterVisible(true);
-  }, [isSidebarOpen, setNavbarVisible, setFooterVisible]);
+    if (isMobile) {
+      // Mobile: navbar visible only when sidebar closed, footer always hidden
+      setNavbarVisible(!isSidebarOpen);
+      setFooterVisible(false);
+    } else {
+      // Desktop: navbar toggles with sidebar, footer always visible
+      setNavbarVisible(!isSidebarOpen);
+      setFooterVisible(true);
+    }
+  }, [isSidebarOpen, isMobile, setNavbarVisible, setFooterVisible]);
 
 
   useEffect(() => {
@@ -262,10 +352,14 @@ export default function AiPage() {
     <div
       className="relative flex min-h-[var(--app-height,100dvh)] flex-col overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50/50 to-purple-50/30"
       style={{
-        touchAction: 'pan-y',
+        touchAction: isMobile ? 'pan-y' : 'auto',
         overscrollBehaviorX: 'none',
+        overscrollBehaviorY: isMobile ? 'contain' : 'auto',
+        WebkitOverflowScrolling: isMobile ? 'touch' : 'auto',
         paddingTop: 'calc(var(--safe-area-top) + var(--app-viewport-offset, 0px))',
-        paddingBottom: 'var(--safe-area-bottom)',
+        paddingBottom: isIOSDevice ? `calc(var(--safe-area-bottom) + ${keyboardOffset}px)` : 'var(--safe-area-bottom)',
+        transform: isIOSDevice && keyboardOffset > 0 ? `translateY(-${Math.min(keyboardOffset / 4, 50)}px)` : 'none',
+        transition: 'transform 0.3s ease-in-out',
       }}
     >
       <div className="aurora-ambient" aria-hidden="true" />
@@ -337,6 +431,9 @@ export default function AiPage() {
             onFirstMessage={handleFirstMessage}
             onMessageSent={handleMessageSent}
             onPreferencesOpen={handlePreferencesOpen}
+            isMobile={isMobile}
+            isIOSDevice={isIOSDevice}
+            isSidebarOpen={isSidebarOpen}
           />
         </main>
       </div>
