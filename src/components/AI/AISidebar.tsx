@@ -128,10 +128,6 @@ export default function AISidebar({
     }
   ];
 
-  const containerHeight = !isMobileVariant
-    ? { height: 'calc(var(--app-height, 100dvh) - 100px)' }
-    : undefined;
-
   return (
     <div
       className={`flex flex-col flex-shrink-0 ${
@@ -139,15 +135,14 @@ export default function AISidebar({
           ? 'w-full max-w-full p-4 pb-6 sm:p-6 overflow-y-auto'
           : 'w-full max-w-[480px] lg:w-[460px] xl:w-[500px] min-w-[320px] p-4 pr-2 lg:p-6 lg:pt-0'
       }`}
-      style={containerHeight}
     >
       <aside
-        className={`w-full flex-1 min-h-0 mt-3 flex flex-col ${
-          isMobileVariant ? 'overflow-y-auto' : 'overflow-hidden'
+        className={`w-full mt-3 flex flex-col ${
+          isMobileVariant ? 'overflow-y-auto flex-1 min-h-0' : ''
         } relative transition-all duration-300 scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent hover:scrollbar-thumb-primary/30 glass-panel rounded-[2rem] ${
           isMobileVariant ? 'backdrop-blur-lg border-white/50 shadow-xl' : ''
         }`}
-        style={{ overscrollBehavior: 'contain' }}
+        style={{ overscrollBehavior: 'contain', maxHeight: isMobileVariant ? undefined : 'calc(100vh - 140px)' }}
       >
         {/* Background decorative orbs */}
         {!isMobileVariant && (
@@ -208,7 +203,7 @@ export default function AISidebar({
 
 
         {/* Panels */}
-        <div className={`flex-1 overflow-y-auto p-4 pb-6 space-y-4 ${isMobileVariant ? 'pt-2' : ''}`} style={{ overscrollBehavior: 'contain' }}>
+        <div className={`${isMobileVariant ? 'flex-1' : ''} overflow-y-auto p-4 pb-6 space-y-4 ${isMobileVariant ? 'pt-2' : ''}`} style={{ overscrollBehavior: 'contain' }}>
         {/* Plan */}
         <div
           role="tabpanel"

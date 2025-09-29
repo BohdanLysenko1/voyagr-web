@@ -78,21 +78,24 @@ export default function AiPage() {
     };
   }, []);
 
-  // Lock body scroll so only the chat surface scrolls
+  // Lock body scroll so only the chat surface scrolls (mobile only)
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
     const previousHtmlOverflow = document.documentElement.style.overflow;
     const previousBodyOverflow = document.body.style.overflow;
 
-    document.documentElement.style.overflow = 'hidden';
-    document.body.style.overflow = 'hidden';
+    // Only lock scroll on mobile
+    if (isMobile) {
+      document.documentElement.style.overflow = 'hidden';
+      document.body.style.overflow = 'hidden';
+    }
 
     return () => {
       document.documentElement.style.overflow = previousHtmlOverflow;
       document.body.style.overflow = previousBodyOverflow;
     };
-  }, []);
+  }, [isMobile]);
 
   // Keep a CSS custom property in sync with the real viewport height to avoid 100vh jumps on mobile
   useEffect(() => {
@@ -317,14 +320,13 @@ export default function AiPage() {
 
   return (
     <div
-      className={`relative flex flex-col overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50/50 to-purple-50/30 ${isIOSDevice ? 'ios-scroll-container' : ''}`}
+      className={`relative flex flex-col ${isMobile ? 'overflow-hidden' : 'overflow-y-auto'} bg-gradient-to-br from-slate-50 via-blue-50/50 to-purple-50/30 ${isIOSDevice ? 'ios-scroll-container' : ''}`}
       style={{
         touchAction: isMobile ? 'pan-y' : 'auto',
         overscrollBehaviorX: 'none',
         overscrollBehaviorY: 'contain',
         WebkitOverflowScrolling: 'touch',
-        height: '100vh',
-        maxHeight: '100vh',
+        minHeight: '100vh',
         paddingTop: isMobile ? '0' : 'calc(var(--safe-area-top) + var(--app-viewport-offset, 0px))',
         paddingBottom: 'var(--safe-area-bottom)',
         transform: isIOSDevice ? 'translateZ(0)' : undefined,
@@ -364,8 +366,8 @@ export default function AiPage() {
         </div>
       </header>
 
-      <div className={`relative flex flex-1 flex-col gap-4 overflow-hidden pt-4 sm:px-6 lg:flex-row lg:gap-6 lg:px-10 lg:pb-6 lg:pt-6 ${isIOSDevice ? 'ios-scroll-smooth' : ''}`} style={{ paddingLeft: isMobile ? '0' : '1rem', paddingRight: isMobile ? '0' : '1rem', paddingBottom: isMobile ? '0' : '1.5rem', minHeight: 0 }}>
-        <div className="hidden lg:flex lg:flex-shrink-0">
+      <div className={`relative flex flex-1 flex-col gap-4 ${isMobile ? 'overflow-hidden' : ''} pt-4 sm:px-6 lg:flex-row lg:gap-6 lg:px-10 lg:pb-6 lg:pt-6 ${isIOSDevice ? 'ios-scroll-smooth' : ''}`} style={{ paddingLeft: isMobile ? '0' : '1rem', paddingRight: isMobile ? '0' : '1rem', paddingBottom: isMobile ? '0' : '1.5rem', minHeight: isMobile ? 0 : 'auto' }}>
+        <div className="hidden lg:flex lg:flex-shrink-0 lg:sticky lg:top-6" style={{ alignSelf: 'flex-start' }}>
           <AISidebar
             flights={updatedFlights}
             hotels={updatedHotels}
@@ -383,7 +385,7 @@ export default function AiPage() {
             variant="desktop"
           />
         </div>
-        <main className="relative flex-1 flex flex-col" style={{ minHeight: 0 }}>
+        <main className="relative flex-1 flex flex-col" style={{ minHeight: isMobile ? 0 : 'auto' }}>
           <AIInterface
             key={resetKey}
             inputValue={inputValue}

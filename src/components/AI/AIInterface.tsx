@@ -741,9 +741,9 @@ export default function AIInterface({
         touchAction: isMobile ? 'pan-y' : 'auto',
         overscrollBehaviorX: 'none',
         overscrollBehaviorY: 'contain',
-        height: isMobile ? 'calc(100dvh - 64px)' : 'calc(var(--app-height, 100dvh) - 100px)',
-        maxHeight: isMobile ? 'calc(100dvh - 64px)' : 'calc(var(--app-height, 100dvh) - 100px)',
-        overflow: 'hidden',
+        height: isMobile ? 'calc(100dvh - 64px)' : 'auto',
+        maxHeight: isMobile ? 'calc(100dvh - 64px)' : 'none',
+        overflow: isMobile ? 'hidden' : 'visible',
         WebkitOverflowScrolling: iosDevice ? 'touch' : undefined,
       }}
     >
@@ -961,21 +961,21 @@ export default function AIInterface({
         </div>
         ) : (
         /* Welcome Mode */
-        <div 
-          className="relative z-10 mx-auto w-full max-w-5xl px-4 sm:px-8 lg:px-10 overflow-y-auto overflow-x-hidden" 
-          data-force-motion="true" 
-          style={{ 
-            touchAction: 'pan-y', 
+        <div
+          className="relative z-10 mx-auto w-full max-w-5xl overflow-y-auto overflow-x-hidden"
+          data-force-motion="true"
+          style={{
+            touchAction: 'pan-y',
             overscrollBehaviorX: 'none',
             overscrollBehaviorY: 'auto',
             WebkitOverflowScrolling: 'touch',
-            paddingBottom: isMobile ? 'calc(64px + env(safe-area-inset-bottom) + 1rem)' : '2rem',
-            paddingTop: isMobile ? '0.5rem' : '1.5rem',
+            paddingBottom: isMobile ? 'calc(64px + env(safe-area-inset-bottom) + 1rem)' : '0',
+            paddingTop: isMobile ? '0.5rem' : '0',
             height: '100%',
           }}
         >
-          <div className="px-1 sm:px-2">
-          <div className="mt-4 w-full max-w-4xl space-y-3">
+          <div className={`${isMobile ? 'px-4 sm:px-8 lg:px-10' : ''}`}>
+          <div className={`w-full max-w-4xl space-y-3 ${isMobile ? '' : 'mt-3 pb-6'}`}>
           
           {/* Compact Preferences Display */}
           {preferences && (
