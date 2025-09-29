@@ -83,47 +83,56 @@ export default function AiPage() {
   useEffect(() => {
     if (typeof window === 'undefined' || !isIOSDevice) return;
 
-    const handleKeyboardShow = () => {
+    let isKeyboardOpen = false;
+
+    const handleViewportChange = () => {
       const viewport = window.visualViewport;
       if (!viewport) return;
       
       const keyboardHeight = window.innerHeight - viewport.height;
-      setKeyboardOffset(keyboardHeight);
+      const keyboardThreshold = 150; // Minimum height to consider keyboard open
       
-      // Add iOS keyboard active class
-      document.body.classList.add('ios-keyboard-active');
-      
-      // Prevent viewport zoom on focus
-      const viewportMeta = document.querySelector('meta[name=viewport]') as HTMLMetaElement;
-      if (viewportMeta) {
-        const originalContent = viewportMeta.content;
-        viewportMeta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
+      if (keyboardHeight > keyboardThreshold && !isKeyboardOpen) {
+        // Keyboard is opening
+        isKeyboardOpen = true;
+        setKeyboardOffset(keyboardHeight);
+        document.body.classList.add('ios-keyboard-active');
         
-        // Restore after keyboard hides
-        setTimeout(() => {
-          if (viewportMeta) {
-            viewportMeta.content = originalContent;
-          }
-        }, 500);
+        // Prevent body scrolling when keyboard is open
+        document.body.style.position = 'fixed';
+        document.body.style.top = `-${window.scrollY}px`;
+        document.body.style.width = '100%';
+        
+      } else if (keyboardHeight <= keyboardThreshold && isKeyboardOpen) {
+        // Keyboard is closing
+        isKeyboardOpen = false;
+        setKeyboardOffset(0);
+        document.body.classList.remove('ios-keyboard-active');
+        
+        // Restore body scrolling
+        const scrollY = document.body.style.top;
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.width = '';
+        if (scrollY) {
+          window.scrollTo(0, parseInt(scrollY || '0', 10) * -1);
+        }
       }
     };
 
-    const handleKeyboardHide = () => {
-      setKeyboardOffset(0);
-      document.body.classList.remove('ios-keyboard-active');
-    };
-
     if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', handleKeyboardShow);
-      window.addEventListener('resize', handleKeyboardHide);
+      window.visualViewport.addEventListener('resize', handleViewportChange);
     }
 
     return () => {
       if (window.visualViewport) {
-        window.visualViewport.removeEventListener('resize', handleKeyboardShow);
-        window.removeEventListener('resize', handleKeyboardHide);
+        window.visualViewport.removeEventListener('resize', handleViewportChange);
       }
       document.body.classList.remove('ios-keyboard-active');
+      // Clean up any fixed positioning
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
     };
   }, [isIOSDevice]);
 
@@ -352,10 +361,10 @@ export default function AiPage() {
     <div
       className="relative flex min-h-[var(--app-height,100dvh)] flex-col overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50/50 to-purple-50/30"
       style={{
-        touchAction: isMobile ? 'pan-y' : 'auto',
+        touchAction: 'auto',
         overscrollBehaviorX: 'none',
-        overscrollBehaviorY: isMobile ? 'contain' : 'auto',
-        WebkitOverflowScrolling: isMobile ? 'touch' : 'auto',
+        overscrollBehaviorY: 'auto',
+        WebkitOverflowScrolling: 'touch',
         paddingTop: 'calc(var(--safe-area-top) + var(--app-viewport-offset, 0px))',
         paddingBottom: isIOSDevice ? `calc(var(--safe-area-bottom) + ${keyboardOffset}px)` : 'var(--safe-area-bottom)',
         transform: isIOSDevice && keyboardOffset > 0 ? `translateY(-${Math.min(keyboardOffset / 4, 50)}px)` : 'none',
@@ -434,6 +443,7 @@ export default function AiPage() {
             isMobile={isMobile}
             isIOSDevice={isIOSDevice}
             isSidebarOpen={isSidebarOpen}
+            keyboardOffset={keyboardOffset}
           />
         </main>
       </div>

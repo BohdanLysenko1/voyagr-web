@@ -65,8 +65,20 @@
 .ios-keyboard-active {
   position: fixed;
   width: 100%;
-  height: 100%;
+  height: 100vh;
   overflow: hidden;
+}
+
+/* Ensure chat input stays visible above keyboard */
+.ios-keyboard-active .fixed {
+  position: absolute;
+}
+
+/* Keep bottom navigation fixed in place */
+.ios-keyboard-active [data-bottom-nav] {
+  position: fixed !important;
+  bottom: 0 !important;
+  transform: none !important;
 }
 
 /* Prevent iOS zoom on input focus */

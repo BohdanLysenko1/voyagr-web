@@ -28,6 +28,7 @@ interface AIInterfaceProps {
   isMobile?: boolean;
   isIOSDevice?: boolean;
   isSidebarOpen?: boolean;
+  keyboardOffset?: number;
 }
 
 export default function AIInterface({ 
@@ -46,7 +47,8 @@ export default function AIInterface({
   onPreferencesOpen,
   isMobile = false,
   isIOSDevice = false,
-  isSidebarOpen = false
+  isSidebarOpen = false,
+  keyboardOffset = 0
 }: AIInterfaceProps) {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [isAITyping, setIsAITyping] = useState(false);
@@ -725,7 +727,7 @@ export default function AIInterface({
     <div
       className="flex-1 relative overflow-x-hidden flex flex-col h-full min-h-0"
       style={{
-        touchAction: 'pan-y',
+        touchAction: 'auto',
         overscrollBehaviorX: 'none'
       }}
     >
@@ -775,9 +777,9 @@ export default function AIInterface({
                   data-scroll-container="true"
                   className={`flex-1 h-full overflow-y-auto overflow-x-hidden ${isMobile ? 'space-y-6 p-6 pb-32' : 'space-y-5 p-4 pb-28'} sm:p-6 sm:pb-28 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400`}
                   style={{
-                    touchAction: isMobile ? 'pan-y' : 'auto',
-                    overscrollBehavior: isMobile ? 'contain' : 'auto',
-                    WebkitOverflowScrolling: isMobile ? 'touch' : 'auto',
+                    touchAction: 'auto',
+                    overscrollBehavior: 'auto',
+                    WebkitOverflowScrolling: 'touch',
                     position: 'relative',
                     zIndex: 1,
                     scrollBehavior: 'smooth'
@@ -865,9 +867,14 @@ export default function AIInterface({
 
           <div className="lg:mt-4">
             <div
-              className={`pointer-events-none fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+72px)] z-40 px-4 sm:px-6 transition-opacity duration-300 lg:pointer-events-auto lg:static lg:inset-auto lg:px-0 ${
+              className={`pointer-events-none fixed inset-x-0 z-40 px-4 sm:px-6 transition-all duration-300 lg:pointer-events-auto lg:static lg:inset-auto lg:px-0 ${
                 isFooterVisible ? 'opacity-0 lg:opacity-100' : 'opacity-100'
               }`}
+              style={{
+                bottom: isMobile && isIOSDevice 
+                  ? `calc(${Math.max(72, keyboardOffset)}px + env(safe-area-inset-bottom, 0px))`
+                  : 'calc(env(safe-area-inset-bottom) + 72px)'
+              }}
             >
               <div className="pointer-events-auto">
                 <div className={`glass-input glow-ring ${
