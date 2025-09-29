@@ -565,6 +565,10 @@ body.voyagr-no-scroll {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .aurora-ambient::before,
+  .aurora-ambient::after {
+    animation: none !important;
+  }
   .globe-node {
     animation-duration: 120s !important;
     animation-timing-function: linear !important;

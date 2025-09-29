@@ -3,7 +3,7 @@ import { UtensilsCrossed, Heart, ChevronDown, ChevronRight, Filter, Sparkles, Us
 import { Restaurant } from '@/types/ai';
 import HeartableItemComponent from './HeartableItem';
 
-interface RestaurantSectionProps {
+export interface RestaurantSectionProps {
   restaurants: Restaurant[];
   onHeartToggle: (id: number) => void;
   onNewTrip?: () => void;

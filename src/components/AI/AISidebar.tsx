@@ -1,15 +1,36 @@
 import { useCallback, useState } from 'react';
-import Link from 'next/link';
+import { X } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { Flight, Hotel, Restaurant } from '@/types/ai';
 import SearchTripsSection from './SearchTripsSection';
-import FlightSection from './FlightSection';
-import HotelSection from './HotelSection';
-import RestaurantSection from './RestaurantSection';
-import MapOutSection from './MapOutSection';
 import DrawerButtonGrid from './DrawerButtonGrid';
 import NotificationModal from '@/components/Notifications/NotificationModal';
 import type { NotificationItem } from '@/components/Notifications/NotificationModal';
-import { X, Home, Bell } from 'lucide-react';
+import LoadingSpinner from './LoadingSpinner';
+import type { FlightSectionProps } from './FlightSection';
+import type { HotelSectionProps } from './HotelSection';
+import type { RestaurantSectionProps } from './RestaurantSection';
+import type { MapOutSectionProps } from './MapOutSection';
+
+const FlightSection = dynamic<FlightSectionProps>(() => import('./FlightSection'), {
+  loading: () => <LoadingSpinner size="md" />,
+  ssr: false,
+});
+
+const HotelSection = dynamic<HotelSectionProps>(() => import('./HotelSection'), {
+  loading: () => <LoadingSpinner size="md" />,
+  ssr: false,
+});
+
+const RestaurantSection = dynamic<RestaurantSectionProps>(() => import('./RestaurantSection'), {
+  loading: () => <LoadingSpinner size="md" />,
+  ssr: false,
+});
+
+const MapOutSection = dynamic<MapOutSectionProps>(() => import('./MapOutSection'), {
+  loading: () => <LoadingSpinner size="md" />,
+  ssr: false,
+});
 
 type TabKey = 'plan' | 'preferences' | 'flights' | 'hotels' | 'restaurants' | 'mapout';
 
@@ -31,13 +52,13 @@ interface AISidebarProps {
   onPreferencesOpen?: () => void;
   activeTab: TabKey;
   onTabChange: (tab: TabKey) => void;
-  isMobile?: boolean;
-  onClose?: () => void;
   recentConversations?: RecentConversation[];
   onConversationSelect?: (conversation: RecentConversation) => void;
   onSendMessage?: (message: string) => void;
   inputValue?: string;
   onInputChange?: (value: string) => void;
+  variant?: 'desktop' | 'mobile';
+  onClose?: () => void;
 }
 
 export default function AISidebar({
@@ -52,11 +73,12 @@ export default function AISidebar({
   onPreferencesOpen,
   activeTab,
   onTabChange,
-  isMobile = false,
-  onClose,
   recentConversations,
   onConversationSelect,
+  variant = 'desktop',
+  onClose,
 }: AISidebarProps) {
+  const isMobileVariant = variant === 'mobile';
   // Section-specific new trip handlers
   const handleFlightNewTrip = useCallback(() => {
     onSectionReset?.('flights');
@@ -106,80 +128,87 @@ export default function AISidebar({
     }
   ];
 
+  const containerHeight = !isMobileVariant
+    ? { height: 'calc(var(--app-height, 100dvh) - 100px)' }
+    : undefined;
+
   return (
     <div
-      className={`${isMobile ? 'w-full h-full' : 'w-[480px] min-w-[480px]'} flex-shrink-0 ${isMobile ? 'p-0' : 'p-6 pt-0'} flex flex-col`}
-      style={isMobile ? undefined : { height: 'calc(var(--app-height, 100dvh) - 100px)' }}
+      className={`flex flex-col flex-shrink-0 ${
+        isMobileVariant
+          ? 'w-full max-w-full p-4 pb-6 sm:p-6 overflow-y-auto'
+          : 'w-full max-w-[480px] lg:w-[460px] xl:w-[500px] min-w-[320px] p-4 pr-2 lg:p-6 lg:pt-0'
+      }`}
+      style={containerHeight}
     >
-      <aside className={`w-full flex-1 min-h-0 ${isMobile ? 'mt-0' : 'mt-4'} flex flex-col overflow-hidden relative transition-all duration-300 scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent hover:scrollbar-thumb-primary/30 ${isMobile 
-        ? 'bg-white border-r border-gray-200 shadow-lg rounded-none' 
-        : 'glass-panel rounded-[2rem]'
-      }`} style={{overscrollBehavior: 'contain'}}>
-        {/* Background decorative orbs - reduced for mobile */}
-        {!isMobile && (
+      <aside
+        className={`w-full flex-1 min-h-0 mt-3 flex flex-col ${
+          isMobileVariant ? 'overflow-y-auto' : 'overflow-hidden'
+        } relative transition-all duration-300 scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent hover:scrollbar-thumb-primary/30 glass-panel rounded-[2rem] ${
+          isMobileVariant ? 'backdrop-blur-lg border-white/50 shadow-xl' : ''
+        }`}
+        style={{ overscrollBehavior: 'contain' }}
+      >
+        {/* Background decorative orbs */}
+        {!isMobileVariant && (
           <>
-            <div className="absolute -top-8 -left-8 w-32 h-32 bg-blue-200/30 rounded-full blur-2xl pointer-events-none animate-pulse"></div>
-            <div className="absolute top-1/3 -left-6 w-20 h-20 bg-cyan-200/20 rounded-full blur-lg pointer-events-none"></div>
-            <div className="absolute bottom-1/4 -left-10 w-16 h-16 bg-pink-200/25 rounded-full blur-lg pointer-events-none animate-pulse"></div>
-            <div className="absolute bottom-16 left-8 w-18 h-18 bg-amber-200/25 rounded-full blur-xl pointer-events-none"></div>
-            <div className="absolute top-10 left-16 w-14 h-14 bg-emerald-200/20 rounded-full blur-lg pointer-events-none"></div>
-            <div className="absolute top-1/2 -left-8 w-26 h-26 bg-violet-200/30 rounded-full blur-2xl pointer-events-none"></div>
-            <div className="absolute top-3/4 left-20 w-16 h-16 bg-lime-200/25 rounded-full blur-lg pointer-events-none"></div>
+            <div className="absolute -top-8 -left-8 w-32 h-32 bg-blue-200/30 rounded-full blur-2xl pointer-events-none animate-pulse" />
+            <div className="absolute top-1/3 -left-6 w-20 h-20 bg-cyan-200/20 rounded-full blur-lg pointer-events-none" />
+            <div className="absolute bottom-1/4 -right-4 w-16 h-16 bg-purple-200/25 rounded-full blur-lg pointer-events-none" />
+            <div className="absolute bottom-10 left-1/4 w-12 h-12 bg-pink-200/20 rounded-full blur-sm pointer-events-none" />
+            <div className="absolute top-10 left-16 w-14 h-14 bg-emerald-200/20 rounded-full blur-lg pointer-events-none" />
+            <div className="absolute top-1/2 -left-8 w-26 h-26 bg-violet-200/30 rounded-full blur-2xl pointer-events-none" />
+            <div className="absolute top-3/4 left-20 w-16 h-16 bg-lime-200/25 rounded-full blur-lg pointer-events-none" />
           </>
         )}
-        
-      {/* Mobile header with close button */}
-      {isMobile && onClose && (
-        <div className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-white/50 px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <h3 className="text-xl font-semibold text-white px-4 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-purple-600 shadow-lg shadow-blue-500/25 border border-white/20">
-                Voyagr AI
-              </h3>
-              <div className="flex items-center gap-2">
-                <Link href="/" className="p-1 rounded-lg hover:bg-gray-100 transition-colors duration-200">
-                  <Home className="w-5 h-5 text-gray-500 hover:text-gray-700" />
-                </Link>
-                <button 
-                  onClick={() => setIsNotificationModalOpen(!isNotificationModalOpen)}
-                  className="p-1 rounded-lg hover:bg-gray-100 transition-colors duration-200 relative"
-                >
-                  <Bell className="w-5 h-5 text-gray-500 hover:text-gray-700" />
-                  {/* Notification badge */}
-                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full flex items-center justify-center">
-                    <span className="text-xs font-bold text-white">2</span>
-                  </div>
-                </button>
-              </div>
+
+        {isMobileVariant && (
+          <div className="sticky top-0 z-20 flex items-center justify-between gap-3 px-4 py-3 bg-white/70 backdrop-blur-xl border-b border-white/60">
+            <div className="flex flex-col">
+              <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Voyagr AI</span>
+              <span className="text-base font-semibold text-gray-900">Quick Planner</span>
             </div>
             <button
+              type="button"
               onClick={onClose}
-              className="p-2.5 rounded-2xl hover:bg-white/80 text-gray-600 hover:text-gray-800 transition-all duration-300 border border-white/60 shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95"
-              aria-label="Close sidebar"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white/80 text-gray-700 shadow-sm transition hover:bg-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+              aria-label="Close planner menu"
             >
-              <X className="w-5 h-5" />
+              <X className="h-5 w-5" aria-hidden="true" />
             </button>
           </div>
-        </div>
-      )}
-      
-      {/* Button Grid - Quick Actions */}
-      <DrawerButtonGrid 
-        onTabChange={(tab) => {
-          if (tab === 'preferences') {
-            onPreferencesOpen?.();
-          } else {
-            onTabChange(tab as TabKey);
-          }
-        }}
-        onPreferencesOpen={onPreferencesOpen}
-        onNewTrip={onNewTrip}
-        className={`${isMobile ? 'border-b border-white/30' : ''}`}
-      />
-      
+        )}
 
-      {/* Panels */}
-      <div className={`flex-1 overflow-y-scroll ${isMobile ? 'p-4' : 'p-4'} space-y-4`} style={{overscrollBehavior: 'contain'}}>
+        {/* Button Grid - Quick Actions */}
+        <DrawerButtonGrid
+          onTabChange={(tab) => {
+            if (tab === 'preferences') {
+              onPreferencesOpen?.();
+            } else {
+              onTabChange(tab as TabKey);
+            }
+            if (isMobileVariant) {
+              onClose?.();
+            }
+          }}
+          onPreferencesOpen={() => {
+            onPreferencesOpen?.();
+            if (isMobileVariant) {
+              onClose?.();
+            }
+          }}
+          onNewTrip={() => {
+            onNewTrip?.();
+            if (isMobileVariant) {
+              onClose?.();
+            }
+          }}
+          className="pt-4"
+        />
+
+
+        {/* Panels */}
+        <div className={`flex-1 overflow-y-auto p-4 pb-6 space-y-4 ${isMobileVariant ? 'pt-2' : ''}`} style={{ overscrollBehavior: 'contain' }}>
         {/* Plan */}
         <div
           role="tabpanel"
@@ -197,48 +226,52 @@ export default function AISidebar({
 
 
         {/* Flights */}
-        <div
-          role="tabpanel"
-          id="panel-flights"
-          aria-labelledby="tab-flights"
-          hidden={activeTab !== 'flights'}
-          className="outline-none"
-        >
-          <FlightSection flights={flights} onHeartToggle={onFlightHeartToggle} onNewTrip={handleFlightNewTrip} />
-        </div>
+        {activeTab === 'flights' && (
+          <div
+            role="tabpanel"
+            id="panel-flights"
+            aria-labelledby="tab-flights"
+            className="outline-none"
+          >
+            <FlightSection flights={flights} onHeartToggle={onFlightHeartToggle} onNewTrip={handleFlightNewTrip} />
+          </div>
+        )}
 
         {/* Hotels */}
-        <div
-          role="tabpanel"
-          id="panel-hotels"
-          aria-labelledby="tab-hotels"
-          hidden={activeTab !== 'hotels'}
-          className="outline-none"
-        >
-          <HotelSection hotels={hotels} onHeartToggle={onHotelHeartToggle} onNewTrip={handleHotelNewTrip} />
-        </div>
+        {activeTab === 'hotels' && (
+          <div
+            role="tabpanel"
+            id="panel-hotels"
+            aria-labelledby="tab-hotels"
+            className="outline-none"
+          >
+            <HotelSection hotels={hotels} onHeartToggle={onHotelHeartToggle} onNewTrip={handleHotelNewTrip} />
+          </div>
+        )}
 
         {/* Restaurants */}
-        <div
-          role="tabpanel"
-          id="panel-restaurants"
-          aria-labelledby="tab-restaurants"
-          hidden={activeTab !== 'restaurants'}
-          className="outline-none"
-        >
-          <RestaurantSection restaurants={restaurants} onHeartToggle={onRestaurantHeartToggle} onNewTrip={handleRestaurantNewTrip} />
-        </div>
+        {activeTab === 'restaurants' && (
+          <div
+            role="tabpanel"
+            id="panel-restaurants"
+            aria-labelledby="tab-restaurants"
+            className="outline-none"
+          >
+            <RestaurantSection restaurants={restaurants} onHeartToggle={onRestaurantHeartToggle} onNewTrip={handleRestaurantNewTrip} />
+          </div>
+        )}
 
         {/* Map Out */}
-        <div
-          role="tabpanel"
-          id="panel-mapout"
-          aria-labelledby="tab-mapout"
-          hidden={activeTab !== 'mapout'}
-          className="outline-none"
-        >
-          <MapOutSection onNewTrip={handleMapOutNewTrip} />
-        </div>
+        {activeTab === 'mapout' && (
+          <div
+            role="tabpanel"
+            id="panel-mapout"
+            aria-labelledby="tab-mapout"
+            className="outline-none"
+          >
+            <MapOutSection onNewTrip={handleMapOutNewTrip} />
+          </div>
+        )}
       </div>
     </aside>
     

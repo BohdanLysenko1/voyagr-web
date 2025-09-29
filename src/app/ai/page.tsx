@@ -1,6 +1,9 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Menu, Plus, Home } from 'lucide-react';
+import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { useAIPageState } from '@/hooks/useAIPageState';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { useNavbarVisibility } from '@/contexts/NavbarVisibilityContext';
@@ -9,10 +12,17 @@ import { SAMPLE_FLIGHTS, SAMPLE_HOTELS, SAMPLE_RESTAURANTS, SUGGESTED_PROMPTS, P
 import { Flight, Hotel, Restaurant } from '@/types/ai';
 import AISidebar from '@/components/AI/AISidebar';
 import AIInterface from '@/components/AI/AIInterface';
-import AIPreferencesModal from '@/components/AI/AIPreferencesModal';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/Sheet';
+import AIMobileNav from '@/components/AI/AIMobileNav';
+
+const AIPreferencesModal = dynamic(() => import('@/components/AI/AIPreferencesModal'), {
+  ssr: false,
+  loading: () => null,
+});
 
 type TabKey = 'plan' | 'preferences' | 'flights' | 'hotels' | 'restaurants' | 'mapout';
+
+const isSectionTab = (tab: TabKey): tab is 'flights' | 'hotels' | 'restaurants' | 'mapout' =>
+  tab === 'flights' || tab === 'hotels' || tab === 'restaurants' || tab === 'mapout';
 
 interface RecentConversation {
   id: string;
@@ -30,6 +40,8 @@ export default function AiPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [recentConversations, setRecentConversations] = useState<RecentConversation[]>([]);
   const [currentConversationMessages, setCurrentConversationMessages] = useState<string[]>([]);
+  const clearChatFunctionRef = useRef<(() => void) | null>(null);
+  const [resetKey, setResetKey] = useState(0);
 
   // Keep a CSS custom property in sync with the real viewport height to avoid 100vh jumps on mobile
   useEffect(() => {
@@ -62,6 +74,7 @@ export default function AiPage() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    if (!isSidebarOpen) return;
 
     const previousHtmlOverflow = document.documentElement.style.overflow;
     const previousBodyOverflow = document.body.style.overflow;
@@ -78,48 +91,29 @@ export default function AiPage() {
       document.body.style.position = previousBodyPosition;
       document.body.classList.remove('voyagr-no-scroll');
     };
-  }, []);
+  }, [isSidebarOpen]);
   
-  // Manage navbar and footer visibility based on device type and sidebar state
+  // Manage navbar and footer visibility - Desktop only
   useEffect(() => {
-    const isMobile = window.innerWidth < 1024; // lg breakpoint
-    
-    if (isMobile) {
-      // Mobile: navbar always visible, footer always hidden (set once)
-      setNavbarVisible(true);
-      setFooterVisible(false);
-    } else {
-      // Desktop: navbar toggles with sidebar, footer always visible
-      setNavbarVisible(!isSidebarOpen);
-      setFooterVisible(true);
-    }
+    // Desktop: navbar toggles with sidebar, footer always visible
+    setNavbarVisible(!isSidebarOpen);
+    setFooterVisible(true);
   }, [isSidebarOpen, setNavbarVisible, setFooterVisible]);
 
-  // Handle window resize separately to avoid conflicting with sidebar toggles
+
   useEffect(() => {
-    let resizeTimeout: NodeJS.Timeout;
-    
-    const handleResize = () => {
-      if (resizeTimeout) clearTimeout(resizeTimeout);
-      resizeTimeout = setTimeout(() => {
-        const isMobile = window.innerWidth < 1024;
-        if (isMobile) {
-          setNavbarVisible(true);
-          setFooterVisible(false);
-        } else {
-          setNavbarVisible(!isSidebarOpen);
-          setFooterVisible(true);
-        }
-      }, 100);
+    if (!isSidebarOpen) return;
+
+    const handleKeydown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsSidebarOpen(false);
+      }
     };
 
-    window.addEventListener('resize', handleResize);
-    
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      if (resizeTimeout) clearTimeout(resizeTimeout);
-    };
-  }, [isSidebarOpen, setNavbarVisible, setFooterVisible]);
+    window.addEventListener('keydown', handleKeydown);
+    return () => window.removeEventListener('keydown', handleKeydown);
+  }, [isSidebarOpen]);
+
 
   // Restore navbar and footer visibility when component unmounts
   useEffect(() => {
@@ -195,34 +189,6 @@ export default function AiPage() {
     if (restaurant) toggleAIItemFavorite(restaurant, 'restaurant');
   }, [toggleAIItemFavorite]);
 
-  const handleNewTrip = useCallback(() => {
-    // Save current conversation to recent conversations if there are messages
-    if (currentConversationMessages.length > 0) {
-      const firstMessage = currentConversationMessages[0];
-      const newConversation: RecentConversation = {
-        id: Date.now().toString(),
-        title: firstMessage.length > 50 ? `${firstMessage.substring(0, 50)}...` : firstMessage,
-        timestamp: new Date()
-      };
-
-      const updatedConversations = [newConversation, ...recentConversations.slice(0, 9)];
-      saveConversationHistory(updatedConversations);
-    }
-    
-    // Reset the state to start a fresh conversation
-    setInputValue('');
-    setCurrentConversationMessages([]);
-    setActiveTab('plan');
-    setIsSidebarOpen(false);
-    
-    // Refresh the page to ensure a clean state
-    window.location.reload();
-  }, [currentConversationMessages, recentConversations, saveConversationHistory, setInputValue]);
-
-  // Section-specific reset handlers that don't reload the page
-  const clearChatFunctionRef = useRef<(() => void) | null>(null);
-  const [resetKey, setResetKey] = useState(0);
-  
   const registerClearChat = useCallback((fn: () => void) => {
     clearChatFunctionRef.current = fn;
   }, []);
@@ -237,6 +203,34 @@ export default function AiPage() {
     setResetKey(prev => prev + 1);
     setActiveTab(targetTab);
   }, [setInputValue]);
+
+  const handleNewTrip = useCallback(() => {
+    // Save current conversation to recent conversations if there are messages
+    if (currentConversationMessages.length > 0) {
+      const firstMessage = currentConversationMessages[0];
+      const newConversation: RecentConversation = {
+        id: Date.now().toString(),
+        title: firstMessage.length > 50 ? `${firstMessage.substring(0, 50)}...` : firstMessage,
+        timestamp: new Date()
+      };
+
+      const updatedConversations = [newConversation, ...recentConversations.slice(0, 9)];
+      saveConversationHistory(updatedConversations);
+    }
+
+    setInputValue('');
+    setCurrentConversationMessages([]);
+    clearChatFunctionRef.current?.();
+    setResetKey(prev => prev + 1);
+
+    if (isSectionTab(activeTab)) {
+      handleSectionReset(activeTab);
+    } else {
+      setActiveTab('plan');
+    }
+
+    setIsSidebarOpen(false);
+  }, [activeTab, currentConversationMessages, handleSectionReset, recentConversations, saveConversationHistory, setInputValue]);
 
   const handleFirstMessage = useCallback((firstMessage: string) => {
     setCurrentConversationMessages([firstMessage]);
@@ -266,22 +260,97 @@ export default function AiPage() {
 
   return (
     <div
-      className="relative flex flex-col overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50/50 to-purple-50/30"
+      className="relative flex min-h-[var(--app-height,100dvh)] flex-col overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50/50 to-purple-50/30"
       style={{
         touchAction: 'pan-y',
         overscrollBehaviorX: 'none',
-        minHeight: 'var(--app-height, 100dvh)',
         paddingTop: 'calc(var(--safe-area-top) + var(--app-viewport-offset, 0px))',
         paddingBottom: 'var(--safe-area-bottom)',
       }}
     >
-      <div className="aurora-ambient" />
-      {/* Mobile Layout */}
-      <div className="lg:hidden flex flex-1 flex-col min-h-0 pt-16">
-        
-        {/* Mobile Sidebar using Sheet */}
-        <Sheet open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
-          <SheetContent side="left" className="p-0 border-0 bg-white/95 backdrop-blur-xl backdrop-saturate-150 border-r border-white/40 z-50">
+      <div className="aurora-ambient" aria-hidden="true" />
+
+      <header className="lg:hidden sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-white/60 bg-white/85 px-4 py-3 backdrop-blur-xl shadow-sm">
+        <button
+          type="button"
+          onClick={() => setIsSidebarOpen(true)}
+          className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-800 shadow-sm transition hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+        >
+          <Menu className="h-5 w-5" aria-hidden="true" />
+          <span>Menu</span>
+        </button>
+        <div className="flex flex-1 flex-col items-center text-center">
+          <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Voyagr AI</span>
+          <span className="text-base font-semibold text-gray-900">Travel Copilot</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-700 shadow-sm transition hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+            aria-label="Go to home"
+          >
+            <Home className="h-5 w-5" aria-hidden="true" />
+          </Link>
+          <button
+            type="button"
+            onClick={handleNewTrip}
+            className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white shadow-lg transition hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
+            <Plus className="h-4 w-4" aria-hidden="true" />
+            <span>New Trip</span>
+          </button>
+        </div>
+      </header>
+
+      <div className="relative flex flex-1 min-h-0 flex-col gap-4 overflow-hidden px-4 pb-24 pt-4 sm:px-6 lg:flex-row lg:gap-6 lg:px-10 lg:pb-6 lg:pt-6">
+        <div className="hidden lg:flex lg:flex-shrink-0">
+          <AISidebar
+            flights={updatedFlights}
+            hotels={updatedHotels}
+            restaurants={updatedRestaurants}
+            onFlightHeartToggle={toggleFlightHeart}
+            onHotelHeartToggle={toggleHotelHeart}
+            onRestaurantHeartToggle={toggleRestaurantHeart}
+            onNewTrip={handleNewTrip}
+            onSectionReset={handleSectionReset}
+            onPreferencesOpen={handlePreferencesOpen}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            recentConversations={recentConversations}
+            onConversationSelect={handleConversationSelect}
+            variant="desktop"
+          />
+        </div>
+        <main className="relative flex-1 min-h-0">
+          <AIInterface
+            key={resetKey}
+            inputValue={inputValue}
+            onInputChange={setInputValue}
+            isTyping={isTyping}
+            suggestedPrompts={SUGGESTED_PROMPTS}
+            placeholderText={PLACEHOLDER_TEXT}
+            onSubmit={handleSubmit}
+            preferences={preferences}
+            activeTab={activeTab}
+            registerClearChat={registerClearChat}
+            onNewTrip={handleNewTrip}
+            onFirstMessage={handleFirstMessage}
+            onMessageSent={handleMessageSent}
+            onPreferencesOpen={handlePreferencesOpen}
+          />
+        </main>
+      </div>
+
+      <AIMobileNav activeTab={activeTab} onTabChange={setActiveTab} />
+
+      {isSidebarOpen && (
+        <div className="fixed inset-0 z-50 flex flex-col justify-end lg:hidden" role="dialog" aria-modal="true">
+          <div
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            aria-hidden="true"
+            onClick={() => setIsSidebarOpen(false)}
+          />
+          <div className="relative z-10 max-h-[calc(var(--app-height,100dvh)-88px)] overflow-y-auto rounded-t-3xl border border-white/50 bg-white/95 pb-safe shadow-2xl">
             <AISidebar
               flights={updatedFlights}
               hotels={updatedHotels}
@@ -297,94 +366,18 @@ export default function AiPage() {
                 setActiveTab(tab);
                 setIsSidebarOpen(false);
               }}
-              isMobile={true}
-              onClose={() => setIsSidebarOpen(false)}
               recentConversations={recentConversations}
-              onConversationSelect={handleConversationSelect}
-            />
-          </SheetContent>
-          
-          {/* Mobile Main Interface with SheetTrigger */}
-          <div
-            className="flex-1 min-h-0 overflow-hidden relative"
-            style={{ touchAction: 'pan-y', overscrollBehaviorX: 'none', zIndex: 1 }}
-          >
-            <AIInterface
-              key={resetKey}
-              inputValue={inputValue}
-              onInputChange={setInputValue}
-              isTyping={isTyping}
-              suggestedPrompts={SUGGESTED_PROMPTS}
-              placeholderText={PLACEHOLDER_TEXT}
-              onSubmit={handleSubmit}
-              preferences={preferences}
-              activeTab={activeTab}
-              isMobile={true}
-              onSidebarOpen={() => setIsSidebarOpen(true)}
-              isSidebarOpen={isSidebarOpen}
-              registerClearChat={registerClearChat}
-              onFirstMessage={handleFirstMessage}
-              onMessageSent={handleMessageSent}
-              onPreferencesOpen={handlePreferencesOpen}
-              renderMenuTrigger={(triggerProps: { children: React.ReactNode; onClick?: () => void }) => (
-                <SheetTrigger asChild>
-                  <button
-                    type="button"
-                    onClick={triggerProps.onClick}
-                    className="fixed top-4 left-4 z-[70] p-3 rounded-full bg-white/95 backdrop-blur-md border border-white/40 hover:bg-white transition-all duration-200 shadow-lg hover:shadow-xl min-h-[48px] min-w-[48px] flex items-center justify-center glass-morphism"
-                  >
-                    {triggerProps.children}
-                  </button>
-                </SheetTrigger>
-              )}
+              onConversationSelect={(conversation) => {
+                handleConversationSelect(conversation);
+                setIsSidebarOpen(false);
+              }}
+              variant="mobile"
+              onClose={() => setIsSidebarOpen(false)}
             />
           </div>
-        </Sheet>
-      </div>
-
-      {/* Desktop Layout */}
-      <div
-        className="hidden lg:flex flex-1 min-h-0 overflow-hidden"
-        style={{ maxHeight: 'var(--app-height, 100dvh)' }}
-      >
-        <AISidebar
-          flights={updatedFlights}
-          hotels={updatedHotels}
-          restaurants={updatedRestaurants}
-          onFlightHeartToggle={toggleFlightHeart}
-          onHotelHeartToggle={toggleHotelHeart}
-          onRestaurantHeartToggle={toggleRestaurantHeart}
-          onNewTrip={handleNewTrip}
-          onSectionReset={handleSectionReset}
-          onPreferencesOpen={handlePreferencesOpen}
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          isMobile={false}
-          recentConversations={recentConversations}
-          onConversationSelect={handleConversationSelect}
-        />
-        <div className="flex-1 h-full">
-          <AIInterface
-            key={resetKey}
-            inputValue={inputValue}
-            onInputChange={setInputValue}
-            isTyping={isTyping}
-            suggestedPrompts={SUGGESTED_PROMPTS}
-            placeholderText={PLACEHOLDER_TEXT}
-            onSubmit={handleSubmit}
-            preferences={preferences}
-            activeTab={activeTab}
-            isMobile={false}
-            registerClearChat={registerClearChat}
-            onNewTrip={handleNewTrip}
-            onFirstMessage={handleFirstMessage}
-            onMessageSent={handleMessageSent}
-            onPreferencesOpen={handlePreferencesOpen}
-          />
         </div>
-      </div>
-      
-      
+      )}
+
       <AIPreferencesModal
         isOpen={isPreferencesModalOpen}
         onClose={() => setIsPreferencesModalOpen(false)}

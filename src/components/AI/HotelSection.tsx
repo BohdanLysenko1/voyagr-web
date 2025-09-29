@@ -3,7 +3,7 @@ import { Building, Heart, ChevronDown, ChevronRight, Filter, Sparkles, MapPin, A
 import { Hotel } from '@/types/ai';
 import HeartableItemComponent from './HeartableItem';
 
-interface HotelSectionProps {
+export interface HotelSectionProps {
   hotels: Hotel[];
   onHeartToggle: (id: number) => void;
   onNewTrip?: () => void;

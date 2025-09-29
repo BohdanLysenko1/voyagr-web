@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { MapPin, Clock, Calendar, ArrowRight, Route, Navigation } from 'lucide-react';
 
-interface MapOutSectionProps {
+export interface MapOutSectionProps {
   onNewTrip?: () => void;
 }
 

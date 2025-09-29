@@ -3,7 +3,7 @@ import { Plane, Heart, ChevronDown, ChevronRight, Filter, Sparkles, TrendingUp, 
 import { Flight } from '@/types/ai';
 import HeartableItemComponent from './HeartableItem';
 
-interface FlightSectionProps {
+export interface FlightSectionProps {
   flights: Flight[];
   onHeartToggle: (id: number) => void;
   onNewTrip?: () => void;

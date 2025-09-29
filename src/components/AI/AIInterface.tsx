@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { Sparkles, Send, Bot, User, Menu, ArrowRight, Settings } from 'lucide-react';
+import { Sparkles, Send, Bot, User, ArrowRight, Settings } from 'lucide-react';
 import Image from 'next/image';
 
 type TabKey = 'plan' | 'preferences' | 'flights' | 'hotels' | 'restaurants' | 'mapout';
@@ -20,15 +20,11 @@ interface AIInterfaceProps {
   onSubmit?: () => void;
   preferences?: any;
   activeTab: TabKey;
-  isMobile?: boolean;
-  onSidebarOpen?: () => void;
-  isSidebarOpen?: boolean;
   onNewTrip?: () => void;
   registerClearChat?: (fn: () => void) => void;
   onFirstMessage?: (firstMessage: string) => void;
   onMessageSent?: (message: string) => void;
   onPreferencesOpen?: () => void;
-  renderMenuTrigger?: (triggerProps: { children: React.ReactNode; onClick?: () => void }) => React.ReactNode;
 }
 
 export default function AIInterface({ 
@@ -40,15 +36,11 @@ export default function AIInterface({
   onSubmit,
   preferences,
   activeTab,
-  isMobile = false,
-  onSidebarOpen,
-  isSidebarOpen = false,
   onNewTrip,
   registerClearChat,
   onFirstMessage,
   onMessageSent,
-  onPreferencesOpen,
-  renderMenuTrigger
+  onPreferencesOpen
 }: AIInterfaceProps) {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [isAITyping, setIsAITyping] = useState(false);
@@ -62,25 +54,21 @@ export default function AIInterface({
   const scrollContainerRef = useRef<HTMLElement | null>(null);
   const isUserScrollingRef = useRef(false);
   const autoScrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const inputContainerRef = useRef<HTMLDivElement | null>(null);
-  const initialViewportHeightRef = useRef<number | null>(null);
-  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
 
   // Track mounted state to prevent hydration mismatch
   useEffect(() => {
     setIsMounted(true);
   }, []);
-
-  // Auto-grow the compact composer so longer prompts remain visible on mobile
+  // Auto-grow the compact composer
   const adjustTextareaHeight = useCallback(() => {
     const el = textareaRef.current;
     if (!el) return;
     el.style.height = 'auto';
-    const maxHeight = isMobile ? 160 : 120;
+    const maxHeight = 120;
     const nextHeight = Math.max(Math.min(el.scrollHeight, maxHeight), 24);
     el.style.height = `${nextHeight}px`;
-  }, [isMobile]);
+  }, []);
 
   const showChat = chatMessages.length > 0 || isAITyping;
 
@@ -89,13 +77,8 @@ export default function AIInterface({
     const el = textareaRef.current;
     if (!el) return;
     try {
-      // On mobile, don't prevent scroll so the browser can adjust viewport properly
-      if (isMobile) {
-        el.focus();
-      } else {
-        // preventScroll keeps the viewport stable when focusing on desktop
-        (el as any).focus({ preventScroll: true });
-      }
+      // preventScroll keeps the viewport stable when focusing on desktop
+      (el as any).focus({ preventScroll: true });
     } catch {
       el.focus();
     }
@@ -112,9 +95,8 @@ export default function AIInterface({
         }
       }, 0);
     }
-  }, [adjustTextareaHeight, isMobile]);
+  }, [adjustTextareaHeight]);
 
-  const isKeyboardVisible = useMemo(() => isMobile && isKeyboardOpen, [isMobile, isKeyboardOpen]);
 
   // Animated globe nodes with slight randomization at mount (client-side only)
   const globeNodes = useMemo(() => {
@@ -191,72 +173,11 @@ export default function AIInterface({
     });
   }, [registerClearChat, clearChat, isMounted]);
 
-  // Detect keyboard overlays (notably on iOS Safari) and adjust layout affordances
-  useEffect(() => {
-    if (!isMounted) return;
-
-    if (!isMobile || typeof window === 'undefined') {
-      initialViewportHeightRef.current = null;
-      setIsKeyboardOpen(false);
-      return;
-    }
-
-    const viewport = window.visualViewport;
-    if (!viewport) {
-      initialViewportHeightRef.current = null;
-      setIsKeyboardOpen(false);
-      return;
-    }
-
-    let rafId: number | null = null;
-
-    const ensureBaseline = () => {
-      const candidate = window.innerHeight || document.documentElement.clientHeight || viewport.height;
-      initialViewportHeightRef.current = candidate;
-    };
-
-    if (initialViewportHeightRef.current === null) {
-      ensureBaseline();
-    }
-
-    const evaluateKeyboardState = () => {
-      const baseline = initialViewportHeightRef.current ?? window.innerHeight;
-      const heightWithOffset = viewport.height + viewport.offsetTop;
-      const diff = baseline - heightWithOffset;
-      const keyboardEngaged = diff > 80;
-
-      if (!keyboardEngaged && diff <= 0) {
-        ensureBaseline();
-      }
-
-      setIsKeyboardOpen((prev) => (prev !== keyboardEngaged ? keyboardEngaged : prev));
-    };
-
-    const handleViewportChange = () => {
-      if (rafId) cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(evaluateKeyboardState);
-    };
-
-    evaluateKeyboardState();
-    viewport.addEventListener('resize', handleViewportChange);
-    viewport.addEventListener('scroll', handleViewportChange);
-    window.addEventListener('orientationchange', handleViewportChange);
-
-    return () => {
-      if (rafId) cancelAnimationFrame(rafId);
-      viewport.removeEventListener('resize', handleViewportChange);
-      viewport.removeEventListener('scroll', handleViewportChange);
-      window.removeEventListener('orientationchange', handleViewportChange);
-    };
-  }, [isMobile, isMounted]);
 
   useEffect(() => {
     adjustTextareaHeight();
   }, [inputValue, adjustTextareaHeight]);
 
-  useEffect(() => {
-    adjustTextareaHeight();
-  }, [isMobile, adjustTextareaHeight]);
 
   // Check if user is near the bottom of the scroll container
   const isNearBottom = useCallback((threshold = 100) => {
@@ -276,14 +197,13 @@ export default function AIInterface({
     return scrollHeight - scrollTop - clientHeight < threshold;
   }, []);
 
-  // Robust scroll to bottom with mobile-first approach
+  // Robust scroll to bottom
   const scrollToBottom = useCallback((force = false) => {
     if (autoScrollTimeoutRef.current) {
       clearTimeout(autoScrollTimeoutRef.current);
     }
 
-    // More aggressive scrolling on mobile, always scroll when forced
-    const shouldScroll = force || isNearBottom(isMobile ? 300 : 100);
+    const shouldScroll = force || isNearBottom(100);
     if (!shouldScroll) {
       return;
     }
@@ -333,7 +253,7 @@ export default function AIInterface({
         if (messagesEndRef.current) {
           try {
             messagesEndRef.current.scrollIntoView({ 
-              behavior: isMobile ? 'auto' : 'smooth', 
+              behavior: 'smooth', 
               block: 'end',
               inline: 'nearest'
             });
@@ -351,56 +271,21 @@ export default function AIInterface({
         // Try smooth scroll first
         targetContainer.scrollTo({
           top: maxScroll,
-          behavior: isMobile ? 'auto' : 'smooth'
+          behavior: 'smooth'
         });
       } catch {
         // Fallback to direct assignment
         targetContainer.scrollTop = maxScroll;
       }
 
-      // Mobile-specific: Ensure we reach the bottom with retries
-      if (isMobile) {
-        const ensureBottom = (retries = 0) => {
-          if (retries > 5) return; // Prevent infinite loops
-          
-          requestAnimationFrame(() => {
-            if (!targetContainer) return;
-            
-            const currentScroll = targetContainer.scrollTop;
-            const targetScroll = targetContainer.scrollHeight - targetContainer.clientHeight;
-            
-            // If we're not at the bottom (with 10px tolerance), keep trying
-            if (Math.abs(currentScroll - targetScroll) > 10) {
-              targetContainer.scrollTop = targetScroll;
-              ensureBottom(retries + 1);
-            }
-          });
-        };
-        
-        // Start the retry process immediately
-        ensureBottom();
-        
-        // Also set a delayed check
-        setTimeout(() => {
-          if (targetContainer) {
-            targetContainer.scrollTop = targetContainer.scrollHeight - targetContainer.clientHeight;
-          }
-        }, 100);
-      }
-
       // Focus input after scroll completes
       autoScrollTimeoutRef.current = setTimeout(() => {
         focusInput();
-      }, isMobile ? 25 : 250);
+      }, 250);
     };
 
-    // Execute immediately on mobile, with small delay on desktop
-    if (isMobile) {
-      performScroll();
-    } else {
-      requestAnimationFrame(performScroll);
-    }
-  }, [isNearBottom, focusInput, isMobile]);
+    requestAnimationFrame(performScroll);
+  }, [isNearBottom, focusInput]);
 
 
   // Auto-scroll on new messages with improved logic
@@ -409,16 +294,15 @@ export default function AIInterface({
     
     // Wait for DOM updates, then check if we should scroll
     const scrollTimeout = setTimeout(() => {
-      // On mobile, always scroll to new messages unless user is actively scrolling up
-      const skipAutoScroll = !isMobile && isUserScrollingRef.current && !isNearBottom(300);
+      const skipAutoScroll = isUserScrollingRef.current && !isNearBottom(300);
       if (skipAutoScroll) return;
       
-      // Force scroll to new messages - always scroll on mobile for better UX
+      // Force scroll to new messages
       scrollToBottom(true);
-    }, isMobile ? 25 : 100); // Even faster response on mobile
+    }, 100);
     
     return () => clearTimeout(scrollTimeout);
-  }, [chatMessages, scrollToBottom, isNearBottom, isMobile]);
+  }, [chatMessages, scrollToBottom, isNearBottom]);
 
   // Auto-scroll when AI starts typing
   useEffect(() => {
@@ -426,68 +310,13 @@ export default function AIInterface({
       // Give AI typing a moment to render, then scroll
       const typingScrollTimeout = setTimeout(() => {
         scrollToBottom(true); // Force scroll when AI starts typing
-      }, isMobile ? 25 : 150); // Much faster on mobile
+      }, 150);
       
       return () => clearTimeout(typingScrollTimeout);
     }
-  }, [isAITyping, scrollToBottom, isMobile]);
+  }, [isAITyping, scrollToBottom]);
 
-  // Handle input focus to ensure proper scrolling on mobile
-  useEffect(() => {
-    if (!isMobile) return;
 
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-
-    const handleInputFocus = () => {
-      // When input is focused on mobile, ensure we scroll to bottom after a short delay
-      // to account for keyboard appearance
-      setTimeout(() => {
-        scrollToBottom(true);
-      }, 100);
-    };
-
-    const handleInputBlur = () => {
-      // When input loses focus, ensure we're still at the bottom
-      setTimeout(() => {
-        scrollToBottom(true);
-      }, 50);
-    };
-
-    textarea.addEventListener('focus', handleInputFocus);
-    textarea.addEventListener('blur', handleInputBlur);
-
-    return () => {
-      textarea.removeEventListener('focus', handleInputFocus);
-      textarea.removeEventListener('blur', handleInputBlur);
-    };
-  }, [isMobile, scrollToBottom]);
-
-  // Mobile-specific: Gentle scroll correction only for new messages
-  useEffect(() => {
-    if (!isMobile || chatMessages.length === 0) return;
-
-    // Only run gentle correction when new messages arrive, not continuously
-    const lastMessage = chatMessages[chatMessages.length - 1];
-    if (!lastMessage) return;
-
-    // Wait a moment for the message to render, then check if we should scroll
-    const correctionTimeout = setTimeout(() => {
-      const container = scrollContainerRef.current || document.querySelector('[data-scroll-container="true"]') as HTMLElement;
-      if (!container) return;
-
-      const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
-      
-      // Only auto-scroll if user is near bottom and not actively scrolling up
-      if (isAtBottom && !isUserScrollingRef.current) {
-        container.scrollTop = container.scrollHeight - container.clientHeight;
-      }
-    }, 200);
-
-    return () => {
-      clearTimeout(correctionTimeout);
-    };
-  }, [isMobile, chatMessages.length]);
 
   const generateAIResponse = useCallback((userMessage: string): string => {
     const responses: Record<string, string[]> = {
@@ -545,8 +374,8 @@ export default function AIInterface({
     focusInput();
     requestAnimationFrame(() => adjustTextareaHeight());
     
-    // Immediately scroll to show the user's message - immediate on mobile for better UX
-    setTimeout(() => scrollToBottom(true), isMobile ? 10 : 50);
+    // Immediately scroll to show the user's message
+    setTimeout(() => scrollToBottom(true), 50);
     
     // If this is the first message, save it to recent conversations
     if (isFirstMessage) {
@@ -691,13 +520,6 @@ export default function AIInterface({
         const container = document.querySelector('[data-scroll-container="true"]') as HTMLElement;
         if (container) {
           scrollContainerRef.current = container;
-          
-          // On mobile, ensure the container has proper scroll properties
-          if (isMobile) {
-            container.style.overflowY = 'auto';
-            (container.style as any).WebkitOverflowScrolling = 'touch';
-            container.style.overscrollBehavior = 'contain';
-          }
         }
       });
     };
@@ -714,15 +536,13 @@ export default function AIInterface({
     }
 
     window.addEventListener('resize', updateScrollContainer);
-    window.addEventListener('orientationchange', updateScrollContainer);
 
     return () => {
       clearTimeout(timeoutId);
       observer?.disconnect();
       window.removeEventListener('resize', updateScrollContainer);
-      window.removeEventListener('orientationchange', updateScrollContainer);
     };
-  }, [showChat, isMobile]);
+  }, [showChat]);
 
   // Handle user scrolling detection
   useEffect(() => {
@@ -732,15 +552,7 @@ export default function AIInterface({
     let scrollTimeout: NodeJS.Timeout;
     
     const handleScroll = () => {
-      // On mobile, be more responsive to user scroll intentions
-      if (isMobile) {
-        const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
-        const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
-        // Consider it user scrolling if they're more than 50px from bottom
-        isUserScrollingRef.current = distanceFromBottom > 50;
-      } else {
-        isUserScrollingRef.current = true;
-      }
+      isUserScrollingRef.current = true;
       
       // Clear existing timeout
       if (scrollTimeout) clearTimeout(scrollTimeout);
@@ -758,7 +570,7 @@ export default function AIInterface({
         } else {
           isUserScrollingRef.current = false;
         }
-      }, isMobile ? 1000 : 1500); // Longer delay to give users more control
+      }, 1500); // Longer delay to give users more control
     };
 
     scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
@@ -767,7 +579,7 @@ export default function AIInterface({
       scrollContainer.removeEventListener('scroll', handleScroll);
       if (scrollTimeout) clearTimeout(scrollTimeout);
     };
-  }, [showChat, isMobile]);
+  }, [showChat]);
 
   const globeTint = useMemo(() => {
     switch (activeTab) {
@@ -852,69 +664,35 @@ export default function AIInterface({
     const footer = document.querySelector('footer');
     if (!footer) return;
 
-    let observer: IntersectionObserver | null = null;
-
-    if (isKeyboardVisible) {
-      setIsFooterVisible(false);
-    } else {
-      observer = new IntersectionObserver(
-        (entries) => {
-          let anyVisible = false;
-          for (const entry of entries) {
-            if (entry.isIntersecting) {
-              anyVisible = true;
-              setIsFooterVisible(true);
-              // If on mobile and scrolling down and not already snapping, finish scroll to footer top
-              if (isMobile && isScrollingDownRef.current && !isSnappingRef.current) {
-                isSnappingRef.current = true;
-                const footerTop = window.scrollY + entry.boundingClientRect.top;
-                window.scrollTo({ top: footerTop, behavior: 'smooth' });
-                // release the snapping lock shortly after
-                setTimeout(() => { isSnappingRef.current = false; }, 500);
-              }
-            }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        let anyVisible = false;
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            anyVisible = true;
+            setIsFooterVisible(true);
           }
-          if (!anyVisible) setIsFooterVisible(false);
-        },
-        { root: null, threshold: 0.01, rootMargin: '0px 0px -60%' }
-      );
-      observer.observe(footer);
-    }
+        }
+        if (!anyVisible) setIsFooterVisible(false);
+      },
+      { root: null, threshold: 0.01, rootMargin: '0px 0px -60%' }
+    );
+    observer.observe(footer);
 
     return () => {
       observer?.disconnect();
     };
-  }, [isMobile, isKeyboardVisible]);
+  }, []);
 
   return (
     <div
-      className={`flex-1 relative overflow-x-hidden flex flex-col ${isMobile ? 'min-h-0' : 'h-full min-h-0'}`}
+      className="flex-1 relative overflow-x-hidden flex flex-col h-full min-h-0"
       style={{
         touchAction: 'pan-y',
-        overscrollBehaviorX: 'none',
-        minHeight: isMobile ? 'var(--app-height, 100dvh)' : undefined
+        overscrollBehaviorX: 'none'
       }}
     >
       
-      {/* Mobile Floating Menu Button */}
-      {isMobile && !isSidebarOpen && (
-        <>
-          {renderMenuTrigger ? (
-            renderMenuTrigger({
-              children: <Menu className="w-5 h-5 text-gray-700" />,
-              onClick: onSidebarOpen,
-            })
-          ) : (
-            <button
-              type="button"
-              onClick={onSidebarOpen}
-              className="fixed top-4 left-4 z-[70] p-3 rounded-full bg-white/95 border border-gray-200 hover:bg-white transition-all duration-200 shadow-md hover:shadow-lg min-h-[44px] min-w-[44px] flex items-center justify-center"
-            >
-              <Menu className="w-5 h-5 text-gray-700" />
-            </button>
-          )}
-        </>
-      )}
       
       {/* Animated Globe Background */}
       <div
@@ -935,124 +713,128 @@ export default function AIInterface({
         {showChat ? (
         /* Chat Mode */
         <div
-          className={`relative flex flex-col ${isMobile ? 'flex-1 min-h-0 px-4 pt-0 pb-4 gap-4' : 'h-full p-6 pt-0'} ${isMobile ? '' : 'overflow-hidden'}`}
+          className="relative flex h-full flex-col overflow-hidden px-4 pt-0 pb-4 sm:px-6"
         >
-          <div className={`${isMobile ? 'w-full flex-1 min-h-0 flex flex-col gap-4 relative' : 'max-w-4xl w-full mx-auto mt-6 h-full min-h-0 flex flex-col relative'}`}>
-            {/* Chat Header - Desktop only */}
-            {!isMobile && (
-              <div className="glass-card border-b-0 rounded-t-[2rem] p-6 text-center transition-all duration-700 ease-in-out">
-                <div className="flex items-center justify-center gap-3">
-                  <div className={`p-2 rounded-xl bg-gradient-to-br ${content.gradientColors} border border-white/40`}>
-                    <Sparkles className={`w-6 h-6 ${content.accentColor}`} />
-                  </div>
-                  <h2 className={`text-2xl font-bold ${content.accentColor}`}>
-                    {content.title}
-                  </h2>
+          <div className="max-w-4xl w-full mx-auto mt-6 flex flex-1 min-h-0 flex-col gap-4">
+            {/* Chat Header */}
+            <div className="glass-card border-b-0 rounded-t-[2rem] p-6 text-center transition-all duration-700 ease-in-out">
+              <div className="flex items-center justify-center gap-3">
+                <div className={`p-2 rounded-xl bg-gradient-to-br ${content.gradientColors} border border-white/40`}>
+                  <Sparkles className={`w-6 h-6 ${content.accentColor}`} />
                 </div>
-              </div>
-            )}
-
-            {/* Messages Container */}
-            <div
-              className={`flex-1 min-h-0 relative flex flex-col ${isMobile ? '' : 'glass-panel rounded-b-[2rem]'}`}
-              style={!isMobile ? { maxHeight: 'calc(var(--app-height, 100dvh) - 180px)' } : undefined}
-            >
-              <div
-                data-scroll-container="true"
-                className={`flex-1 h-full overflow-y-auto overflow-x-hidden ${isMobile ? 'px-4 py-4 space-y-6' : 'p-6 pb-28 space-y-5'} scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400`}
-                style={{
-                  touchAction: 'pan-y',
-                  overscrollBehavior: 'contain',
-                  WebkitOverflowScrolling: 'touch',
-                  paddingBottom: isMobile ? 'calc(env(safe-area-inset-bottom) + 32px)' : undefined,
-                  position: 'relative',
-                  zIndex: 1,
-                  scrollBehavior: isMobile ? 'auto' : 'smooth'
-                }}
-              >
-                {chatMessages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`flex items-start ${isMobile ? 'gap-4' : 'gap-3'} ${message.sender === 'user' ? 'flex-row-reverse' : 'flex-row'} w-full max-w-full overflow-hidden`}
-                    style={{ position: 'relative', zIndex: 1 }}
-                  >
-                    {/* Avatar */}
-                    <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
-                      message.sender === 'user' 
-                        ? 'bg-primary/20 border-2 border-primary/30' 
-                        : `bg-gradient-to-br ${content.gradientColors} border-2 border-white/40`
-                    }`}>
-                      {message.sender === 'user' ? (
-                        <User className="w-5 h-5 text-primary" />
-                      ) : (
-                        <Bot className={`w-5 h-5 ${content.accentColor}`} />
-                      )}
-                    </div>
-
-                    {/* Message Bubble */}
-                    <div className={`w-fit max-w-[calc(100%_-_4rem)] sm:max-w-[70ch] lg:max-w-[80ch] overflow-hidden ${
-                      message.sender === 'user' 
-                        ? 'bg-primary/15 border border-primary/30 rounded-2xl rounded-tr-md backdrop-blur-md'
-                        : 'bg-white/20 border border-white/30 rounded-2xl rounded-tl-md backdrop-blur-md'
-                    } px-5 py-4 md:px-4 shadow-lg`}>
-                      <p className="text-gray-900 text-sm leading-relaxed whitespace-pre-wrap break-words font-medium">
-                        {message.content}
-                      </p>
-                      <div className="text-xs text-gray-600 mt-2.5 md:mt-2">
-                        {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-
-                {/* AI Typing Indicator */}
-                {isAITyping && (
-                  <div className={`flex items-start ${isMobile ? 'gap-4' : 'gap-3'}`}>
-                    <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center bg-gradient-to-br ${content.gradientColors} border-2 border-white/40`}>
-                      <Bot className={`w-5 h-5 ${content.accentColor}`} />
-                    </div>
-                    <div className="w-fit max-w-[calc(100%_-_4rem)] sm:max-w-[70ch] lg:max-w-[80ch] bg-white/20 border border-white/30 rounded-2xl rounded-tl-md backdrop-blur-md p-4 shadow-lg overflow-hidden">
-                      <div className="flex items-center gap-2">
-                        <div className="flex gap-1">
-                          <div className={`w-2 h-2 rounded-full animate-bounce ${content.accentColor.replace('text-', 'bg-')}`}></div>
-                          <div className={`w-2 h-2 rounded-full animate-bounce delay-100 ${content.accentColor.replace('text-', 'bg-')}`}></div>
-                          <div className={`w-2 h-2 rounded-full animate-bounce delay-200 ${content.accentColor.replace('text-', 'bg-')}`}></div>
-                        </div>
-                        <span className="text-xs text-gray-600 font-medium">AI is typing...</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                <div ref={messagesEndRef} />
+                <h2 className={`text-2xl font-bold ${content.accentColor}`}>
+                  {content.title}
+                </h2>
               </div>
             </div>
 
-            {/* Compact Chat Input */}
-            <div
-              ref={inputContainerRef}
-              className={`${isMobile ? 'sticky bottom-0 w-full' : 'absolute bottom-6 left-1/2 transform -translate-x-1/2 w-[85%] max-w-4xl'} z-[60] transition-all duration-300 ${isFooterVisible ? 'opacity-0 translate-y-2 pointer-events-none' : 'opacity-100 translate-y-0'}`}
-              style={isMobile ? { padding: '0 1rem calc(env(safe-area-inset-bottom) + 16px)' } : undefined}
-            >
+            <div className="flex flex-1 min-h-0 flex-col gap-4">
+              {/* Messages Container */}
+              <div
+                className="glass-panel flex flex-1 min-h-0 flex-col overflow-hidden rounded-[2rem]"
+                style={{ maxHeight: 'calc(var(--app-height, 100dvh) - 200px)' }}
+              >
+                <div
+                  data-scroll-container="true"
+                  className="flex-1 h-full overflow-y-auto overflow-x-hidden space-y-5 p-4 pb-28 sm:p-6 sm:pb-28 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400"
+                  style={{
+                    touchAction: 'pan-y',
+                    overscrollBehavior: 'contain',
+                    WebkitOverflowScrolling: 'touch',
+                    position: 'relative',
+                    zIndex: 1,
+                    scrollBehavior: 'smooth'
+                  }}
+                >
+                  {chatMessages.map((message) => (
+                    <div
+                      key={message.id}
+                      className={`flex items-start gap-3 ${message.sender === 'user' ? 'flex-row-reverse' : 'flex-row'} w-full max-w-full overflow-hidden`}
+                      style={{ position: 'relative', zIndex: 1 }}
+                    >
+                      {/* Avatar */}
+                      <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
+                        message.sender === 'user' 
+                          ? 'bg-primary/20 border-2 border-primary/30' 
+                          : `bg-gradient-to-br ${content.gradientColors} border-2 border-white/40`
+                      }`}>
+                        {message.sender === 'user' ? (
+                          <User className="w-5 h-5 text-primary" />
+                        ) : (
+                          <Bot className={`w-5 h-5 ${content.accentColor}`} />
+                        )}
+                      </div>
+
+                      {/* Message Bubble */}
+                      <div className={`w-fit max-w-[calc(100%_-_4rem)] sm:max-w-[70ch] lg:max-w-[80ch] overflow-hidden ${
+                        message.sender === 'user' 
+                          ? 'bg-primary/15 border border-primary/30 rounded-2xl rounded-tr-md backdrop-blur-md'
+                          : 'bg-white/20 border border-white/30 rounded-2xl rounded-tl-md backdrop-blur-md'
+                      } px-4 py-4 shadow-lg`}>
+                        <p className="text-gray-900 text-sm leading-relaxed whitespace-pre-wrap break-words font-medium">
+                          {message.content}
+                        </p>
+                        <div className="mt-3 flex items-center justify-end gap-3 text-xs text-gray-600">
+                          <span>{message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* AI Typing Indicator */}
+                  {isAITyping && (
+                    <div className="flex items-start gap-3">
+                      <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center bg-gradient-to-br ${content.gradientColors} border-2 border-white/40`}>
+                        <Bot className={`w-5 h-5 ${content.accentColor}`} />
+                      </div>
+                      <div className="w-fit max-w-[calc(100%_-_4rem)] sm:max-w-[70ch] lg:max-w-[80ch] bg-white/20 border border-white/30 rounded-2xl rounded-tl-md backdrop-blur-md p-4 shadow-lg overflow-hidden">
+                        <div className="flex items-center gap-2">
+                          <div className="flex gap-1">
+                            <div className={`w-2 h-2 rounded-full animate-bounce ${content.accentColor.replace('text-', 'bg-')}`}></div>
+                            <div className={`w-2 h-2 rounded-full animate-bounce delay-100 ${content.accentColor.replace('text-', 'bg-')}`}></div>
+                            <div className={`w-2 h-2 rounded-full animate-bounce delay-200 ${content.accentColor.replace('text-', 'bg-')}`}></div>
+                          </div>
+                          <span className="text-xs text-gray-600 font-medium">AI is typing...</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  <div ref={messagesEndRef} />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div
+            className={`pointer-events-none fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+72px)] z-40 px-4 sm:px-6 transition-all duration-300 lg:pointer-events-auto lg:relative lg:inset-auto lg:bottom-auto lg:px-0 lg:mt-4 ${
+              isFooterVisible ? 'translate-y-[120%] opacity-0 lg:translate-y-0 lg:opacity-100' : 'translate-y-0 opacity-100'
+            }`}
+          >
+            <div className="pointer-events-auto">
               <div className={`glass-input glow-ring ${
                 activeTab === 'flights' ? 'neon-glow-flights' :
                 activeTab === 'hotels' ? 'neon-glow-hotels' :
                 activeTab === 'restaurants' ? 'neon-glow-restaurants' :
                 activeTab === 'mapout' ? 'neon-glow-mapout' :
                 'neon-glow'
-              } rounded-3xl hover:shadow-xl transition-all duration-300`}>
-                <div className="flex items-center gap-3 p-4">
-                  <div className="flex-1 relative">
-                    <textarea id="ai-compact-input"
+              } rounded-3xl hover:shadow-xl transition-all duration-300 lg:static`}>
+                <div className="flex items-center gap-3 p-3 sm:p-4">
+                  <div className="relative flex-1">
+                    <label htmlFor="ai-compact-input" className="sr-only">
+                      Message Voyagr AI
+                    </label>
+                    <textarea
+                      id="ai-compact-input"
                       ref={textareaRef}
                       value={inputValue}
                       onChange={(e) => onInputChange(e.target.value)}
                       onKeyDown={handleKeyPress}
-                      placeholder=""
+                      placeholder="Share what you need and press send"
                       autoFocus
                       enterKeyHint="send"
-                      className="w-full bg-transparent border-none resize-none focus:outline-none focus:ring-0 focus:border-transparent text-gray-800 placeholder-gray-500 text-base leading-6 py-0 min-h-[24px] overflow-y-auto"
+                      className="w-full resize-none border-none bg-transparent py-0 text-sm leading-6 text-gray-800 placeholder-gray-500 focus:border-none focus:outline-none focus:ring-0 sm:text-base"
                       rows={1}
-                      style={{ maxHeight: isMobile ? '160px' : '80px' }}
+                      style={{ maxHeight: '120px' }}
                     />
                   </div>
                   <button
@@ -1064,48 +846,50 @@ export default function AIInterface({
                       handleSendMessage(currentInput);
                     }}
                     disabled={!inputValue.trim() || isAITyping}
-                    className={`flex-shrink-0 w-8 h-8 rounded-full transition-all duration-200 flex items-center justify-center ${
+                    className={`inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                       inputValue.trim() && !isAITyping
-                        ? 'bg-gray-800 hover:bg-gray-700 text-white scale-100'
-                        : 'bg-gray-200 text-gray-400 scale-95'
+                        ? 'bg-gray-900 text-white hover:bg-gray-800'
+                        : 'bg-gray-200 text-gray-400'
                     }`}
+                    aria-label="Send message"
                   >
-                    <Send className="w-4 h-4" />
+                    <Send className="h-4 w-4" />
                   </button>
                 </div>
               </div>
             </div>
           </div>
+
           </div>
         ) : (
         /* Welcome Mode */
-        <div className={`relative z-10 overflow-x-hidden ${isMobile ? 'w-full p-4 pt-0 min-h-full' : 'max-w-5xl w-full mx-auto p-10 pt-0'} `} data-force-motion="true" style={{ touchAction: 'pan-y', overscrollBehaviorX: 'none' }}>
-          <div className={`${isMobile ? 'p-3 pt-0 pb-8 min-h-full' : 'p-8 pt-0'}`}>
-          <div className={`${isMobile ? 'w-full min-h-full' : 'max-w-4xl w-full'} ${isMobile ? 'mt-0' : 'mt-4'} ${isMobile ? 'space-y-2' : 'space-y-3'}`}>
+        <div className="relative z-10 mx-auto w-full max-w-5xl overflow-x-hidden px-4 pb-28 pt-4 sm:px-8 sm:pt-6 lg:px-10" data-force-motion="true" style={{ touchAction: 'pan-y', overscrollBehaviorX: 'none' }}>
+          <div className="px-1 sm:px-2">
+          <div className="mt-4 w-full max-w-4xl space-y-3">
           
           {/* Compact Preferences Display */}
           {preferences && (
-            <div className={`glass-card rounded-xl ${isMobile ? 'p-2' : 'p-4'}`}>
+            <div className="glass-card rounded-xl p-4">
               <div className="flex items-center justify-between">
-                <h3 className={`${isMobile ? 'text-xs' : 'text-sm'} font-semibold text-gray-700`}>Trip Preferences</h3>
+                <h3 className="text-sm font-semibold text-gray-700">Trip Preferences</h3>
                 <div className="flex flex-wrap gap-1">
                     {preferences.travelStyle && (
-                      <span className={`px-2 py-1 bg-primary/10 text-primary ${isMobile ? 'text-xs' : 'text-xs'} font-medium rounded-full border border-primary/20`}>
+                      <span className="px-2 py-1 bg-primary/10 text-primary text-xs font-medium rounded-full border border-primary/20">
                         {preferences.travelStyle.charAt(0).toUpperCase() + preferences.travelStyle.slice(1)}
                       </span>
                     )}
                     {preferences.budget && (
-                      <span className={`px-2 py-1 bg-green-100 text-green-700 ${isMobile ? 'text-xs' : 'text-xs'} font-medium rounded-full border border-green-200`}>
+                      <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full border border-green-200">
                         {preferences.budget.includes('-') ? preferences.budget.split('-')[0] + '+' : preferences.budget}
                       </span>
                     )}
                     {preferences.groupSize && (
-                      <span className={`px-2 py-1 bg-blue-100 text-blue-700 ${isMobile ? 'text-xs' : 'text-xs'} font-medium rounded-full border border-blue-200`}>
+                      <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full border border-blue-200">
                         {preferences.groupSize}
                       </span>
                     )}
                     {preferences.activities && preferences.activities.length > 0 && (
-                      <span className={`px-2 py-1 bg-purple-100 text-purple-700 ${isMobile ? 'text-xs' : 'text-xs'} font-medium rounded-full border border-purple-200`}>
+                      <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs font-medium rounded-full border border-purple-200">
                         {preferences.activities.length} Activities
                       </span>
                     )}
@@ -1114,23 +898,23 @@ export default function AIInterface({
             </div>
           )}
             {/* Main AI Card with Enhanced Glassmorphism */}
-            <div className={`glass-panel glow-ring ${isMobile ? (preferences ? 'rounded-2xl p-3' : 'rounded-2xl p-4') : 'rounded-[2rem] p-12'} text-center transition-all duration-700 ease-in-out`}>
+            <div className="glass-panel glow-ring rounded-[1.75rem] px-6 py-8 text-center transition-all duration-700 ease-in-out sm:px-10 sm:py-12">
               <div className="relative z-10">
               {/* Logo and Dynamic Title */}
-              <div className={`flex items-center justify-center gap-4 ${isMobile ? (preferences ? 'mb-1' : 'mb-2') : 'mb-6'} transition-all duration-700 ease-in-out`}>
+              <div className="mb-6 flex items-center justify-center gap-3 transition-all duration-700 ease-in-out sm:gap-4">
                 {activeTab === 'plan' && (
                   <div className="relative">
                     <Image
                       src="/images/AIPage/VoyagrAI logo.png"
                       alt="VoyagrAI Logo"
-                      width={isMobile ? 60 : 80}
-                      height={isMobile ? 60 : 80}
+                      width={80}
+                      height={80}
                       className="object-contain"
                       priority
                     />
                   </div>
                 )}
-                <h1 className={`${isMobile ? (preferences ? 'text-2xl' : 'text-3xl') : 'text-6xl'} font-bold leading-tight md:leading-[1.1] transition-all duration-700 ${
+                <h1 className={`text-3xl font-bold leading-tight transition-all duration-700 sm:text-4xl md:leading-[1.1] lg:text-6xl ${
                   activeTab === 'flights' ? 'gradient-text-flights' :
                   activeTab === 'hotels' ? 'gradient-text-hotels' :
                   activeTab === 'restaurants' ? 'gradient-text-restaurants' :
@@ -1142,15 +926,15 @@ export default function AIInterface({
               </div>
 
               {/* Dynamic Description */}
-              <div className={isMobile ? (preferences ? 'mb-0' : 'mb-2') : 'mb-6'}>
-                <p className={`${isMobile ? (preferences ? 'text-xs' : 'text-sm') : 'text-lg'} text-gray-700 font-medium transition-all duration-500`}>
+              <div className="mb-6">
+                <p className="text-base font-medium text-gray-700 transition-all duration-500 sm:text-lg">
                   {content.description}
                 </p>
               </div>
 
 
               {/* Input Section */}
-              <div className={isMobile ? (preferences ? 'mb-4' : 'mb-4') : 'mb-10'}>
+              <div className="mb-10">
                 <div className="relative max-w-3xl mx-auto">
                   <div className={`glass-input ${
                     activeTab === 'flights' ? 'neon-glow-flights' :
@@ -1160,12 +944,14 @@ export default function AIInterface({
                     'neon-glow'
                   } rounded-2xl`}>
                     <textarea
+                      id="ai-welcome-input"
                       value={inputValue}
                       onChange={(e) => onInputChange(e.target.value)}
                       onKeyDown={handleKeyPress}
-                      placeholder=""
-                      className={`w-full ${isMobile ? (preferences ? 'p-4 text-base h-[80px] max-h-[80px]' : 'p-5 text-lg h-[100px] max-h-[100px]') : 'p-6 text-lg h-[90px] max-h-[90px]'} bg-transparent resize-none focus:outline-none focus:ring-0 focus:border-transparent border-0 transition-all duration-300 placeholder-gray-500 text-gray-800 relative z-10 overflow-y-auto`}
+                      placeholder={placeholderText || 'Tell Voyagr AI about your next adventure'}
+                      className="relative z-10 w-full resize-none border-0 bg-transparent p-4 text-base text-gray-800 placeholder-gray-500 transition-all duration-300 focus:outline-none focus:ring-0 sm:p-6 sm:text-lg"
                       rows={4}
+                      style={{ minHeight: '72px', maxHeight: '140px' }}
                     />
                   </div>
                   
@@ -1181,22 +967,24 @@ export default function AIInterface({
                   )}
                   
                   {/* Preferences and Start Planning Buttons */}
-                  <div className={`${isMobile ? 'mt-4 flex flex-col gap-2 w-full' : 'absolute -bottom-6 left-1/2 transform -translate-x-1/2 flex items-center gap-4'}`}>
+                  <div className="mt-6 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-center sm:gap-4">
                     {/* Preferences Button */}
-                    <button 
+                    <button
+                      type="button"
                       onClick={() => {
                         onPreferencesOpen?.();
                       }}
-                      className={`relative overflow-hidden ${isMobile ? 'px-6 py-3 text-base w-full' : 'px-8 py-4 text-lg'} bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-400 hover:to-gray-500 text-white rounded-2xl font-bold shadow-2xl hover:shadow-xl transition-all duration-300 transform hover:scale-105 active:scale-95 backdrop-blur-sm border border-white/20 before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/20 before:via-white/5 before:to-white/5 min-h-[48px]`}
+                      className="relative overflow-hidden rounded-2xl border border-white/20 bg-gradient-to-r from-gray-500 to-gray-600 px-6 py-3 text-base font-semibold text-white shadow-xl transition-all duration-300 hover:from-gray-400 hover:to-gray-500 hover:shadow-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:px-8 sm:py-4 sm:text-lg"
                     >
                       <span className="relative z-10 flex items-center justify-center gap-3 whitespace-nowrap">
-                        <Settings className={isMobile ? 'w-5 h-5' : 'w-6 h-6'} />
+                        <Settings className="h-5 w-5 sm:h-6 sm:w-6" />
                         Preferences
                       </span>
                     </button>
 
                     {/* Start Planning Button */}
-                    <button 
+                    <button
+                      type="button"
                       onClick={() => {
                         if (inputValue.trim()) {
                           // If user has entered text, start search with their input immediately
@@ -1207,18 +995,18 @@ export default function AIInterface({
                           handleSendMessage(defaultPrompt);
                         }
                       }}
-                      className={`relative overflow-hidden ${isMobile ? 'px-6 py-3 text-base w-full' : 'px-8 py-4 text-lg'} bg-gradient-to-r ${
+                      className={`relative overflow-hidden rounded-2xl border border-white/20 bg-gradient-to-r px-6 py-3 text-base font-semibold text-white shadow-xl transition-all duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary sm:px-8 sm:py-4 sm:text-lg ${
                         activeTab === 'flights' ? 'from-sky-500 to-blue-500 hover:from-sky-400 hover:to-blue-400' :
                         activeTab === 'hotels' ? 'from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400' :
                         activeTab === 'restaurants' ? 'from-purple-500 to-violet-500 hover:from-purple-400 hover:to-violet-400' :
                         activeTab === 'mapout' ? 'from-green-500 to-lime-500 hover:from-green-400 hover:to-lime-400' :
                         'from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90'
-                      } text-white rounded-2xl font-bold shadow-2xl hover:shadow-xl transition-all duration-300 transform hover:scale-105 active:scale-95 backdrop-blur-sm border border-white/20 before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/20 before:via-white/5 before:to-white/5 min-h-[48px]`}
+                      }`}
                     >
                       <span className="relative z-10 flex items-center justify-center gap-3 whitespace-nowrap">
-                        <Sparkles className={isMobile ? 'w-5 h-5' : 'w-6 h-6'} />
+                        <Sparkles className="h-5 w-5 sm:h-6 sm:w-6" />
                         Start Planning
-                        <ArrowRight className={isMobile ? 'w-4 h-4' : 'w-5 h-5'} />
+                        <ArrowRight className="w-5 h-5" />
                       </span>
                     </button>
                   </div>
@@ -1227,15 +1015,15 @@ export default function AIInterface({
             </div>
 
               {/* Dynamic Suggested Prompts */}
-              <div className={isMobile ? (preferences ? 'mt-2' : 'mt-3') : 'mt-6'}>
-                <p className={`text-gray-600 font-medium ${isMobile ? (preferences ? 'mb-2 text-xs' : 'mb-3 text-sm') : 'mb-4 text-base'} text-center transition-all duration-500`}>
+              <div className="mt-6">
+                <p className="text-gray-600 font-medium mb-4 text-base text-center transition-all duration-500">
                   {activeTab === 'flights' ? 'Popular flight searches:' : 
                    activeTab === 'hotels' ? 'Find your perfect accommodation:' :
                    activeTab === 'restaurants' ? 'Find perfect dining spots:' :
                    'Get inspired with these travel ideas:'}
                 </p>
                 
-                <div className={`grid ${isMobile ? (preferences ? 'grid-cols-1 gap-3' : 'grid-cols-1 gap-4') : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3'} ${isMobile ? 'pb-8' : ''}`}>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                   {content.prompts.map((prompt, index) => {
                     // Handle both string and object prompt types
                     const promptText = typeof prompt === 'string' ? prompt : prompt.text;
@@ -1244,11 +1032,11 @@ export default function AIInterface({
                       <button
                         key={index}
                         onClick={() => handleSendMessage(promptText)}
-                        className={`group relative overflow-hidden ${isMobile ? (preferences ? 'p-3 min-h-[52px]' : 'p-4 min-h-[56px]') : 'p-4'} rounded-xl border border-white/40 transition-all duration-300 text-left transform hover:scale-[1.02] hover:-translate-y-1 active:scale-[0.98] bg-white/60 backdrop-blur-xl backdrop-saturate-150 bg-clip-padding shadow-[0_8px_32px_rgba(8,_112,_184,_0.12)] hover:shadow-[0_12px_40px_rgba(8,_112,_184,_0.18)] hover:bg-white/70 before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/40 before:via-white/10 before:to-white/5`}
+                        className="group relative overflow-hidden p-4 rounded-xl border border-white/40 transition-all duration-300 text-left transform hover:scale-[1.02] hover:-translate-y-1 active:scale-[0.98] bg-white/60 backdrop-blur-xl backdrop-saturate-150 bg-clip-padding shadow-[0_8px_32px_rgba(8,_112,_184,_0.12)] hover:shadow-[0_12px_40px_rgba(8,_112,_184,_0.18)] hover:bg-white/70 before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/40 before:via-white/10 before:to-white/5"
                       >
-                        <div className={`flex items-center ${isMobile ? 'gap-4' : 'gap-3'} relative z-10`}>
-                          <span className={`${isMobile ? 'text-2xl' : 'text-2xl'} group-hover:scale-110 transition-transform duration-300 flex-shrink-0`}>{promptEmoji}</span>
-                          <span className={`${isMobile ? (preferences ? 'text-sm leading-relaxed' : 'text-sm leading-relaxed') : 'text-sm'} font-medium text-gray-700 group-hover:text-gray-900 transition-colors duration-300 leading-relaxed`}>
+                        <div className="flex items-center gap-3 relative z-10">
+                          <span className="text-2xl group-hover:scale-110 transition-transform duration-300 flex-shrink-0">{promptEmoji}</span>
+                          <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900 transition-colors duration-300 leading-relaxed">
                             {promptText}
                           </span>
                         </div>

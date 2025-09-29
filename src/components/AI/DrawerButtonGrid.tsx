@@ -103,7 +103,7 @@ export default function DrawerButtonGrid({
               aria-label={item.ariaLabel}
               className={`
                 group relative overflow-hidden
-                h-12 min-h-[48px] max-h-[56px] rounded-2xl
+                h-14 min-h-[56px] max-h-[64px] rounded-2xl
                 border backdrop-blur-xl backdrop-saturate-150
                 shadow-sm hover:shadow-lg
                 transition-all duration-200 ease-out
