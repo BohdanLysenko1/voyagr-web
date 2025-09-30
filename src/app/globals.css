@@ -163,13 +163,13 @@ body {
     overscroll-behavior: contain;
     transform: translateZ(0);
     -webkit-transform: translateZ(0);
-    /* Ensure scroll container doesn't expand beyond available space */
-    max-height: calc(100dvh - 250px);
+    /* Increased height to reduce gap between chatbox and input */
+    max-height: calc(100dvh - 234px);
   }
   
   /* Prevent message container from pushing input out of view */
   .glass-panel {
-    max-height: calc(100dvh - 250px);
+    max-height: calc(100dvh - 234px);
     overflow: hidden;
   }
 }

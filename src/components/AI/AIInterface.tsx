@@ -647,10 +647,10 @@ export default function AIInterface({
               borderRadius: isMobile ? '1.5rem' : '2rem',
               minHeight: 0,
               flex: '1 1 auto',
-              // Mobile: viewport - (header 64px + mobile nav 64px + input composer ~100px + margins ~40px)
+              // Mobile: Increased height to reduce gap with input - viewport - (header 64px + mobile nav 64px + input ~90px + minimal margins ~20px) = 234px
               // Desktop: viewport - (title ~80px + input ~100px + margins + padding ~100px) = ~280px
-              maxHeight: isMobile ? 'calc(100dvh - 280px)' : 'calc(100vh - 320px)',
-              height: isMobile ? 'calc(100dvh - 280px)' : 'auto'
+              maxHeight: isMobile ? 'calc(100dvh - 234px)' : 'calc(100vh - 320px)',
+              height: isMobile ? 'calc(100dvh - 234px)' : 'auto'
             }}>
               <div
                 ref={handleScrollContainerRef}
@@ -687,8 +687,8 @@ export default function AIInterface({
               isFooterVisible ? 'opacity-0 lg:opacity-100' : 'opacity-100'
             }`}
             style={{
-              paddingTop: isMobile ? '0.75rem' : '1rem',
-              paddingBottom: isMobile ? 'calc(env(safe-area-inset-bottom) + 80px)' : 'calc(env(safe-area-inset-bottom) + 24px)',
+              paddingTop: isMobile ? '0.5rem' : '1rem',
+              paddingBottom: isMobile ? 'calc(env(safe-area-inset-bottom) + 76px)' : 'calc(env(safe-area-inset-bottom) + 24px)',
               flex: '0 0 auto',
             }}
           >
