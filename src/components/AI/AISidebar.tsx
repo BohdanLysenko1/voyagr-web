@@ -54,9 +54,6 @@ interface AISidebarProps {
   onTabChange: (tab: TabKey) => void;
   recentConversations?: RecentConversation[];
   onConversationSelect?: (conversation: RecentConversation) => void;
-  onSendMessage?: (message: string) => void;
-  inputValue?: string;
-  onInputChange?: (value: string) => void;
   variant?: 'desktop' | 'mobile';
   onClose?: () => void;
 }

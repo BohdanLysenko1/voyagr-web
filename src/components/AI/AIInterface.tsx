@@ -121,29 +121,14 @@ export default function AIInterface({
   const focusInput = useCallback(() => {
     const el = textareaRef.current;
     if (!el) return;
-    
-    // iOS-specific focus handling to prevent zoom
-    if (iosDevice) {
-      // Temporarily set font-size to 16px to prevent iOS zoom
-      const originalFontSize = el.style.fontSize;
-      el.style.fontSize = '16px';
-      
-      // Focus without preventing scroll on mobile to allow proper viewport adjustment
+
+    // Use preventScroll to avoid viewport jumps on both mobile and desktop
+    try {
+      el.focus({ preventScroll: true });
+    } catch {
       el.focus();
-      
-      // Restore original font size after a short delay
-      setTimeout(() => {
-        el.style.fontSize = originalFontSize;
-      }, 100);
-    } else {
-      try {
-        // preventScroll keeps the viewport stable when focusing on desktop
-        el.focus({ preventScroll: true });
-      } catch {
-        el.focus();
-      }
     }
-    
+
     adjustTextareaHeight();
     // Place caret at the end
     const len = el.value.length;
@@ -157,7 +142,7 @@ export default function AIInterface({
         }
       }, 0);
     }
-  }, [adjustTextareaHeight, iosDevice]);
+  }, [adjustTextareaHeight]);
 
 
   // Animated globe nodes with slight randomization at mount (client-side only)
@@ -577,17 +562,18 @@ export default function AIInterface({
   const composerWrapperStyle = useMemo(() => {
     // On mobile, ensure the composer stays above the mobile nav bar (64px)
     const mobileNavHeight = isMobile ? 64 : 0;
-    const totalOffset = keyboardOffset;
+    // Only apply keyboard offset on mobile when keyboard is actually open
+    const totalOffset = isMobile && keyboardState.isOpen && keyboardOffset > 0 ? keyboardOffset : 0;
     return {
       paddingBottom: isMobile ? `calc(env(safe-area-inset-bottom) + ${mobileNavHeight}px + 16px)` : 'calc(env(safe-area-inset-bottom) + 24px)',
-      transform: totalOffset ? `translateY(-${totalOffset}px)` : 'none',
-      transition: 'transform 0.24s ease-out',
-      willChange: 'transform' as const,
+      transform: totalOffset > 0 ? `translateY(-${totalOffset}px)` : 'translateY(0)',
+      transition: 'transform 0.15s ease-out',
+      willChange: keyboardState.isOpen ? 'transform' : 'auto',
       position: 'relative' as const,
       zIndex: 35,
       marginBottom: isMobile ? '0' : undefined,
     };
-  }, [keyboardOffset, isMobile]);
+  }, [keyboardOffset, keyboardState.isOpen, isMobile]);
 
   const messageContainerStyle = useMemo(() => {
     // Add padding to ensure messages don't get hidden behind the input composer
@@ -740,7 +726,7 @@ export default function AIInterface({
         overscrollBehaviorY: 'contain',
         height: isMobile ? 'calc(100dvh - 64px)' : 'auto',
         maxHeight: isMobile ? 'calc(100dvh - 64px)' : 'none',
-        overflow: isMobile ? 'hidden' : 'visible',
+        overflow: 'visible',
         WebkitOverflowScrolling: iosDevice ? 'touch' : undefined,
       }}
     >
@@ -760,7 +746,7 @@ export default function AIInterface({
         ))}
       </div>
 
-      <div className="relative z-10">
+      <div className="relative z-10 flex flex-col" style={{ height: '100%', flex: '1 1 auto', minHeight: 0 }}>
         {/* Chat Interface or Welcome Screen */}
         {showChat ? (
         /* Chat Mode */
@@ -856,11 +842,10 @@ export default function AIInterface({
                     onChange={(e) => onInputChange(e.target.value)}
                     onKeyDown={handleKeyPress}
                     placeholder="Share what you need and press send"
-                    autoFocus
                     enterKeyHint="send"
                     className="w-full resize-none border-none bg-transparent py-0 text-base leading-6 text-gray-800 placeholder-gray-500 focus:border-none focus:outline-none focus:ring-0 sm:text-lg"
                     rows={1}
-                    style={{ maxHeight: '120px' }}
+                    style={{ maxHeight: '120px', fontSize: '16px' }}
                   />
                 </div>
                 <button
@@ -888,20 +873,21 @@ export default function AIInterface({
         ) : (
         /* Welcome Mode */
         <div
-          className="relative z-10 mx-auto w-full max-w-5xl overflow-y-auto overflow-x-hidden"
+          className="relative mx-auto w-full max-w-5xl overflow-x-hidden flex-1"
           data-force-motion="true"
           style={{
             touchAction: 'pan-y',
             overscrollBehaviorX: 'none',
-            overscrollBehaviorY: 'auto',
+            overscrollBehaviorY: 'contain',
             WebkitOverflowScrolling: 'touch',
-            paddingBottom: isMobile ? 'calc(64px + env(safe-area-inset-bottom) + 1rem)' : '0',
-            paddingTop: isMobile ? '0.5rem' : '0',
+            paddingBottom: isMobile ? 'calc(64px + env(safe-area-inset-bottom) + 3rem)' : '0',
+            paddingTop: isMobile ? '1rem' : '0',
             height: '100%',
+            minHeight: 0,
           }}
         >
-          <div className={`${isMobile ? 'px-4 sm:px-8 lg:px-10' : ''}`}>
-          <div className={`w-full max-w-4xl space-y-3 ${isMobile ? '' : 'mt-3 pb-6'}`}>
+          <div className={`${isMobile ? 'px-4 sm:px-8 lg:px-10' : ''} ${isMobile ? 'pb-8' : ''} flex flex-col h-full min-h-0`}>
+          <div className={`w-full max-w-4xl space-y-3 ${isMobile ? '' : 'mt-3 pb-6'} flex flex-col h-full min-h-0`}>
           
           {/* Compact Preferences Display */}
           {preferences && (
@@ -1057,7 +1043,15 @@ export default function AIInterface({
             </div>
 
               {/* Dynamic Suggested Prompts */}
-              <div className="mt-6">
+              <div
+                className="mt-6 flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain scrollbar-thin scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-400 scrollbar-track-transparent"
+                style={{
+                  maxHeight: isMobile ? 'min(60vh, calc(100dvh - 320px))' : '60vh',
+                  WebkitOverflowScrolling: 'touch',
+                  paddingRight: '2px',
+                  touchAction: 'pan-y',
+                }}
+              >
                 <p className="text-gray-600 font-medium mb-4 text-base text-center transition-all duration-500">
                   {activeTab === 'flights' ? 'Popular flight searches:' : 
                    activeTab === 'hotels' ? 'Find your perfect accommodation:' :
@@ -1065,7 +1059,7 @@ export default function AIInterface({
                    'Get inspired with these travel ideas:'}
                 </p>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pr-1" style={{ scrollbarGutter: 'stable' }}>
                   {content.prompts.map((prompt, index) => {
                     // Handle both string and object prompt types
                     const promptText = typeof prompt === 'string' ? prompt : prompt.text;

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Menu, Plus, Home } from 'lucide-react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
@@ -225,13 +225,15 @@ export default function AiPage() {
 
   return (
     <div
-      className={`relative flex flex-col ${isMobile ? 'overflow-hidden' : 'overflow-y-auto'} bg-gradient-to-br from-slate-50 via-blue-50/50 to-purple-50/30 ${isIOSDevice ? 'ios-scroll-container' : ''}`}
+      className={`relative flex flex-col bg-gradient-to-br from-slate-50 via-blue-50/50 to-purple-50/30 ${isIOSDevice ? 'ios-scroll-container' : ''}`}
       style={{
         touchAction: isMobile ? 'pan-y' : 'auto',
         overscrollBehaviorX: 'none',
         overscrollBehaviorY: 'contain',
         WebkitOverflowScrolling: 'touch',
         minHeight: '100vh',
+        maxHeight: isMobile ? '100vh' : 'none',
+        overflow: 'hidden',
         paddingTop: isMobile ? '0' : 'calc(var(--safe-area-top) + var(--app-viewport-offset, 0px))',
         paddingBottom: 'var(--safe-area-bottom)',
         transform: isIOSDevice ? 'translateZ(0)' : undefined,
@@ -271,7 +273,7 @@ export default function AiPage() {
         </div>
       </header>
 
-      <div className={`relative flex flex-1 flex-col gap-4 ${isMobile ? 'overflow-hidden' : ''} pt-4 sm:px-6 lg:flex-row lg:gap-6 lg:px-10 lg:pb-6 lg:pt-6 ${isIOSDevice ? 'ios-scroll-smooth' : ''}`} style={{ paddingLeft: isMobile ? '0' : '1rem', paddingRight: isMobile ? '0' : '1rem', paddingBottom: isMobile ? '0' : '1.5rem', minHeight: isMobile ? 0 : 'auto' }}>
+      <div className={`relative flex flex-1 flex-col gap-4 pt-4 sm:px-6 lg:flex-row lg:gap-6 lg:px-10 lg:pb-6 lg:pt-6 ${isIOSDevice ? 'ios-scroll-smooth' : ''}`} style={{ paddingLeft: isMobile ? '0' : '1rem', paddingRight: isMobile ? '0' : '1rem', paddingBottom: isMobile ? '0' : '1.5rem', minHeight: 0, height: isMobile ? 'calc(100vh - 64px)' : 'auto', overflow: 'visible' }}>
         <div className="hidden lg:flex lg:flex-shrink-0 lg:sticky lg:top-6" style={{ alignSelf: 'flex-start' }}>
           <AISidebar
             flights={updatedFlights}
@@ -290,7 +292,7 @@ export default function AiPage() {
             variant="desktop"
           />
         </div>
-        <main className="relative flex-1 flex flex-col" style={{ minHeight: isMobile ? 0 : 'auto' }}>
+        <main className="relative flex-1 flex flex-col" style={{ minHeight: 0, height: isMobile ? 'calc(100dvh - 64px)' : 'auto' }}>
           <AIInterface
             key={resetKey}
             inputValue={inputValue}
