@@ -1,8 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Sparkles, Send, ArrowRight, Settings } from 'lucide-react';
 import Image from 'next/image';
-import { KeyboardState, subscribeToKeyboardState, isIOS as detectIOS } from '@/utils/mobileKeyboard';
-import { isNearBottom as evaluateNearBottom, shouldAutoScroll } from '@/utils/scrollLock';
 import ChatMessage, { type ChatMessageData } from './ChatMessage';
 import TypingIndicator from './TypingIndicator';
 
@@ -60,50 +58,13 @@ export default function AIInterface({
   const isUserScrollingRef = useRef(false);
   const autoScrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isMounted, setIsMounted] = useState(false);
-  const composerWrapperRef = useRef<HTMLDivElement | null>(null);
-  const [composerHeight, setComposerHeight] = useState(0);
-  const [keyboardState, setKeyboardState] = useState<KeyboardState>({
-    isOpen: false,
-    height: 0,
-    viewportHeight: 0,
-  });
-  const [resolvedIsIOS, setResolvedIsIOS] = useState(isIOSDeviceProp);
-  const iosDevice = resolvedIsIOS;
-  const [scrollNode, setScrollNode] = useState<HTMLElement | null>(null);
   const handleScrollContainerRef = useCallback((node: HTMLDivElement | null) => {
     scrollContainerRef.current = node ?? null;
-    setScrollNode(node);
   }, []);
 
   // Track mounted state to prevent hydration mismatch
   useEffect(() => {
     setIsMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    if (isIOSDeviceProp) {
-      setResolvedIsIOS(true);
-      return;
-    }
-    setResolvedIsIOS(detectIOS());
-  }, [isIOSDeviceProp]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const unsubscribe = subscribeToKeyboardState((state) => {
-      setKeyboardState((prev) => {
-        if (
-          prev.isOpen === state.isOpen &&
-          prev.height === state.height &&
-          prev.viewportHeight === state.viewportHeight
-        ) {
-          return prev;
-        }
-        return state;
-      });
-    });
-    return unsubscribe;
   }, []);
   // Auto-grow the compact composer
   const adjustTextareaHeight = useCallback(() => {
@@ -225,45 +186,14 @@ export default function AIInterface({
     adjustTextareaHeight();
   }, [inputValue, adjustTextareaHeight]);
 
-  useEffect(() => {
-    const node = composerWrapperRef.current;
-    if (!node) return;
-
-    const updateHeight = () => {
-      const rect = node.getBoundingClientRect();
-      setComposerHeight(rect.height);
-    };
-
-    updateHeight();
-
-    if (typeof ResizeObserver === 'undefined') return;
-
-    const observer = new ResizeObserver(() => {
-      updateHeight();
-    });
-
-    observer.observe(node);
-
-    return () => {
-      observer.disconnect();
-    };
-  }, [showChat]);
-
 
   // Check if user is near the bottom of the scroll container
   const isNearBottom = useCallback((threshold = 100) => {
     const container = scrollContainerRef.current;
     if (!container) return true;
-    return evaluateNearBottom(
-      {
-        scrollTop: container.scrollTop,
-        scrollHeight: container.scrollHeight,
-        clientHeight: container.clientHeight,
-      },
-      threshold,
-      isMobile,
-    );
-  }, [isMobile]);
+    const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
+    return distanceFromBottom <= threshold;
+  }, []);
 
   // Robust scroll to bottom
   const scrollToBottom = useCallback((force = false) => {
@@ -322,38 +252,18 @@ export default function AIInterface({
   }, [focusInput, isMobile, isNearBottom]);
 
 
-  // Auto-scroll on new messages with improved logic
+  // Auto-scroll on new messages
   useEffect(() => {
     if (chatMessages.length === 0) return;
     
-    // Wait for DOM updates, then check if we should scroll - faster on mobile
-    const scrollDelay = isMobile ? 10 : 100;
     const scrollTimeout = setTimeout(() => {
-      const container = scrollContainerRef.current;
-      const metrics = container
-        ? {
-            scrollTop: container.scrollTop,
-            scrollHeight: container.scrollHeight,
-            clientHeight: container.clientHeight,
-          }
-        : undefined;
-
-      const allowAutoScroll = metrics
-        ? shouldAutoScroll({
-            metrics,
-            threshold: 300,
-            isMobile,
-            userInitiated: !isUserScrollingRef.current,
-          })
-        : true;
-
-      if (!allowAutoScroll) return;
-
-      scrollToBottom(true);
-    }, scrollDelay);
+      if (isNearBottom(200)) {
+        scrollToBottom(true);
+      }
+    }, 100);
     
     return () => clearTimeout(scrollTimeout);
-  }, [chatMessages, scrollToBottom, isMobile]);
+  }, [chatMessages, scrollToBottom, isNearBottom]);
 
   // Auto-scroll when AI starts typing
   useEffect(() => {
@@ -556,42 +466,18 @@ export default function AIInterface({
 
   const content = getContentByTab();
 
-  const keyboardOffset = keyboardState.isOpen ? Math.max(0, Math.round(keyboardState.height)) : 0;
-  const composerHeightValue = Math.max(0, Math.round(composerHeight));
-
-  const composerWrapperStyle = useMemo(() => {
-    // On mobile, ensure the composer stays above the mobile nav bar (64px)
-    const mobileNavHeight = isMobile ? 64 : 0;
-    // Only apply keyboard offset on mobile when keyboard is actually open
-    const totalOffset = isMobile && keyboardState.isOpen && keyboardOffset > 0 ? keyboardOffset : 0;
-    return {
-      paddingBottom: isMobile ? `calc(env(safe-area-inset-bottom) + ${mobileNavHeight}px + 16px)` : 'calc(env(safe-area-inset-bottom) + 24px)',
-      transform: totalOffset > 0 ? `translateY(-${totalOffset}px)` : 'translateY(0)',
-      transition: 'transform 0.15s ease-out',
-      willChange: keyboardState.isOpen ? 'transform' : 'auto',
-      position: 'relative' as const,
-      zIndex: 35,
-      marginBottom: isMobile ? '0' : undefined,
-    };
-  }, [keyboardOffset, keyboardState.isOpen, isMobile]);
-
   const messageContainerStyle = useMemo(() => {
-    // Add padding to ensure messages don't get hidden behind the input composer
     return {
-      touchAction: iosDevice ? 'pan-y' : 'auto',
+      touchAction: isMobile ? 'pan-y' : 'auto',
       overscrollBehavior: 'contain' as const,
       WebkitOverflowScrolling: 'touch' as const,
       scrollBehavior: 'smooth' as const,
-      position: 'relative' as const,
-      zIndex: 1,
-      '--composer-height': `${composerHeightValue}px`,
-      paddingBottom: isMobile ? '24px' : `calc(env(safe-area-inset-bottom) + 12px)`,
     } as React.CSSProperties;
-  }, [iosDevice, composerHeightValue, isMobile]);
+  }, [isMobile]);
   const messageSpacingClass = isMobile ? 'space-y-6 p-6' : 'space-y-5 p-4 sm:p-6';
 
   useEffect(() => {
-    const container = scrollNode;
+    const container = scrollContainerRef.current;
     if (!container) return;
 
     let scrollTimeout: NodeJS.Timeout;
@@ -601,20 +487,11 @@ export default function AIInterface({
 
       if (scrollTimeout) clearTimeout(scrollTimeout);
 
-      const resetDelay = isMobile ? 1000 : 1500;
       scrollTimeout = setTimeout(() => {
-        const currentContainer = scrollContainerRef.current;
-        if (currentContainer) {
-          const { scrollTop, scrollHeight, clientHeight } = currentContainer;
-          const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
-          const tolerance = isMobile ? 50 : 20;
-          if (distanceFromBottom <= tolerance) {
-            isUserScrollingRef.current = false;
-          }
-        } else {
+        if (isNearBottom(50)) {
           isUserScrollingRef.current = false;
         }
-      }, resetDelay);
+      }, 1500);
     };
 
     container.addEventListener('scroll', handleScroll, { passive: true });
@@ -623,7 +500,7 @@ export default function AIInterface({
       container.removeEventListener('scroll', handleScroll);
       if (scrollTimeout) clearTimeout(scrollTimeout);
     };
-  }, [scrollNode, isMobile]);
+  }, [isNearBottom]);
 
   const globeTint = useMemo(() => {
     switch (activeTab) {
@@ -727,7 +604,6 @@ export default function AIInterface({
         height: isMobile ? 'calc(100dvh - 64px)' : 'auto',
         maxHeight: isMobile ? 'calc(100dvh - 64px)' : 'none',
         overflow: 'visible',
-        WebkitOverflowScrolling: iosDevice ? 'touch' : undefined,
       }}
     >
       
@@ -807,13 +683,12 @@ export default function AIInterface({
           </div>
 
           <div
-            ref={composerWrapperRef}
             className={`mx-auto flex w-full max-w-4xl flex-col gap-3 transition-opacity duration-300 ${
               isFooterVisible ? 'opacity-0 lg:opacity-100' : 'opacity-100'
             }`}
             style={{
-              ...composerWrapperStyle,
               paddingTop: isMobile ? '0.75rem' : '1rem',
+              paddingBottom: isMobile ? 'calc(env(safe-area-inset-bottom) + 80px)' : 'calc(env(safe-area-inset-bottom) + 24px)',
               flex: '0 0 auto',
             }}
           >
@@ -1007,13 +882,7 @@ export default function AIInterface({
                     {/* Start Planning Button */}
                     <button
                       type="button"
-                      onClick={(e) => {
-                        // Prevent iOS zoom on button tap
-                        if (iosDevice) {
-                          e.preventDefault();
-                          e.stopPropagation();
-                        }
-                        
+                      onClick={() => {
                         if (inputValue.trim()) {
                           // If user has entered text, start search with their input immediately
                           handleSendMessage(inputValue);
@@ -1068,14 +937,7 @@ export default function AIInterface({
                     return (
                       <button
                         key={index}
-                        onClick={(e) => {
-                          // Prevent iOS zoom on button tap
-                          if (iosDevice) {
-                            e.preventDefault();
-                            e.stopPropagation();
-                          }
-                          handleSendMessage(promptText);
-                        }}
+                        onClick={() => handleSendMessage(promptText)}
                         className={`group relative overflow-hidden rounded-xl border border-white/40 transition-all duration-300 text-left transform hover:scale-[1.02] hover:-translate-y-1 active:scale-[0.98] bg-white/60 backdrop-blur-xl backdrop-saturate-150 bg-clip-padding shadow-[0_8px_32px_rgba(8,_112,_184,_0.12)] hover:shadow-[0_12px_40px_rgba(8,_112,_184,_0.18)] hover:bg-white/70 before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/40 before:via-white/10 before:to-white/5 ${isMobile ? 'p-3' : 'p-4'}`}
                       >
                         <div className={`flex items-center relative z-10 ${isMobile ? 'gap-2' : 'gap-3'}`}>

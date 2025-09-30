@@ -167,12 +167,6 @@ body {
     max-height: calc(100dvh - 250px);
   }
   
-  /* Fix for chat input on mobile - keep it in view */
-  .glass-input {
-    position: relative;
-    z-index: 50;
-  }
-  
   /* Prevent message container from pushing input out of view */
   .glass-panel {
     max-height: calc(100dvh - 250px);
