@@ -1,16 +1,18 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { Sparkles, Send, Bot, User, ArrowRight, Settings } from 'lucide-react';
+import { Sparkles, Send, ArrowRight, Settings } from 'lucide-react';
 import Image from 'next/image';
 import { KeyboardState, subscribeToKeyboardState, isIOS as detectIOS } from '@/utils/mobileKeyboard';
 import { isNearBottom as evaluateNearBottom, shouldAutoScroll } from '@/utils/scrollLock';
+import ChatMessage, { type ChatMessageData } from './ChatMessage';
+import TypingIndicator from './TypingIndicator';
 
 type TabKey = 'plan' | 'preferences' | 'flights' | 'hotels' | 'restaurants' | 'mapout';
 
-interface ChatMessage {
-  id: string;
-  content: string;
-  sender: 'user' | 'ai';
-  timestamp: Date;
+interface Preferences {
+  travelStyle?: string;
+  budget?: string;
+  groupSize?: string;
+  activities?: string[];
 }
 
 interface AIInterfaceProps {
@@ -20,9 +22,8 @@ interface AIInterfaceProps {
   suggestedPrompts: (string | { text: string; emoji: string })[];
   placeholderText: string;
   onSubmit?: () => void;
-  preferences?: any;
+  preferences?: Preferences | null;
   activeTab: TabKey;
-  onNewTrip?: () => void;
   registerClearChat?: (fn: () => void) => void;
   onFirstMessage?: (firstMessage: string) => void;
   onMessageSent?: (message: string) => void;
@@ -32,16 +33,15 @@ interface AIInterfaceProps {
   isSidebarOpen?: boolean;
 }
 
-export default function AIInterface({ 
-  inputValue, 
-  onInputChange, 
-  isTyping, 
-  suggestedPrompts, 
+export default function AIInterface({
+  inputValue,
+  onInputChange,
+  isTyping,
+  suggestedPrompts,
   placeholderText,
   onSubmit,
   preferences,
   activeTab,
-  onNewTrip,
   registerClearChat,
   onFirstMessage,
   onMessageSent,
@@ -50,7 +50,7 @@ export default function AIInterface({
   isIOSDevice: isIOSDeviceProp = false,
   isSidebarOpen = false
 }: AIInterfaceProps) {
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatMessages, setChatMessages] = useState<ChatMessageData[]>([]);
   const [isAITyping, setIsAITyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -138,7 +138,7 @@ export default function AIInterface({
     } else {
       try {
         // preventScroll keeps the viewport stable when focusing on desktop
-        (el as any).focus({ preventScroll: true });
+        el.focus({ preventScroll: true });
       } catch {
         el.focus();
       }
@@ -192,17 +192,17 @@ export default function AIInterface({
           top: n.pos.top,
           left: n.pos.left,
           right: n.pos.right,
-          ['--xStart' as any]: `${xStart}vw`,
-          ['--yStart' as any]: `${yStart}vh`,
-          ['--xEnd' as any]: `${xEnd}vw`,
-          ['--yEnd' as any]: `${yEnd}vh`,
+          '--xStart': `${xStart}vw`,
+          '--yStart': `${yStart}vh`,
+          '--xEnd': `${xEnd}vw`,
+          '--yEnd': `${yEnd}vh`,
           animationDuration: `${n.dur}s`,
-        },
+        } as React.CSSProperties,
         spriteStyle: {
-          ['--size' as any]: `${n.size}px`,
-          ['--opacity' as any]: `${n.opacity}`,
+          '--size': `${n.size}px`,
+          '--opacity': `${n.opacity}`,
           animationDuration: `${n.spin}s`,
-        },
+        } as React.CSSProperties,
       };
     });
   }, [isMounted]);
@@ -426,7 +426,7 @@ export default function AIInterface({
     const isFirstMessage = chatMessages.length === 0;
 
     // Add user message
-    const userMessage: ChatMessage = {
+    const userMessage: ChatMessageData = {
       id: Date.now().toString(),
       content: textToSend,
       sender: 'user',
@@ -456,7 +456,7 @@ export default function AIInterface({
 
     // Simulate AI processing time
     setTimeout(() => {
-      const aiResponse: ChatMessage = {
+      const aiResponse: ChatMessageData = {
         id: (Date.now() + 1).toString(),
         content: generateAIResponse(textToSend),
         sender: 'ai',
@@ -475,12 +475,8 @@ export default function AIInterface({
     const ke = e as unknown as KeyboardEvent;
     const isEnter =
       e.key === 'Enter' ||
-      (ke.code ? (ke.code === 'Enter' || ke.code === 'NumpadEnter') : false) ||
-      // Fallbacks for edge cases / older browsers
-      // @ts-ignore deprecated
-      e.keyCode === 13 ||
-      // @ts-ignore deprecated
-      e.which === 13;
+      (ke.code ? (ke.code === 'Enter' || ke.code === 'NumpadEnter') : false);
+
     if (isEnter && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
@@ -601,9 +597,9 @@ export default function AIInterface({
       scrollBehavior: 'smooth' as const,
       position: 'relative' as const,
       zIndex: 1,
-      ['--composer-height' as any]: `${composerHeightValue}px`,
+      '--composer-height': `${composerHeightValue}px`,
       paddingBottom: isMobile ? '80px' : `calc(env(safe-area-inset-bottom) + 12px)`,
-    };
+    } as React.CSSProperties;
   }, [iosDevice, composerHeightValue, isMobile]);
   const messageSpacingClass = isMobile ? 'space-y-6 p-6' : 'space-y-5 p-4 sm:p-6';
 
@@ -673,7 +669,7 @@ export default function AIInterface({
       const target = e.target as HTMLElement | null;
       if (target) {
         const tag = target.tagName?.toLowerCase();
-        const isEditable = (target as any).isContentEditable;
+        const isEditable = target.isContentEditable;
         if (tag === 'input' || tag === 'textarea' || isEditable) return;
       }
       const el = textareaRef.current;
@@ -704,8 +700,8 @@ export default function AIInterface({
       el.style.setProperty('--px', `${x}px`);
       el.style.setProperty('--py', `${y}px`);
     };
-    window.addEventListener('mousemove', onMove, { passive: true } as any);
-    return () => window.removeEventListener('mousemove', onMove as any);
+    window.addEventListener('mousemove', onMove, { passive: true });
+    return () => window.removeEventListener('mousemove', onMove);
   }, []);
 
   // Detect when the global footer enters the viewport to hide the floating input
@@ -754,11 +750,11 @@ export default function AIInterface({
         className="globe-field"
         ref={globeFieldRef}
         data-force-motion="true"
-        style={{ ['--tintFrom' as any]: globeTint.from, ['--tintTo' as any]: globeTint.to, ['--tintOpacity' as any]: globeTint.opacity }}
+        style={{ '--tintFrom': globeTint.from, '--tintTo': globeTint.to, '--tintOpacity': globeTint.opacity } as React.CSSProperties}
       >
         {isMounted && globeNodes.map((n, idx) => (
-          <div key={idx} className="globe-node" style={n.nodeStyle as any}>
-            <div className="globe-sprite" style={n.spriteStyle as any} />
+          <div key={idx} className="globe-node" style={n.nodeStyle}>
+            <div className="globe-sprite" style={n.spriteStyle} />
           </div>
         ))}
       </div>
@@ -799,95 +795,24 @@ export default function AIInterface({
                 className={`${messageSpacingClass} flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent hover:scrollbar-thumb-gray-400`}
                 style={messageContainerStyle}
               >
-                {chatMessages.map((message) => {
-                  const bubbleWidth = isMobile
-                    ? 'max-w-[calc(100%_-_5rem)]'
-                    : 'max-w-[calc(100%_-_4rem)] sm:max-w-[70ch] lg:max-w-[80ch]';
-                  const bubbleTone =
-                    message.sender === 'user'
-                      ? 'bg-gradient-to-br from-primary/16 via-white/96 to-white/88 border border-primary/25 shadow-[0_16px_32px_rgba(82,113,255,0.18)]'
-                      : 'bg-gradient-to-br from-white/96 via-white/88 to-white/78 border border-white/60 shadow-[0_12px_28px_rgba(15,23,42,0.12)]';
-                  const bubbleRadius =
-                    message.sender === 'user'
-                      ? 'rounded-3xl rounded-tr-xl'
-                      : 'rounded-3xl rounded-tl-xl';
-                  const bubblePadding = isMobile ? 'px-5 py-4' : 'px-4 py-4';
-
-                  return (
-                    <div
-                      key={message.id}
-                      className={`flex w-full max-w-full items-start ${isMobile ? 'gap-4' : 'gap-3'} ${message.sender === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
-                      style={{
-                        marginLeft:
-                          isMobile && isSidebarOpen && message.sender === 'ai'
-                            ? '20px'
-                            : '0',
-                      }}
-                    >
-                      <div
-                        className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full ${
-                          message.sender === 'user'
-                            ? 'bg-primary/20 border-2 border-primary/30'
-                            : `bg-gradient-to-br ${content.gradientColors} border-2 border-white/40`
-                        }`}
-                      >
-                        {message.sender === 'user' ? (
-                          <User className="h-5 w-5 text-primary" />
-                        ) : (
-                          <Bot className={`h-5 w-5 ${content.accentColor}`} />
-                        )}
-                      </div>
-
-                      <div
-                        className={`w-fit overflow-hidden ${bubbleWidth} ${bubbleTone} ${bubbleRadius} ${bubblePadding}`}
-                      >
-                        <p className="text-sm font-medium leading-relaxed text-gray-900 whitespace-pre-wrap break-words">
-                          {message.content}
-                        </p>
-                        <div className="mt-3 flex items-center justify-end gap-3 text-xs text-gray-600">
-                          <span>
-                            {message.timestamp.toLocaleTimeString([], {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+                {chatMessages.map((message) => (
+                  <ChatMessage
+                    key={message.id}
+                    message={message}
+                    isMobile={isMobile}
+                    isSidebarOpen={isSidebarOpen}
+                    gradientColors={content.gradientColors}
+                    accentColor={content.accentColor}
+                  />
+                ))}
 
                 {isAITyping && (
-                  <div
-                    className={`flex items-start ${isMobile ? 'gap-4' : 'gap-3'}`}
-                    style={{
-                      marginLeft: isMobile && isSidebarOpen ? '20px' : '0',
-                    }}
-                  >
-                    <div
-                      className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${content.gradientColors} border-2 border-white/40`}
-                    >
-                      <Bot className={`h-5 w-5 ${content.accentColor}`} />
-                    </div>
-                    <div
-                      className={`w-fit overflow-hidden ${
-                        isMobile
-                          ? 'max-w-[calc(100%_-_5rem)]'
-                          : 'max-w-[calc(100%_-_4rem)] sm:max-w-[70ch] lg:max-w-[80ch]'
-                      } rounded-3xl rounded-tl-xl border border-white/60 bg-gradient-to-br from-white/96 via-white/88 to-white/80 ${
-                        isMobile ? 'p-5' : 'p-4'
-                      } shadow-[0_12px_28px_rgba(15,23,42,0.12)]`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <div className="flex gap-1">
-                          <div className={`h-2 w-2 rounded-full animate-bounce ${content.accentColor.replace('text-', 'bg-')}`} />
-                          <div className={`h-2 w-2 rounded-full animate-bounce delay-100 ${content.accentColor.replace('text-', 'bg-')}`} />
-                          <div className={`h-2 w-2 rounded-full animate-bounce delay-200 ${content.accentColor.replace('text-', 'bg-')}`} />
-                        </div>
-                        <span className="text-xs font-medium text-gray-600">AI is typing...</span>
-                      </div>
-                    </div>
-                  </div>
+                  <TypingIndicator
+                    isMobile={isMobile}
+                    isSidebarOpen={isSidebarOpen}
+                    gradientColors={content.gradientColors}
+                    accentColor={content.accentColor}
+                  />
                 )}
                 <div ref={messagesEndRef} />
               </div>

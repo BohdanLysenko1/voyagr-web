@@ -8,6 +8,9 @@ import { useAIPageState } from '@/hooks/useAIPageState';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { useNavbarVisibility } from '@/contexts/NavbarVisibilityContext';
 import { useFooterVisibility } from '@/contexts/FooterVisibilityContext';
+import { useDeviceDetection } from '@/hooks/useDeviceDetection';
+import { useViewportHeight } from '@/hooks/useViewportHeight';
+import { useConversationHistory, type RecentConversation } from '@/hooks/useConversationHistory';
 import { SAMPLE_FLIGHTS, SAMPLE_HOTELS, SAMPLE_RESTAURANTS, SUGGESTED_PROMPTS, PLACEHOLDER_TEXT } from '@/constants/aiData';
 import { Flight, Hotel, Restaurant } from '@/types/ai';
 import AISidebar from '@/components/AI/AISidebar';
@@ -24,59 +27,30 @@ type TabKey = 'plan' | 'preferences' | 'flights' | 'hotels' | 'restaurants' | 'm
 const isSectionTab = (tab: TabKey): tab is 'flights' | 'hotels' | 'restaurants' | 'mapout' =>
   tab === 'flights' || tab === 'hotels' || tab === 'restaurants' || tab === 'mapout';
 
-interface RecentConversation {
-  id: string;
-  title: string;
-  timestamp: Date;
+interface Preferences {
+  travelStyle?: string;
+  budget?: string;
+  groupSize?: string;
+  activities?: string[];
 }
 
 export default function AiPage() {
   const { inputValue, setInputValue, isTyping } = useAIPageState();
   const { setNavbarVisible } = useNavbarVisibility();
   const { setFooterVisible } = useFooterVisibility();
+  const { isMobile, isIOSDevice } = useDeviceDetection();
+  const { recentConversations, addConversation } = useConversationHistory();
+
   const [activeTab, setActiveTab] = useState<TabKey>('plan');
   const [isPreferencesModalOpen, setIsPreferencesModalOpen] = useState(false);
-  const [preferences, setPreferences] = useState(null);
+  const [preferences, setPreferences] = useState<Preferences | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [recentConversations, setRecentConversations] = useState<RecentConversation[]>([]);
   const [currentConversationMessages, setCurrentConversationMessages] = useState<string[]>([]);
   const clearChatFunctionRef = useRef<(() => void) | null>(null);
   const [resetKey, setResetKey] = useState(0);
-  const [isMobile, setIsMobile] = useState(false);
-  const [isIOSDevice, setIsIOSDevice] = useState(false);
 
-  // Detect mobile and iOS devices
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const checkDevice = () => {
-      const userAgent = navigator.userAgent.toLowerCase();
-      const mobileCheck = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent) || 
-                         window.innerWidth <= 768;
-      const iOSCheck = /ipad|iphone|ipod/.test(userAgent) || (navigator.maxTouchPoints > 1 && /macintosh/.test(userAgent));
-      
-      setIsMobile(mobileCheck);
-      setIsIOSDevice(iOSCheck);
-      
-      // Add iOS-specific body classes for CSS targeting
-      if (iOSCheck) {
-        document.body.classList.add('ios-device');
-      }
-      if (mobileCheck) {
-        document.body.classList.add('mobile-device');
-      }
-    };
-
-    checkDevice();
-    window.addEventListener('resize', checkDevice);
-    window.addEventListener('orientationchange', checkDevice);
-    
-    return () => {
-      window.removeEventListener('resize', checkDevice);
-      window.removeEventListener('orientationchange', checkDevice);
-      document.body.classList.remove('ios-device', 'mobile-device');
-    };
-  }, []);
+  // Use viewport height hook
+  useViewportHeight();
 
   // Lock body scroll so only the chat surface scrolls (mobile only)
   useEffect(() => {
@@ -97,35 +71,7 @@ export default function AiPage() {
     };
   }, [isMobile]);
 
-  // Keep a CSS custom property in sync with the real viewport height to avoid 100vh jumps on mobile
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const updateViewportMetrics = () => {
-      const viewport = window.visualViewport;
-      const height = viewport ? viewport.height : window.innerHeight;
-      const offsetTop = viewport ? viewport.offsetTop : 0;
-      document.documentElement.style.setProperty('--app-height', `${height}px`);
-      document.documentElement.style.setProperty('--app-viewport-offset', `${offsetTop}px`);
-    };
-
-    updateViewportMetrics();
-    window.addEventListener('resize', updateViewportMetrics);
-    window.addEventListener('orientationchange', updateViewportMetrics);
-    const viewport = window.visualViewport;
-    viewport?.addEventListener('resize', updateViewportMetrics);
-    viewport?.addEventListener('scroll', updateViewportMetrics);
-
-    return () => {
-      window.removeEventListener('resize', updateViewportMetrics);
-      window.removeEventListener('orientationchange', updateViewportMetrics);
-      viewport?.removeEventListener('resize', updateViewportMetrics);
-      viewport?.removeEventListener('scroll', updateViewportMetrics);
-      document.documentElement.style.removeProperty('--app-height');
-      document.documentElement.style.removeProperty('--app-viewport-offset');
-    };
-  }, []);
-
+  // Lock scroll when sidebar is open
   useEffect(() => {
     if (typeof window === 'undefined') return;
     if (!isSidebarOpen) return;
@@ -146,8 +92,8 @@ export default function AiPage() {
       document.body.classList.remove('voyagr-no-scroll');
     };
   }, [isSidebarOpen]);
-  
-  // Manage navbar and footer visibility 
+
+  // Manage navbar and footer visibility
   useEffect(() => {
     if (isMobile) {
       // Mobile: navbar visible only when sidebar closed, footer always hidden
@@ -160,7 +106,7 @@ export default function AiPage() {
     }
   }, [isSidebarOpen, isMobile, setNavbarVisible, setFooterVisible]);
 
-
+  // Close sidebar with Escape key
   useEffect(() => {
     if (!isSidebarOpen) return;
 
@@ -174,7 +120,6 @@ export default function AiPage() {
     return () => window.removeEventListener('keydown', handleKeydown);
   }, [isSidebarOpen]);
 
-
   // Restore navbar and footer visibility when component unmounts
   useEffect(() => {
     return () => {
@@ -183,37 +128,6 @@ export default function AiPage() {
     };
   }, [setNavbarVisible, setFooterVisible]);
 
-  // Load conversation history from localStorage on mount
-  useEffect(() => {
-    const loadConversationHistory = () => {
-      try {
-        const savedConversations = localStorage.getItem('voyagr-conversation-history');
-        if (savedConversations) {
-          const parsed = JSON.parse(savedConversations);
-          const conversations = parsed.map((conv: any) => ({
-            ...conv,
-            timestamp: new Date(conv.timestamp)
-          }));
-          setRecentConversations(conversations);
-        }
-      } catch (error) {
-        console.error('Failed to load conversation history:', error);
-      }
-    };
-    
-    loadConversationHistory();
-  }, []);
-
-  // Save conversation history to localStorage whenever it changes
-  const saveConversationHistory = useCallback((conversations: RecentConversation[]) => {
-    try {
-      localStorage.setItem('voyagr-conversation-history', JSON.stringify(conversations));
-      setRecentConversations(conversations);
-    } catch (error) {
-      console.error('Failed to save conversation history:', error);
-    }
-  }, []);
-  
   const { toggleAIItemFavorite, isAIItemFavorite } = useFavorites();
 
   // Update hearted status based on favorites context
@@ -221,13 +135,12 @@ export default function AiPage() {
     ...flight,
     hearted: isAIItemFavorite(flight.id)
   }));
-  
+
   const updatedHotels = SAMPLE_HOTELS.map((hotel: Hotel) => ({
     ...hotel,
     hearted: isAIItemFavorite(hotel.id)
   }));
-  
-  
+
   const updatedRestaurants = SAMPLE_RESTAURANTS.map((restaurant: Restaurant) => ({
     ...restaurant,
     hearted: isAIItemFavorite(restaurant.id)
@@ -243,7 +156,6 @@ export default function AiPage() {
     if (hotel) toggleAIItemFavorite(hotel, 'hotel');
   }, [toggleAIItemFavorite]);
 
-
   const toggleRestaurantHeart = useCallback((id: number) => {
     const restaurant = SAMPLE_RESTAURANTS.find((r: Restaurant) => r.id === id);
     if (restaurant) toggleAIItemFavorite(restaurant, 'restaurant');
@@ -252,14 +164,14 @@ export default function AiPage() {
   const registerClearChat = useCallback((fn: () => void) => {
     clearChatFunctionRef.current = fn;
   }, []);
-  
+
   const handleSectionReset = useCallback((targetTab: 'flights' | 'hotels' | 'restaurants' | 'mapout') => {
     setInputValue('');
-    
+
     if (clearChatFunctionRef.current) {
       clearChatFunctionRef.current();
     }
-    
+
     setResetKey(prev => prev + 1);
     setActiveTab(targetTab);
   }, [setInputValue]);
@@ -268,14 +180,7 @@ export default function AiPage() {
     // Save current conversation to recent conversations if there are messages
     if (currentConversationMessages.length > 0) {
       const firstMessage = currentConversationMessages[0];
-      const newConversation: RecentConversation = {
-        id: Date.now().toString(),
-        title: firstMessage.length > 50 ? `${firstMessage.substring(0, 50)}...` : firstMessage,
-        timestamp: new Date()
-      };
-
-      const updatedConversations = [newConversation, ...recentConversations.slice(0, 9)];
-      saveConversationHistory(updatedConversations);
+      addConversation(firstMessage);
     }
 
     setInputValue('');
@@ -290,7 +195,7 @@ export default function AiPage() {
     }
 
     setIsSidebarOpen(false);
-  }, [activeTab, currentConversationMessages, handleSectionReset, recentConversations, saveConversationHistory, setInputValue]);
+  }, [activeTab, currentConversationMessages, handleSectionReset, addConversation, setInputValue]);
 
   const handleFirstMessage = useCallback((firstMessage: string) => {
     setCurrentConversationMessages([firstMessage]);
@@ -314,7 +219,7 @@ export default function AiPage() {
     setIsPreferencesModalOpen(true);
   }, []);
 
-  const handlePreferencesSave = useCallback((newPreferences: any) => {
+  const handlePreferencesSave = useCallback((newPreferences: Preferences) => {
     setPreferences(newPreferences);
   }, []);
 
@@ -397,7 +302,6 @@ export default function AiPage() {
             preferences={preferences}
             activeTab={activeTab}
             registerClearChat={registerClearChat}
-            onNewTrip={handleNewTrip}
             onFirstMessage={handleFirstMessage}
             onMessageSent={handleMessageSent}
             onPreferencesOpen={handlePreferencesOpen}
