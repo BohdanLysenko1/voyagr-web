@@ -755,14 +755,16 @@ export default function AIInterface({
             overscrollBehaviorX: 'none',
             overscrollBehaviorY: 'contain',
             WebkitOverflowScrolling: 'touch',
-            paddingBottom: isMobile ? 'calc(64px + env(safe-area-inset-bottom) + 1rem)' : '0',
-            paddingTop: isMobile ? '0.5rem' : '0',
+            paddingBottom: isMobile ? 'calc(64px + env(safe-area-inset-bottom))' : '0',
+            paddingTop: isMobile ? '1rem' : '0',
             height: '100%',
             minHeight: 0,
+            display: 'flex',
+            flexDirection: 'column',
           }}
         >
-          <div className={`${isMobile ? 'px-4 sm:px-8 lg:px-10' : ''} ${isMobile ? 'pb-4' : ''} flex flex-col h-full min-h-0`}>
-          <div className={`w-full max-w-4xl space-y-3 ${isMobile ? '' : 'mt-3 pb-6'} flex flex-col h-full min-h-0`}>
+          <div className={`${isMobile ? 'px-4 sm:px-8 lg:px-10' : ''} flex flex-col h-full min-h-0`}>
+          <div className={`w-full max-w-4xl ${isMobile ? 'space-y-2' : 'space-y-3 mt-3 pb-6'} flex flex-col h-full min-h-0`}>
           
           {/* Compact Preferences Display */}
           {preferences && (
@@ -795,10 +797,10 @@ export default function AIInterface({
             </div>
           )}
             {/* Main AI Card with Enhanced Glassmorphism */}
-            <div className={`glass-panel glow-ring rounded-[1.75rem] text-center transition-all duration-700 ease-in-out ${isMobile ? 'px-5 py-6' : 'px-6 py-8 sm:px-10 sm:py-12'}`}>
+            <div className={`glass-panel glow-ring rounded-[1.75rem] text-center transition-all duration-700 ease-in-out ${isMobile ? 'px-5 py-5' : 'px-6 py-8 sm:px-10 sm:py-12'} flex-shrink-0`}>
               <div className="relative z-10">
               {/* Logo and Dynamic Title */}
-              <div className={`flex items-center justify-center gap-3 transition-all duration-700 ease-in-out sm:gap-4 ${isMobile ? 'mb-4' : 'mb-6'}`}>
+              <div className={`flex items-center justify-center gap-3 transition-all duration-700 ease-in-out sm:gap-4 ${isMobile ? 'mb-3' : 'mb-6'}`}>
                 {activeTab === 'plan' && (
                   <div className="relative">
                     <Image
@@ -823,7 +825,7 @@ export default function AIInterface({
               </div>
 
               {/* Dynamic Description */}
-              <div className={isMobile ? 'mb-4' : 'mb-6'}>
+              <div className={isMobile ? 'mb-3' : 'mb-6'}>
                 <p className={`font-medium text-gray-700 transition-all duration-500 ${isMobile ? 'text-sm' : 'text-base sm:text-lg'}`}>
                   {content.description}
                 </p>
@@ -831,7 +833,7 @@ export default function AIInterface({
 
 
               {/* Input Section */}
-              <div className={isMobile ? 'mb-6' : 'mb-10'}>
+              <div className={isMobile ? 'mb-0' : 'mb-10'}>
                 <div className="relative max-w-3xl mx-auto">
                   <div className={`glass-input ${
                     activeTab === 'flights' ? 'neon-glow-flights' :
@@ -847,8 +849,8 @@ export default function AIInterface({
                       onKeyDown={handleKeyPress}
                       placeholder={placeholderText || 'Tell Voyagr AI about your next adventure'}
                       className={`relative z-10 w-full resize-none border-0 bg-transparent text-gray-800 placeholder-gray-500 transition-all duration-300 focus:outline-none focus:ring-0 ${isMobile ? 'p-3 text-sm' : 'p-4 text-base sm:text-lg sm:p-6'}`}
-                      rows={isMobile ? 3 : 4}
-                      style={{ minHeight: isMobile ? '56px' : '72px', maxHeight: isMobile ? '100px' : '140px' }}
+                      rows={isMobile ? 2 : 4}
+                      style={{ minHeight: isMobile ? '48px' : '72px', maxHeight: isMobile ? '80px' : '140px', fontSize: '16px' }}
                     />
                   </div>
                   
@@ -864,16 +866,16 @@ export default function AIInterface({
                   )}
                   
                   {/* Preferences and Start Planning Buttons */}
-                  <div className={`flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-center sm:gap-4 ${isMobile ? 'mt-4' : 'mt-6'}`}>
+                  <div className={`flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-center sm:gap-4 ${isMobile ? 'mt-3' : 'mt-6'}`}>
                     {/* Preferences Button */}
                     <button
                       type="button"
                       onClick={() => {
                         onPreferencesOpen?.();
                       }}
-                      className={`relative overflow-hidden rounded-2xl border border-white/20 bg-gradient-to-r from-gray-500 to-gray-600 font-semibold text-white shadow-xl transition-all duration-300 hover:from-gray-400 hover:to-gray-500 hover:shadow-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${isMobile ? 'px-5 py-2.5 text-sm' : 'px-6 py-3 text-base sm:px-8 sm:py-4 sm:text-lg'}`}
+                      className={`relative overflow-hidden rounded-2xl border border-white/20 bg-gradient-to-r from-gray-500 to-gray-600 font-semibold text-white shadow-xl transition-all duration-300 hover:from-gray-400 hover:to-gray-500 hover:shadow-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${isMobile ? 'px-4 py-2.5 text-sm' : 'px-6 py-3 text-base sm:px-8 sm:py-4 sm:text-lg'}`}
                     >
-                      <span className="relative z-10 flex items-center justify-center gap-3 whitespace-nowrap">
+                      <span className="relative z-10 flex items-center justify-center gap-2 whitespace-nowrap">
                         <Settings className={isMobile ? 'h-4 w-4' : 'h-5 w-5 sm:h-6 sm:w-6'} />
                         Preferences
                       </span>
@@ -884,15 +886,13 @@ export default function AIInterface({
                       type="button"
                       onClick={() => {
                         if (inputValue.trim()) {
-                          // If user has entered text, start search with their input immediately
                           handleSendMessage(inputValue);
                         } else {
-                          // If no input, start with a default planning prompt immediately
                           const defaultPrompt = "Help me plan my next trip";
                           handleSendMessage(defaultPrompt);
                         }
                       }}
-                      className={`relative overflow-hidden rounded-2xl border border-white/20 bg-gradient-to-r font-semibold text-white shadow-xl transition-all duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${isMobile ? 'px-5 py-2.5 text-sm' : 'px-6 py-3 text-base sm:px-8 sm:py-4 sm:text-lg'} ${
+                      className={`relative overflow-hidden rounded-2xl border border-white/20 bg-gradient-to-r font-semibold text-white shadow-xl transition-all duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${isMobile ? 'px-4 py-2.5 text-sm' : 'px-6 py-3 text-base sm:px-8 sm:py-4 sm:text-lg'} ${
                         activeTab === 'flights' ? 'from-sky-500 to-blue-500 hover:from-sky-400 hover:to-blue-400' :
                         activeTab === 'hotels' ? 'from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400' :
                         activeTab === 'restaurants' ? 'from-purple-500 to-violet-500 hover:from-purple-400 hover:to-violet-400' :
@@ -900,7 +900,7 @@ export default function AIInterface({
                         'from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90'
                       }`}
                     >
-                      <span className="relative z-10 flex items-center justify-center gap-3 whitespace-nowrap">
+                      <span className="relative z-10 flex items-center justify-center gap-2 whitespace-nowrap">
                         <Sparkles className={isMobile ? 'h-4 w-4' : 'h-5 w-5 sm:h-6 sm:w-6'} />
                         Start Planning
                         <ArrowRight className={isMobile ? 'w-4 h-4' : 'w-5 h-5'} />
@@ -913,23 +913,21 @@ export default function AIInterface({
 
               {/* Dynamic Suggested Prompts */}
               <div
-                className={`flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain scrollbar-thin scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-400 scrollbar-track-transparent ${isMobile ? 'mt-4' : 'mt-6'}`}
+                className={`flex-1 min-h-0 overflow-y-auto overflow-x-hidden overscroll-contain scrollbar-thin scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-400 scrollbar-track-transparent ${isMobile ? 'mt-3' : 'mt-6'}`}
                 style={{
-                  maxHeight: isMobile ? 'calc(100dvh - 420px)' : '60vh',
-                  minHeight: isMobile ? '200px' : 'auto',
                   WebkitOverflowScrolling: 'touch',
                   paddingRight: '2px',
                   touchAction: 'pan-y',
                 }}
               >
-                <p className={`text-gray-600 font-medium text-center transition-all duration-500 ${isMobile ? 'mb-3 text-sm' : 'mb-4 text-base'}`}>
+                <p className={`text-gray-600 font-medium text-center transition-all duration-500 ${isMobile ? 'mb-2 text-xs' : 'mb-4 text-base'}`}>
                   {activeTab === 'flights' ? 'Popular flight searches:' : 
                    activeTab === 'hotels' ? 'Find your perfect accommodation:' :
                    activeTab === 'restaurants' ? 'Find perfect dining spots:' :
                    'Get inspired with these travel ideas:'}
                 </p>
                 
-                <div className={`grid gap-3 pr-1 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'}`} style={{ scrollbarGutter: 'stable' }}>
+                <div className={`grid gap-2 pr-1 ${isMobile ? 'grid-cols-1' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'}`} style={{ scrollbarGutter: 'stable' }}>
                   {content.prompts.map((prompt, index) => {
                     // Handle both string and object prompt types
                     const promptText = typeof prompt === 'string' ? prompt : prompt.text;
@@ -938,7 +936,7 @@ export default function AIInterface({
                       <button
                         key={index}
                         onClick={() => handleSendMessage(promptText)}
-                        className={`group relative overflow-hidden rounded-xl border border-white/40 transition-all duration-300 text-left transform hover:scale-[1.02] hover:-translate-y-1 active:scale-[0.98] bg-white/60 backdrop-blur-xl backdrop-saturate-150 bg-clip-padding shadow-[0_8px_32px_rgba(8,_112,_184,_0.12)] hover:shadow-[0_12px_40px_rgba(8,_112,_184,_0.18)] hover:bg-white/70 before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/40 before:via-white/10 before:to-white/5 ${isMobile ? 'p-3' : 'p-4'}`}
+                        className={`group relative overflow-hidden rounded-xl border border-white/40 transition-all duration-300 text-left transform hover:scale-[1.02] hover:-translate-y-1 active:scale-[0.98] bg-white/60 backdrop-blur-xl backdrop-saturate-150 bg-clip-padding shadow-[0_8px_32px_rgba(8,_112,_184,_0.12)] hover:shadow-[0_12px_40px_rgba(8,_112,_184,_0.18)] hover:bg-white/70 before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/40 before:via-white/10 before:to-white/5 ${isMobile ? 'p-2.5' : 'p-4'}`}
                       >
                         <div className={`flex items-center relative z-10 ${isMobile ? 'gap-2' : 'gap-3'}`}>
                           <span className={`group-hover:scale-110 transition-transform duration-300 flex-shrink-0 ${isMobile ? 'text-xl' : 'text-2xl'}`}>{promptEmoji}</span>

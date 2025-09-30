@@ -273,7 +273,7 @@ export default function AiPage() {
         </div>
       </header>
 
-      <div className={`relative flex flex-1 flex-col gap-4 pt-4 sm:px-6 lg:flex-row lg:gap-6 lg:px-10 lg:pb-6 lg:pt-6 ${isIOSDevice ? 'ios-scroll-smooth' : ''}`} style={{ paddingLeft: isMobile ? '0' : '1rem', paddingRight: isMobile ? '0' : '1rem', paddingBottom: isMobile ? '0' : '1.5rem', minHeight: 0, height: isMobile ? 'calc(100vh - 64px)' : 'auto', overflow: 'visible' }}>
+      <div className={`relative flex flex-1 flex-col lg:flex-row lg:gap-6 lg:px-10 lg:pb-6 lg:pt-6 ${isIOSDevice ? 'ios-scroll-smooth' : ''}`} style={{ paddingLeft: isMobile ? '0' : '1rem', paddingRight: isMobile ? '0' : '1rem', paddingBottom: isMobile ? '0' : '1.5rem', minHeight: 0, height: isMobile ? 'calc(100dvh - 64px)' : 'auto', overflow: 'visible' }}>
         <div className="hidden lg:flex lg:flex-shrink-0 lg:sticky lg:top-6" style={{ alignSelf: 'flex-start' }}>
           <AISidebar
             flights={updatedFlights}
@@ -292,7 +292,7 @@ export default function AiPage() {
             variant="desktop"
           />
         </div>
-        <main className="relative flex-1 flex flex-col" style={{ minHeight: 0, height: isMobile ? 'calc(100dvh - 64px)' : 'auto' }}>
+        <main className="relative flex-1 flex flex-col" style={{ minHeight: 0, height: isMobile ? '100%' : 'auto' }}>
           <AIInterface
             key={resetKey}
             inputValue={inputValue}
