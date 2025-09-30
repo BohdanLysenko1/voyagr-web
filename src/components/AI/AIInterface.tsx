@@ -575,21 +575,22 @@ export default function AIInterface({
   const composerHeightValue = Math.max(0, Math.round(composerHeight));
 
   const composerWrapperStyle = useMemo(() => {
-    // On mobile, push the composer above the mobile nav bar
+    // On mobile, ensure the composer stays above the mobile nav bar (64px)
     const mobileNavHeight = isMobile ? 64 : 0;
-    const totalOffset = keyboardOffset + mobileNavHeight;
+    const totalOffset = keyboardOffset;
     return {
-      paddingBottom: isMobile ? `calc(env(safe-area-inset-bottom) + ${mobileNavHeight}px + 12px)` : 'calc(env(safe-area-inset-bottom) + 24px)',
+      paddingBottom: isMobile ? `calc(env(safe-area-inset-bottom) + ${mobileNavHeight}px + 16px)` : 'calc(env(safe-area-inset-bottom) + 24px)',
       transform: totalOffset ? `translateY(-${totalOffset}px)` : 'none',
       transition: 'transform 0.24s ease-out',
       willChange: 'transform' as const,
       position: 'relative' as const,
-      zIndex: 30,
+      zIndex: 35,
+      marginBottom: isMobile ? '0' : undefined,
     };
   }, [keyboardOffset, isMobile]);
 
   const messageContainerStyle = useMemo(() => {
-    // Don't add mobile nav height here since the parent container already accounts for it
+    // Add padding to ensure messages don't get hidden behind the input composer
     return {
       touchAction: iosDevice ? 'pan-y' : 'auto',
       overscrollBehavior: 'contain' as const,
@@ -598,7 +599,7 @@ export default function AIInterface({
       position: 'relative' as const,
       zIndex: 1,
       '--composer-height': `${composerHeightValue}px`,
-      paddingBottom: isMobile ? '80px' : `calc(env(safe-area-inset-bottom) + 12px)`,
+      paddingBottom: isMobile ? '24px' : `calc(env(safe-area-inset-bottom) + 12px)`,
     } as React.CSSProperties;
   }, [iosDevice, composerHeightValue, isMobile]);
   const messageSpacingClass = isMobile ? 'space-y-6 p-6' : 'space-y-5 p-4 sm:p-6';
@@ -784,10 +785,10 @@ export default function AIInterface({
               borderRadius: isMobile ? '1.5rem' : '2rem',
               minHeight: 0,
               flex: '1 1 auto',
-              // Mobile: viewport - (header 64px + mobile nav 64px + input ~80px + margins ~40px)
+              // Mobile: viewport - (header 64px + mobile nav 64px + input composer ~100px + margins ~40px)
               // Desktop: viewport - (title ~80px + input ~100px + margins + padding ~100px) = ~280px
-              maxHeight: isMobile ? 'calc(100dvh - 250px)' : 'calc(100vh - 320px)',
-              height: isMobile ? 'calc(100dvh - 250px)' : 'auto'
+              maxHeight: isMobile ? 'calc(100dvh - 280px)' : 'calc(100vh - 320px)',
+              height: isMobile ? 'calc(100dvh - 280px)' : 'auto'
             }}>
               <div
                 ref={handleScrollContainerRef}
