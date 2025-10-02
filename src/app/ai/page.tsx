@@ -16,6 +16,7 @@ import { Flight, Hotel, Restaurant } from '@/types/ai';
 import AISidebar from '@/components/AI/AISidebar';
 import AIInterface from '@/components/AI/AIInterface';
 import AIMobileNav from '@/components/AI/AIMobileNav';
+import ProtectedRoute from '@/components/Auth/ProtectedRoute';
 
 const AIPreferencesModal = dynamic(() => import('@/components/AI/AIPreferencesModal'), {
   ssr: false,
@@ -224,9 +225,10 @@ export default function AiPage() {
   }, []);
 
   return (
-    <div
-      className={`relative flex flex-col bg-gradient-to-br from-slate-50 via-blue-50/50 to-purple-50/30 ${isIOSDevice ? 'ios-scroll-container' : ''}`}
-      style={{
+    <ProtectedRoute>
+      <div
+        className={`relative flex flex-col bg-gradient-to-br from-slate-50 via-blue-50/50 to-purple-50/30 ${isIOSDevice ? 'ios-scroll-container' : ''}`}
+        style={{
         touchAction: isMobile ? 'pan-y' : 'auto',
         overscrollBehaviorX: 'none',
         overscrollBehaviorY: 'contain',
@@ -356,6 +358,7 @@ export default function AiPage() {
         onClose={() => setIsPreferencesModalOpen(false)}
         onSave={handlePreferencesSave}
       />
-    </div>
+      </div>
+    </ProtectedRoute>
   );
 }

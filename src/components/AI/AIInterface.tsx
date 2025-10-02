@@ -3,6 +3,7 @@ import { Sparkles, Send, ArrowRight, Settings } from 'lucide-react';
 import Image from 'next/image';
 import ChatMessage, { type ChatMessageData } from './ChatMessage';
 import TypingIndicator from './TypingIndicator';
+import { api } from '@/lib/apiClient';
 
 type TabKey = 'plan' | 'preferences' | 'flights' | 'hotels' | 'restaurants' | 'mapout';
 
@@ -334,37 +335,73 @@ export default function AIInterface({
     // Keep focus in the compact input so user can continue typing immediately
     focusInput();
     requestAnimationFrame(() => adjustTextareaHeight());
-    
+
     // Immediately scroll to show the user's message
     setTimeout(() => scrollToBottom(true), 50);
-    
+
     // If this is the first message, save it to recent conversations
     if (isFirstMessage) {
       onFirstMessage?.(textToSend);
     }
-    
+
     // Track all messages for conversation history
     onMessageSent?.(textToSend);
-    
+
     // Show AI typing indicator
     setIsAITyping(true);
 
-    // Simulate AI processing time
-    setTimeout(() => {
+    try {
+      // Prepare chat history for API
+      const chatHistory = chatMessages.map(msg => ({
+        role: msg.sender === 'user' ? 'user' as const : 'model' as const,
+        content: msg.content
+      }));
+
+      // Add context about the current tab
+      const context = activeTab !== 'plan'
+        ? `User is currently on the ${activeTab} tab`
+        : undefined;
+
+      // Call the backend API with Genkit
+      const response = await api.post<{
+        success: boolean;
+        data: { message: string; metadata: any };
+        message: string;
+      }>('/api/ai/chat', {
+        message: textToSend,
+        chatHistory,
+        context
+      });
+
       const aiResponse: ChatMessageData = {
+        id: (Date.now() + 1).toString(),
+        content: response.data.message,
+        sender: 'ai',
+        timestamp: new Date()
+      };
+
+      setChatMessages(prev => [...prev, aiResponse]);
+      setIsAITyping(false);
+      // After AI finishes, refocus the input on the next frame
+      requestAnimationFrame(() => focusInput());
+    } catch (error) {
+      console.error('Error getting AI response:', error);
+
+      // Fallback to local mock response if API fails
+      const fallbackResponse: ChatMessageData = {
         id: (Date.now() + 1).toString(),
         content: generateAIResponse(textToSend),
         sender: 'ai',
         timestamp: new Date()
       };
-      setChatMessages(prev => [...prev, aiResponse]);
+
+      setChatMessages(prev => [...prev, fallbackResponse]);
       setIsAITyping(false);
-      // After AI finishes, refocus the input on the next frame
       requestAnimationFrame(() => focusInput());
-    }, 600 + Math.random() * 1000);
+    }
 
     onSubmit?.();
-  }, [inputValue, chatMessages.length, onInputChange, onFirstMessage, onMessageSent, generateAIResponse, onSubmit, focusInput, adjustTextareaHeight, scrollToBottom]);
+  }, [inputValue, chatMessages, activeTab, onInputChange, onFirstMessage, onMessageSent, generateAIResponse, onSubmit, focusInput, adjustTextareaHeight, scrollToBottom]);
 
   const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
     const ke = e as unknown as KeyboardEvent;

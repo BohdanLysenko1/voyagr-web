@@ -5,6 +5,7 @@ import WorldMapVisited from "@/components/MyJourney/WorldMapVisited";
 import type { Milestone } from "@/components/MyJourney/MilestonesSection";
 import type { Goal } from "@/components/MyJourney/GoalsSection";
 import { Trophy, Award, Globe2, Plane, Crown, Flag } from "lucide-react";
+import ProtectedRoute from "@/components/Auth/ProtectedRoute";
 
 type Item = {
   title: string;
@@ -57,7 +58,8 @@ const wishlistCountries: string[] = ["Italy", "Greece", "Iceland", "New Zealand"
 
 export default function MyJourneyPage() {
   return (
-    <main className="max-w-5xl mx-auto px-4 py-8">
+    <ProtectedRoute>
+      <main className="max-w-5xl mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold text-gray-900 text-center mb-6">Your Journey</h1>
 
       <section className="rounded-2xl border border-blue-100 bg-blue-50/60 p-6 md:p-8 shadow-sm">
@@ -88,6 +90,7 @@ export default function MyJourneyPage() {
           wishlistCountries={wishlistCountries}
         />
       </div>
-    </main>
+      </main>
+    </ProtectedRoute>
   );
 }
