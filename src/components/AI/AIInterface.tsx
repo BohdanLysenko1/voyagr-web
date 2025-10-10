@@ -1,9 +1,13 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { Sparkles, Send, ArrowRight, Settings } from 'lucide-react';
+import { Sparkles, Send, MessageSquare, MapPin, Plane, Clock, DollarSign } from 'lucide-react';
 import Image from 'next/image';
 import ChatMessage, { type ChatMessageData } from './ChatMessage';
 import TypingIndicator from './TypingIndicator';
 import { api } from '@/lib/apiClient';
+import { useTripPlanningContext } from '@/contexts/TripPlanningContext';
+import { WizardStep, TripItinerary } from '@/types/tripPlanning';
+import { useFlightSearch } from '@/hooks/useFlightSearch';
+import { FlightOption } from '@/types/flights';
 
 type TabKey = 'plan' | 'preferences' | 'flights' | 'hotels' | 'restaurants' | 'mapout';
 
@@ -30,6 +34,8 @@ interface AIInterfaceProps {
   isMobile?: boolean;
   isIOSDevice?: boolean;
   isSidebarOpen?: boolean;
+  onWizardStepComplete?: (step: WizardStep, data: any) => void;
+  onTripConfirm?: (itinerary: TripItinerary) => void;
 }
 
 export default function AIInterface({
@@ -47,8 +53,12 @@ export default function AIInterface({
   onPreferencesOpen,
   isMobile = false,
   isIOSDevice: isIOSDeviceProp = false,
-  isSidebarOpen = false
+  isSidebarOpen = false,
+  onWizardStepComplete,
+  onTripConfirm
 }: AIInterfaceProps) {
+  const { startWizard, isWizardActive, currentStep, itinerary } = useTripPlanningContext();
+  const { flights, loading: flightsLoading, searchFlights } = useFlightSearch();
   const [chatMessages, setChatMessages] = useState<ChatMessageData[]>([]);
   const [isAITyping, setIsAITyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -280,6 +290,105 @@ export default function AIInterface({
 
 
 
+  // Helper function to detect if query is a flight search
+  const detectFlightSearch = useCallback((query: string): boolean => {
+    const flightKeywords = ['flight', 'fly', 'trip', 'round-trip', 'one-way', 'ticket', 'travel', 'business class', 'economy', 'airline'];
+    const queryLower = query.toLowerCase();
+    return flightKeywords.some(keyword => queryLower.includes(keyword));
+  }, []);
+
+  // Helper function to parse flight parameters from query
+  const parseFlightQuery = useCallback((query: string) => {
+    const today = new Date();
+    const nextMonth = new Date();
+    nextMonth.setMonth(nextMonth.getMonth() + 1);
+
+    // Simple parsing - in production, use NLP or more sophisticated parsing
+    const queryLower = query.toLowerCase();
+    
+    // Detect destinations from common patterns
+    const toMatch = query.match(/to\s+([A-Za-z\s]+?)(?:\s+in|\s+for|\s+on|$)/i);
+    const fromMatch = query.match(/from\s+([A-Za-z\s]+?)(?:\s+to|\s+in|\s+for|$)/i);
+    
+    // Map city names to IATA codes (extend this as needed)
+    const cityToIATA: Record<string, string> = {
+      'london': 'LHR', 'tokyo': 'NRT', 'paris': 'CDG', 'new york': 'JFK',
+      'los angeles': 'LAX', 'miami': 'MIA', 'chicago': 'ORD', 'sydney': 'SYD',
+      'rome': 'FCO', 'dubai': 'DXB', 'singapore': 'SIN', 'hong kong': 'HKG',
+      'toronto': 'YYZ', 'san francisco': 'SFO', 'seattle': 'SEA', 'boston': 'BOS',
+      'las vegas': 'LAS', 'orlando': 'MCO', 'denver': 'DEN', 'atlanta': 'ATL',
+      'europe': 'LHR', 'australia': 'SYD', 'asia': 'NRT'
+    };
+
+    let destination = 'LHR'; // Default
+    let origin = 'JFK'; // Default
+
+    if (toMatch) {
+      const cityName = toMatch[1].trim().toLowerCase();
+      destination = cityToIATA[cityName] || 'LHR';
+    }
+
+    if (fromMatch) {
+      const cityName = fromMatch[1].trim().toLowerCase();
+      origin = cityToIATA[cityName] || 'JFK';
+    }
+
+    // Detect cabin class
+    const cabinClass: 'BUSINESS' | 'FIRST' | 'PREMIUM_ECONOMY' | 'ECONOMY' = 
+      queryLower.includes('business') ? 'BUSINESS' :
+      queryLower.includes('first') ? 'FIRST' :
+      queryLower.includes('premium') ? 'PREMIUM_ECONOMY' : 'ECONOMY';
+
+    // Detect round-trip or one-way
+    const isRoundTrip = !queryLower.includes('one-way');
+
+    // Parse dates (simple detection)
+    const monthNames = ['january', 'february', 'march', 'april', 'may', 'june', 
+                       'july', 'august', 'september', 'october', 'november', 'december'];
+    let departureDate = today.toISOString().split('T')[0];
+    let returnDate = nextMonth.toISOString().split('T')[0];
+
+    monthNames.forEach((month, index) => {
+      if (queryLower.includes(month)) {
+        const monthDate = new Date();
+        monthDate.setMonth(index);
+        if (monthDate < today) monthDate.setFullYear(monthDate.getFullYear() + 1);
+        departureDate = monthDate.toISOString().split('T')[0];
+        const retDate = new Date(monthDate);
+        retDate.setDate(retDate.getDate() + 14);
+        returnDate = retDate.toISOString().split('T')[0];
+      }
+    });
+
+    // Detect number of travelers
+    const adultsMatch = query.match(/(\d+)\s*(?:person|people|passenger|adult)/i);
+    const adults = adultsMatch ? parseInt(adultsMatch[1]) : 1;
+
+    return {
+      origin,
+      destination,
+      departureDate,
+      returnDate: isRoundTrip ? returnDate : undefined,
+      adults,
+      cabinClass,
+      currencyCode: 'USD'
+    };
+  }, []);
+
+  // Handler for when a flight is selected from the carousel
+  const handleFlightSelect = useCallback((flight: FlightOption) => {
+    const selectionMessage: ChatMessageData = {
+      id: Date.now().toString(),
+      content: `✅ Perfect choice! You've selected the ${flight.airline} flight from ${flight.departure} to ${flight.arrival} for $${flight.price.toFixed(2)}. Would you like to proceed with booking or continue planning your trip?`,
+      sender: 'ai',
+      timestamp: new Date()
+    };
+    setChatMessages(prev => [...prev, selectionMessage]);
+    
+    // Scroll to show the confirmation message
+    setTimeout(() => scrollToBottom(true), 100);
+  }, [scrollToBottom]);
+
   const generateAIResponse = useCallback((userMessage: string): string => {
     const responses: Record<string, string[]> = {
       flights: [
@@ -318,6 +427,21 @@ export default function AIInterface({
     const textToSend = messageOverride ? messageOverride.trim() : inputValue.trim();
     if (!textToSend) return;
 
+    // Handle wizard input for destination step
+    if (isWizardActive && currentStep === 'destination') {
+      console.log('🌍 Destination input received:', textToSend);
+      onWizardStepComplete?.('destination', { 
+        destination: { 
+          city: textToSend,
+          country: '' // Can be parsed from city name or left empty for now
+        } 
+      });
+      onInputChange('');
+      focusInput();
+      requestAnimationFrame(() => adjustTextareaHeight());
+      return;
+    }
+
     // Check if this is the first message in the conversation
     const isFirstMessage = chatMessages.length === 0;
 
@@ -330,6 +454,7 @@ export default function AIInterface({
     };
 
     setChatMessages(prev => [...prev, userMessage]);
+
     // Clear the input box regardless of where the text came from
     onInputChange('');
     // Keep focus in the compact input so user can continue typing immediately
@@ -346,6 +471,64 @@ export default function AIInterface({
 
     // Track all messages for conversation history
     onMessageSent?.(textToSend);
+
+    // Check if this is a flight search query (only on flights tab)
+    if (activeTab === 'flights' && detectFlightSearch(textToSend)) {
+      // Show AI typing indicator
+      setIsAITyping(true);
+
+      try {
+        // Parse flight parameters from the query
+        const flightParams = parseFlightQuery(textToSend);
+        
+        // Call Amadeus API
+        const foundFlights = await searchFlights(flightParams);
+
+        setIsAITyping(false);
+
+        if (foundFlights.length > 0) {
+          // Show flights inline with carousel
+          const aiResponse: ChatMessageData = {
+            id: (Date.now() + 1).toString(),
+            content: `✈️ Perfect! I found ${foundFlights.length} flight${foundFlights.length > 1 ? 's' : ''} for you. Here are the best options:`,
+            sender: 'ai',
+            timestamp: new Date(),
+            interactive: {
+              type: 'flight-results',
+              flights: foundFlights,
+              onSelectFlight: handleFlightSelect
+            }
+          };
+          setChatMessages(prev => [...prev, aiResponse]);
+        } else {
+          // No flights found
+          const aiResponse: ChatMessageData = {
+            id: (Date.now() + 1).toString(),
+            content: 'Sorry, I couldn\'t find any flights matching your criteria. Try adjusting your search dates or destinations.',
+            sender: 'ai',
+            timestamp: new Date()
+          };
+          setChatMessages(prev => [...prev, aiResponse]);
+        }
+
+        requestAnimationFrame(() => focusInput());
+        return; // Exit early, don't call regular AI API
+      } catch (error) {
+        console.error('Flight search error:', error);
+        setIsAITyping(false);
+        
+        // Show error message
+        const errorResponse: ChatMessageData = {
+          id: (Date.now() + 1).toString(),
+          content: 'Oops! There was an error searching for flights. Please try again or check your API credentials.',
+          sender: 'ai',
+          timestamp: new Date()
+        };
+        setChatMessages(prev => [...prev, errorResponse]);
+        requestAnimationFrame(() => focusInput());
+        return;
+      }
+    }
 
     // Show AI typing indicator
     setIsAITyping(true);
@@ -401,7 +584,7 @@ export default function AIInterface({
     }
 
     onSubmit?.();
-  }, [inputValue, chatMessages, activeTab, onInputChange, onFirstMessage, onMessageSent, generateAIResponse, onSubmit, focusInput, adjustTextareaHeight, scrollToBottom]);
+  }, [inputValue, chatMessages, activeTab, onInputChange, onFirstMessage, onMessageSent, generateAIResponse, onSubmit, focusInput, adjustTextareaHeight, scrollToBottom, isWizardActive, currentStep, onWizardStepComplete]);
 
   const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
     const ke = e as unknown as KeyboardEvent;
@@ -511,7 +694,11 @@ export default function AIInterface({
       scrollBehavior: 'smooth' as const,
     } as React.CSSProperties;
   }, [isMobile]);
-  const messageSpacingClass = isMobile ? 'space-y-6 p-6' : 'space-y-5 p-4 sm:p-6';
+  const messageSpacingClass = isMobile 
+    ? 'space-y-6 p-6' 
+    : isWizardActive 
+      ? 'space-y-6 p-8' 
+      : 'space-y-5 p-4 sm:p-6';
 
   useEffect(() => {
     const container = scrollContainerRef.current;
@@ -663,10 +850,10 @@ export default function AIInterface({
         {/* Chat Interface or Welcome Screen */}
         {showChat ? (
         /* Chat Mode */
-        <div className="relative flex flex-col px-4 pb-0 pt-0 sm:px-6" style={{ height: isMobile ? '100%' : 'auto', maxHeight: '100%', display: 'flex', flexDirection: 'column' }}>
-          <div className="mx-auto flex w-full max-w-4xl flex-col" style={{ marginTop: isMobile ? '12px' : '0.75rem', flex: '1 1 auto', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-            {/* Hide title card on mobile to save space, show on desktop */}
-            {!isMobile && (
+        <div className={`relative flex flex-col ${isWizardActive ? 'px-4 sm:px-6' : 'px-4 sm:px-6'} pb-0 pt-0`} style={{ height: isMobile ? '100%' : 'auto', maxHeight: '100%', display: 'flex', flexDirection: 'column' }}>
+          <div className={`mx-auto flex w-full ${isWizardActive ? 'max-w-full' : 'max-w-4xl'} flex-col`} style={{ marginTop: isMobile ? '12px' : (isWizardActive ? '0' : '0.75rem'), paddingTop: isWizardActive ? '0' : '0', flex: '1 1 auto', minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+            {/* Hide title card on mobile or when wizard is active */}
+            {!isMobile && !isWizardActive && (
               <div className="glass-card border-b-0 rounded-3xl p-6 text-center shadow-[0_22px_45px_rgba(15,23,42,0.12)] transition-all duration-700 ease-in-out">
                 <div className="flex items-center justify-center gap-3">
                   <div className={`rounded-xl border border-white/40 bg-gradient-to-br ${content.gradientColors} p-2`}>
@@ -686,8 +873,9 @@ export default function AIInterface({
               flex: '1 1 auto',
               // Mobile: Increased height to reduce gap with input - viewport - (header 64px + mobile nav 64px + input ~90px + minimal margins ~20px) = 234px
               // Desktop: viewport - (title ~80px + input ~100px + margins + padding ~100px) = ~280px
-              maxHeight: isMobile ? 'calc(100dvh - 234px)' : 'calc(100vh - 320px)',
-              height: isMobile ? 'calc(100dvh - 234px)' : 'auto'
+              // Wizard mode: viewport - (header 64px + input ~140px + padding ~100px) = ~300px
+              maxHeight: isMobile ? 'calc(100dvh - 234px)' : (isWizardActive ? 'calc(100vh - 260px)' : 'calc(100vh - 320px)'),
+              height: isMobile ? 'calc(100dvh - 234px)' : (isWizardActive ? 'calc(100vh - 260px)' : 'auto')
             }}>
               <div
                 ref={handleScrollContainerRef}
@@ -703,6 +891,8 @@ export default function AIInterface({
                     isSidebarOpen={isSidebarOpen}
                     gradientColors={content.gradientColors}
                     accentColor={content.accentColor}
+                    onWizardStepComplete={onWizardStepComplete}
+                    onTripConfirm={onTripConfirm}
                   />
                 ))}
 
@@ -720,12 +910,12 @@ export default function AIInterface({
           </div>
 
           <div
-            className={`mx-auto flex w-full max-w-4xl flex-col gap-3 transition-opacity duration-300 ${
+            className={`mx-auto flex w-full ${isWizardActive ? 'max-w-full px-4' : 'max-w-4xl'} flex-col gap-3 transition-opacity duration-300 ${
               isFooterVisible ? 'opacity-0 lg:opacity-100' : 'opacity-100'
             }`}
             style={{
-              paddingTop: isMobile ? '0.5rem' : '1rem',
-              paddingBottom: isMobile ? 'calc(env(safe-area-inset-bottom) + 76px)' : 'calc(env(safe-area-inset-bottom) + 24px)',
+              paddingTop: isMobile ? '0.5rem' : (isWizardActive ? '1.5rem' : '1rem'),
+              paddingBottom: isMobile ? 'calc(env(safe-area-inset-bottom) + 76px)' : (isWizardActive ? '2rem' : 'calc(env(safe-area-inset-bottom) + 24px)'),
               flex: '0 0 auto',
             }}
           >
@@ -753,7 +943,7 @@ export default function AIInterface({
                     value={inputValue}
                     onChange={(e) => onInputChange(e.target.value)}
                     onKeyDown={handleKeyPress}
-                    placeholder="Share what you need and press send"
+                    placeholder={isWizardActive && currentStep === 'destination' ? "Type your destination (e.g., Paris, Tokyo)..." : "Share what you need and press send"}
                     enterKeyHint="send"
                     className="w-full resize-none border-none bg-transparent py-0 text-base leading-6 text-gray-800 placeholder-gray-500 focus:border-none focus:outline-none focus:ring-0 sm:text-lg"
                     rows={1}
@@ -834,31 +1024,33 @@ export default function AIInterface({
             </div>
           )}
             {/* Main AI Card with Enhanced Glassmorphism */}
-            <div className={`glass-panel glow-ring rounded-[1.75rem] text-center transition-all duration-700 ease-in-out ${isMobile ? 'px-5 py-5' : 'px-6 py-8 sm:px-10 sm:py-12'} flex-shrink-0`}>
+            <div className={`glass-panel glow-ring rounded-[1.75rem] text-center transition-all duration-700 ease-in-out ${isMobile ? 'px-5 py-5' : 'px-10 py-8 sm:px-12 sm:py-10'} flex-shrink-0`}>
               <div className="relative z-10">
               {/* Logo and Dynamic Title */}
-              <div className={`flex items-center justify-center gap-3 transition-all duration-700 ease-in-out sm:gap-4 ${isMobile ? 'mb-3' : 'mb-6'}`}>
+              <div className={`flex items-center justify-center gap-3 transition-all duration-700 ease-in-out sm:gap-4 ${isMobile ? 'mb-3' : 'mb-5'}`}>
                 {activeTab === 'plan' && (
                   <div className="relative">
                     <Image
                       src="/images/AIPage/VoyagrAI logo.png"
                       alt="VoyagrAI Logo"
-                      width={80}
-                      height={80}
+                      width={72}
+                      height={72}
                       className="object-contain"
                       priority
                     />
                   </div>
                 )}
-                <h1 className={`text-3xl font-bold leading-tight transition-all duration-700 sm:text-4xl md:leading-[1.1] lg:text-6xl ${
-                  activeTab === 'flights' ? 'gradient-text-flights' :
-                  activeTab === 'hotels' ? 'gradient-text-hotels' :
-                  activeTab === 'restaurants' ? 'gradient-text-restaurants' :
-                  activeTab === 'mapout' ? 'gradient-text-mapout' :
-                  'gradient-text'
-                } drop-shadow-sm pb-0.5`}>
-                  {content.title}
-                </h1>
+                <div className="pb-1">
+                  <h1 className={`text-4xl font-bold transition-all duration-700 sm:text-5xl lg:text-6xl ${
+                    activeTab === 'flights' ? 'gradient-text-flights' :
+                    activeTab === 'hotels' ? 'gradient-text-hotels' :
+                    activeTab === 'restaurants' ? 'gradient-text-restaurants' :
+                    activeTab === 'mapout' ? 'gradient-text-mapout' :
+                    'gradient-text'
+                  } drop-shadow-sm`}>
+                    {content.title}
+                  </h1>
+                </div>
               </div>
 
               {/* Dynamic Description */}
@@ -870,8 +1062,8 @@ export default function AIInterface({
 
 
               {/* Input Section */}
-              <div className={isMobile ? 'mb-0' : 'mb-10'}>
-                <div className="relative max-w-3xl mx-auto">
+              <div className={isMobile ? 'mb-0' : 'mb-0'}>
+                <div className={`relative ${isWizardActive ? 'max-w-full' : 'max-w-3xl'} mx-auto`}>
                   <div className={`glass-input ${
                     activeTab === 'flights' ? 'neon-glow-flights' :
                     activeTab === 'hotels' ? 'neon-glow-hotels' :
@@ -884,10 +1076,10 @@ export default function AIInterface({
                       value={inputValue}
                       onChange={(e) => onInputChange(e.target.value)}
                       onKeyDown={handleKeyPress}
-                      placeholder={placeholderText || 'Tell Voyagr AI about your next adventure'}
-                      className={`relative z-10 w-full resize-none border-0 bg-transparent text-gray-800 placeholder-gray-500 transition-all duration-300 focus:outline-none focus:ring-0 ${isMobile ? 'p-3 text-sm' : 'p-4 text-base sm:text-lg sm:p-6'}`}
-                      rows={isMobile ? 2 : 4}
-                      style={{ minHeight: isMobile ? '48px' : '72px', maxHeight: isMobile ? '80px' : '140px', fontSize: '16px' }}
+                      placeholder={isWizardActive && currentStep === 'destination' ? "Type your destination (e.g., Paris, Tokyo)..." : (placeholderText || 'Tell Voyagr AI about your next adventure')}
+                      className={`relative z-10 w-full resize-none border-0 bg-transparent text-gray-800 placeholder-gray-500 transition-all duration-300 focus:outline-none focus:ring-0 ${isMobile ? 'p-3 text-sm' : 'p-5 text-base sm:text-lg sm:p-6'}`}
+                      rows={isMobile ? 2 : 3}
+                      style={{ minHeight: isMobile ? '48px' : '90px', maxHeight: isMobile ? '80px' : '140px', fontSize: '16px' }}
                     />
                   </div>
                   
@@ -902,48 +1094,91 @@ export default function AIInterface({
                     </div>
                   )}
                   
-                  {/* Preferences and Start Planning Buttons */}
-                  <div className={`flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-center sm:gap-4 ${isMobile ? 'mt-3' : 'mt-6'}`}>
-                    {/* Preferences Button */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onPreferencesOpen?.();
-                      }}
-                      className={`relative overflow-hidden rounded-2xl border border-white/20 bg-gradient-to-r from-gray-500 to-gray-600 font-semibold text-white shadow-xl transition-all duration-300 hover:from-gray-400 hover:to-gray-500 hover:shadow-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${isMobile ? 'px-4 py-2.5 text-sm' : 'px-6 py-3 text-base sm:px-8 sm:py-4 sm:text-lg'}`}
-                    >
-                      <span className="relative z-10 flex items-center justify-center gap-2 whitespace-nowrap">
-                        <Settings className={isMobile ? 'h-4 w-4' : 'h-5 w-5 sm:h-6 sm:w-6'} />
-                        Preferences
-                      </span>
-                    </button>
+                  {/* Quick Chat and Trip Planner Buttons - Only show on 'plan' tab */}
+                  {activeTab === 'plan' && (
+                    <div className={`flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-center sm:gap-4 ${isMobile ? 'mt-3' : 'mt-6'}`}>
+                      {/* Quick Chat Button */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (inputValue.trim()) {
+                            handleSendMessage(inputValue);
+                          } else {
+                            const defaultPrompt = "Hello! How can you help me today?";
+                            handleSendMessage(defaultPrompt);
+                          }
+                        }}
+                        className={`relative overflow-hidden rounded-2xl border border-white/20 bg-gradient-to-r from-gray-500 to-gray-600 font-semibold text-white shadow-xl transition-all duration-300 hover:from-gray-400 hover:to-gray-500 hover:shadow-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${isMobile ? 'px-4 py-2.5 text-sm' : 'px-7 py-3 text-base sm:px-8 sm:py-3.5 sm:text-lg'}`}
+                      >
+                        <span className="relative z-10 flex items-center justify-center gap-2 whitespace-nowrap">
+                          <MessageSquare className={isMobile ? 'h-4 w-4' : 'h-5 w-5 sm:h-6 sm:w-6'} />
+                          Quick Chat
+                        </span>
+                      </button>
 
-                    {/* Start Planning Button */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (inputValue.trim()) {
-                          handleSendMessage(inputValue);
-                        } else {
-                          const defaultPrompt = "Help me plan my next trip";
-                          handleSendMessage(defaultPrompt);
-                        }
-                      }}
-                      className={`relative overflow-hidden rounded-2xl border border-white/20 bg-gradient-to-r font-semibold text-white shadow-xl transition-all duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${isMobile ? 'px-4 py-2.5 text-sm' : 'px-6 py-3 text-base sm:px-8 sm:py-4 sm:text-lg'} ${
-                        activeTab === 'flights' ? 'from-sky-500 to-blue-500 hover:from-sky-400 hover:to-blue-400' :
-                        activeTab === 'hotels' ? 'from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400' :
-                        activeTab === 'restaurants' ? 'from-purple-500 to-violet-500 hover:from-purple-400 hover:to-violet-400' :
-                        activeTab === 'mapout' ? 'from-green-500 to-lime-500 hover:from-green-400 hover:to-lime-400' :
-                        'from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90'
-                      }`}
-                    >
-                      <span className="relative z-10 flex items-center justify-center gap-2 whitespace-nowrap">
-                        <Sparkles className={isMobile ? 'h-4 w-4' : 'h-5 w-5 sm:h-6 sm:w-6'} />
-                        Start Planning
-                        <ArrowRight className={isMobile ? 'w-4 h-4' : 'w-5 h-5'} />
-                      </span>
-                    </button>
-                  </div>
+                      {/* Trip Planner Button */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          // Activate trip planner wizard
+                          startWizard();
+
+                          // Add initial wizard message
+                          const wizardMessage: ChatMessageData = {
+                            id: Date.now().toString(),
+                            content: "Perfect! Let's plan your amazing trip together. Where would you like to go? 🌍",
+                            sender: 'ai',
+                            timestamp: new Date(),
+                            interactive: {
+                              type: 'trip-wizard',
+                              currentStep: 'destination',
+                              itinerary: {}
+                            }
+                          };
+
+                          setChatMessages([wizardMessage]);
+
+                          // Scroll to bottom after a brief delay
+                          setTimeout(() => scrollToBottom(true), 100);
+                        }}
+                        className={`relative overflow-hidden rounded-2xl border border-white/20 bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90 font-semibold text-white shadow-xl transition-all duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${isMobile ? 'px-4 py-2.5 text-sm' : 'px-7 py-3 text-base sm:px-8 sm:py-3.5 sm:text-lg'}`}
+                      >
+                        <span className="relative z-10 flex items-center justify-center gap-2 whitespace-nowrap">
+                          <MapPin className={isMobile ? 'h-4 w-4' : 'h-5 w-5 sm:h-6 sm:w-6'} />
+                          Trip Planner
+                        </span>
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Start Planning Button for other tabs (flights, hotels, restaurants, mapout) */}
+                  {activeTab !== 'plan' && (
+                    <div className={`flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-center sm:gap-4 ${isMobile ? 'mt-3' : 'mt-6'}`}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (inputValue.trim()) {
+                            handleSendMessage(inputValue);
+                          } else {
+                            const defaultPrompt = "Help me find the best options";
+                            handleSendMessage(defaultPrompt);
+                          }
+                        }}
+                        className={`relative overflow-hidden rounded-2xl border border-white/20 bg-gradient-to-r font-semibold text-white shadow-xl transition-all duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${isMobile ? 'px-4 py-2.5 text-sm' : 'px-7 py-3 text-base sm:px-8 sm:py-3.5 sm:text-lg'} ${
+                          activeTab === 'flights' ? 'from-sky-500 to-blue-500 hover:from-sky-400 hover:to-blue-400' :
+                          activeTab === 'hotels' ? 'from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400' :
+                          activeTab === 'restaurants' ? 'from-purple-500 to-violet-500 hover:from-purple-400 hover:to-violet-400' :
+                          activeTab === 'mapout' ? 'from-green-500 to-lime-500 hover:from-green-400 hover:to-lime-400' :
+                          'from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90'
+                        }`}
+                      >
+                        <span className="relative z-10 flex items-center justify-center gap-2 whitespace-nowrap">
+                          <Sparkles className={isMobile ? 'h-4 w-4' : 'h-5 w-5 sm:h-6 sm:w-6'} />
+                          Start Planning
+                        </span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -973,7 +1208,7 @@ export default function AIInterface({
                       <button
                         key={index}
                         onClick={() => handleSendMessage(promptText)}
-                        className={`group relative overflow-hidden rounded-xl border border-white/40 transition-all duration-300 text-left transform hover:scale-[1.02] hover:-translate-y-1 active:scale-[0.98] bg-white/60 backdrop-blur-xl backdrop-saturate-150 bg-clip-padding shadow-[0_8px_32px_rgba(8,_112,_184,_0.12)] hover:shadow-[0_12px_40px_rgba(8,_112,_184,_0.18)] hover:bg-white/70 before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/40 before:via-white/10 before:to-white/5 ${isMobile ? 'p-2.5' : 'p-4'}`}
+                        className={`group relative overflow-hidden rounded-xl border border-white/40 transition-all duration-300 text-left transform hover:scale-[1.02] hover:-translate-y-1 active:scale-[0.98] bg-white/60 backdrop-blur-xl backdrop-saturate-150 bg-clip-padding shadow-[0_8px_32px_rgba(8,_112,_184,_0.12)] hover:shadow-[0_12px_40px_rgba(8,_112,_184,_0.18)] hover:bg-white/70 before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/40 before:via-white/10 before:to-white/5 ${isMobile ? 'p-2.5' : 'p-3.5'}`}
                       >
                         <div className={`flex items-center relative z-10 ${isMobile ? 'gap-2' : 'gap-3'}`}>
                           <span className={`group-hover:scale-110 transition-transform duration-300 flex-shrink-0 ${isMobile ? 'text-xl' : 'text-2xl'}`}>{promptEmoji}</span>

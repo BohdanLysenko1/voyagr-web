@@ -1,11 +1,25 @@
 import React from 'react';
-import { Bot, User } from 'lucide-react';
+import { User } from 'lucide-react';
+import Image from 'next/image';
+import TripPlanningWizard from './TripPlanningWizard';
+import FlightCarousel from './FlightCarousel';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { WizardStep, TripItinerary } from '@/types/tripPlanning';
+import { FlightOption } from '@/types/flights';
+import { useTripPlanningContext } from '@/contexts/TripPlanningContext';
 
 export interface ChatMessageData {
   id: string;
   content: string;
   sender: 'user' | 'ai';
   timestamp: Date;
+  interactive?: {
+    type: 'trip-wizard' | 'flight-results';
+    currentStep?: WizardStep;
+    itinerary?: Partial<TripItinerary>;
+    flights?: FlightOption[];
+    onSelectFlight?: (flight: FlightOption) => void;
+  };
 }
 
 interface ChatMessageProps {
@@ -14,6 +28,8 @@ interface ChatMessageProps {
   isSidebarOpen?: boolean;
   gradientColors: string;
   accentColor: string;
+  onWizardStepComplete?: (step: WizardStep, data: Partial<TripItinerary>) => void;
+  onTripConfirm?: (itinerary: TripItinerary) => void;
 }
 
 const ChatMessage: React.FC<ChatMessageProps> = ({
@@ -22,7 +38,12 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
   isSidebarOpen = false,
   gradientColors,
   accentColor,
+  onWizardStepComplete,
+  onTripConfirm,
 }) => {
+  // Use context for live wizard state
+  const { currentStep, itinerary } = useTripPlanningContext();
+  
   const bubbleWidth = isMobile
     ? 'max-w-[calc(100%_-_5rem)]'
     : 'max-w-[calc(100%_-_4rem)] sm:max-w-[70ch] lg:max-w-[80ch]';
@@ -57,14 +78,46 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
         {message.sender === 'user' ? (
           <User className="h-5 w-5 text-primary" />
         ) : (
-          <Bot className={`h-5 w-5 ${accentColor}`} />
+          <Image
+            src="/images/AIPage/Osunset.png"
+            alt="AI Avatar"
+            width={34}
+            height={34}
+            className="object-contain"
+          />
         )}
       </div>
 
-      <div className={`w-fit overflow-hidden ${bubbleWidth} ${bubbleTone} ${bubbleRadius} ${bubblePadding}`}>
+      <div className={`w-fit ${message.interactive ? 'overflow-visible' : 'overflow-hidden'} ${bubbleWidth} ${bubbleTone} ${bubbleRadius} ${bubblePadding}`}>
         <p className="text-sm font-medium leading-relaxed text-gray-900 whitespace-pre-wrap break-words">
           {message.content}
         </p>
+
+        {/* Interactive Elements */}
+        {message.interactive && message.interactive.type === 'trip-wizard' && (
+          <div className="mt-4">
+            <ErrorBoundary>
+              <TripPlanningWizard
+                currentStep={currentStep}
+                itinerary={itinerary}
+                onStepComplete={(step, data) => onWizardStepComplete?.(step, data)}
+                onTripConfirm={(itinerary) => onTripConfirm?.(itinerary)}
+              />
+            </ErrorBoundary>
+          </div>
+        )}
+
+        {message.interactive && message.interactive.type === 'flight-results' && message.interactive.flights && (
+          <div className="mt-4">
+            <ErrorBoundary>
+              <FlightCarousel
+                flights={message.interactive.flights}
+                onSelectFlight={message.interactive.onSelectFlight}
+              />
+            </ErrorBoundary>
+          </div>
+        )}
+
         <div className="mt-3 flex items-center justify-end gap-3 text-xs text-gray-600">
           <span>
             {message.timestamp.toLocaleTimeString([], {

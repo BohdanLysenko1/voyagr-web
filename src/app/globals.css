@@ -205,8 +205,8 @@ body.voyagr-no-scroll {
     color: transparent;
     -webkit-text-fill-color: transparent; /* Safari/WebKit */
     display: inline-block; /* Prevent descender clipping inside overflow-hidden parents */
-    line-height: 1.12; /* Slightly larger to avoid cutting off descenders */
-    padding-bottom: 0.04em; /* Tiny buffer for glyph descenders like g/j/y */
+    line-height: 1.3; /* Generous line-height to avoid cutting off descenders */
+    padding-bottom: 0.2em; /* Buffer for glyph descenders like g/j/y */
   }
 
   /* Section-specific gradient text classes */
@@ -217,7 +217,8 @@ body.voyagr-no-scroll {
     color: transparent;
     -webkit-text-fill-color: transparent;
     display: inline-block;
-    line-height: 1.12;
+    line-height: 1.3;
+    padding-bottom: 0.2em;
   }
 
   .gradient-text-hotels {
@@ -227,7 +228,8 @@ body.voyagr-no-scroll {
     color: transparent;
     -webkit-text-fill-color: transparent;
     display: inline-block;
-    line-height: 1.12;
+    line-height: 1.3;
+    padding-bottom: 0.2em;
   }
 
   .gradient-text-packages {
@@ -237,7 +239,8 @@ body.voyagr-no-scroll {
     color: transparent;
     -webkit-text-fill-color: transparent;
     display: inline-block;
-    line-height: 1.12;
+    line-height: 1.3;
+    padding-bottom: 0.2em;
   }
 
   .gradient-text-restaurants {
@@ -247,7 +250,8 @@ body.voyagr-no-scroll {
     color: transparent;
     -webkit-text-fill-color: transparent;
     display: inline-block;
-    line-height: 1.12;
+    line-height: 1.3;
+    padding-bottom: 0.2em;
   }
 
   .gradient-text-mapout {
@@ -257,7 +261,8 @@ body.voyagr-no-scroll {
     color: transparent;
     -webkit-text-fill-color: transparent;
     display: inline-block;
-    line-height: 1.12;
+    line-height: 1.3;
+    padding-bottom: 0.2em;
   }
 
   /* Reusable glass cards */

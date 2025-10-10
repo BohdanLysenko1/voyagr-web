@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@tailwindcss/line-clamp": "^0.4.4",
+    "amadeus": "^11.0.0",
     "cities.json": "^1.1.50",
     "firebase": "^12.3.0",
     "lucide-react": "^0.525.0",

@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { Menu, Plus, Home } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { Menu, Plus, Home, X } from 'lucide-react';
 import Link from 'next/link';
-import dynamic from 'next/dynamic';
 import { useAIPageState } from '@/hooks/useAIPageState';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import { useNavbarVisibility } from '@/contexts/NavbarVisibilityContext';
@@ -17,25 +16,16 @@ import AISidebar from '@/components/AI/AISidebar';
 import AIInterface from '@/components/AI/AIInterface';
 import AIMobileNav from '@/components/AI/AIMobileNav';
 import ProtectedRoute from '@/components/Auth/ProtectedRoute';
-
-const AIPreferencesModal = dynamic(() => import('@/components/AI/AIPreferencesModal'), {
-  ssr: false,
-  loading: () => null,
-});
+import { TripPlanningProvider, useTripPlanningContext } from '@/contexts/TripPlanningContext';
+import LiveItineraryPanel from '@/components/AI/LiveItineraryPanel';
+import { WizardStep, TripItinerary } from '@/types/tripPlanning';
 
 type TabKey = 'plan' | 'preferences' | 'flights' | 'hotels' | 'restaurants' | 'mapout';
 
 const isSectionTab = (tab: TabKey): tab is 'flights' | 'hotels' | 'restaurants' | 'mapout' =>
   tab === 'flights' || tab === 'hotels' || tab === 'restaurants' || tab === 'mapout';
 
-interface Preferences {
-  travelStyle?: string;
-  budget?: string;
-  groupSize?: string;
-  activities?: string[];
-}
-
-export default function AiPage() {
+function AiPageContent() {
   const { inputValue, setInputValue, isTyping } = useAIPageState();
   const { setNavbarVisible } = useNavbarVisibility();
   const { setFooterVisible } = useFooterVisibility();
@@ -43,12 +33,33 @@ export default function AiPage() {
   const { recentConversations, addConversation } = useConversationHistory();
 
   const [activeTab, setActiveTab] = useState<TabKey>('plan');
-  const [isPreferencesModalOpen, setIsPreferencesModalOpen] = useState(false);
-  const [preferences, setPreferences] = useState<Preferences | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [currentConversationMessages, setCurrentConversationMessages] = useState<string[]>([]);
   const clearChatFunctionRef = useRef<(() => void) | null>(null);
   const [resetKey, setResetKey] = useState(0);
+
+  // Trip planning context
+  const {
+    itinerary,
+    currentStep,
+    isWizardActive,
+    updateItinerary,
+    setCurrentStep,
+    startWizard,
+    endWizard,
+  } = useTripPlanningContext();
+
+  const WIZARD_STEPS: WizardStep[] = useMemo(() => [
+    'destination',
+    'dates',
+    'travelers',
+    'budget',
+    'preferences',
+    'flights',
+    'hotels',
+    'activities',
+    'review'
+  ], []);
 
   // Use viewport height hook
   useViewportHeight();
@@ -217,12 +228,35 @@ export default function AiPage() {
   }, []);
 
   const handlePreferencesOpen = useCallback(() => {
-    setIsPreferencesModalOpen(true);
+    // Preferences are now handled directly in the trip wizard
+    // No modal needed
   }, []);
 
-  const handlePreferencesSave = useCallback((newPreferences: Preferences) => {
-    setPreferences(newPreferences);
-  }, []);
+  // Handle wizard step completion
+  const handleWizardStepComplete = useCallback((step: WizardStep, data: any) => {
+    console.log('🎯 Step completed:', step, 'Data:', data);
+    updateItinerary(data);
+
+    const currentIndex = WIZARD_STEPS.indexOf(step);
+    const nextIndex = currentIndex + 1;
+    
+    console.log('📍 Current index:', currentIndex, 'Next index:', nextIndex);
+
+    if (nextIndex < WIZARD_STEPS.length) {
+      const nextStep = WIZARD_STEPS[nextIndex];
+      console.log('➡️ Moving to next step:', nextStep);
+      setCurrentStep(nextStep);
+    } else {
+      console.log('✅ Wizard complete!');
+    }
+  }, [updateItinerary, setCurrentStep, WIZARD_STEPS]);
+
+  // Handle trip confirmation
+  const handleTripConfirm = useCallback((finalItinerary: TripItinerary) => {
+    endWizard();
+    console.log('Trip confirmed:', finalItinerary);
+    // Here you can save the trip to your backend
+  }, [endWizard]);
 
   return (
     <ProtectedRoute>
@@ -244,17 +278,22 @@ export default function AiPage() {
       <div className="aurora-ambient" aria-hidden="true" />
 
       <header className="lg:hidden sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-white/60 bg-white/85 px-4 py-3 backdrop-blur-xl shadow-sm">
-        <button
-          type="button"
-          onClick={() => setIsSidebarOpen(true)}
-          className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-800 shadow-sm transition hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-        >
-          <Menu className="h-5 w-5" aria-hidden="true" />
-          <span>Menu</span>
-        </button>
+        {/* Hide menu button when trip planner is active */}
+        {!isWizardActive ? (
+          <button
+            type="button"
+            onClick={() => setIsSidebarOpen(true)}
+            className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-2 text-sm font-semibold text-gray-800 shadow-sm transition hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          >
+            <Menu className="h-5 w-5" aria-hidden="true" />
+            <span>Menu</span>
+          </button>
+        ) : (
+          <div className="w-[88px]" />
+        )}
         <div className="flex flex-1 flex-col items-center text-center">
           <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Voyagr AI</span>
-          <span className="text-base font-semibold text-gray-900">Travel Copilot</span>
+          <span className="text-base font-semibold text-gray-900">{isWizardActive ? 'Trip Planner' : 'Travel Copilot'}</span>
         </div>
         <div className="flex items-center gap-2">
           <Link
@@ -266,34 +305,40 @@ export default function AiPage() {
           </Link>
           <button
             type="button"
-            onClick={handleNewTrip}
+            onClick={isWizardActive ? endWizard : handleNewTrip}
             className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white shadow-lg transition hover:bg-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
-            <Plus className="h-4 w-4" aria-hidden="true" />
-            <span>New Trip</span>
+            {isWizardActive ? (
+              <><X className="h-4 w-4" aria-hidden="true" /><span>Exit</span></>
+            ) : (
+              <><Plus className="h-4 w-4" aria-hidden="true" /><span>New Trip</span></>
+            )}
           </button>
         </div>
       </header>
 
-      <div className={`relative flex flex-1 flex-col lg:flex-row lg:gap-6 lg:px-10 lg:pb-6 lg:pt-6 ${isIOSDevice ? 'ios-scroll-smooth' : ''}`} style={{ paddingLeft: isMobile ? '0' : '1rem', paddingRight: isMobile ? '0' : '1rem', paddingBottom: isMobile ? '0' : '1.5rem', minHeight: 0, height: isMobile ? 'calc(100dvh - 64px)' : 'auto', overflow: 'visible' }}>
-        <div className="hidden lg:flex lg:flex-shrink-0 lg:sticky lg:top-6" style={{ alignSelf: 'flex-start' }}>
-          <AISidebar
-            flights={updatedFlights}
-            hotels={updatedHotels}
-            restaurants={updatedRestaurants}
-            onFlightHeartToggle={toggleFlightHeart}
-            onHotelHeartToggle={toggleHotelHeart}
-            onRestaurantHeartToggle={toggleRestaurantHeart}
-            onNewTrip={handleNewTrip}
-            onSectionReset={handleSectionReset}
-            onPreferencesOpen={handlePreferencesOpen}
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-            recentConversations={recentConversations}
-            onConversationSelect={handleConversationSelect}
-            variant="desktop"
-          />
-        </div>
+      <div className={`relative flex flex-1 flex-col lg:flex-row ${isWizardActive ? 'xl:gap-6' : 'lg:gap-6'} ${isWizardActive ? 'xl:px-8' : 'lg:px-10'} lg:pb-6 lg:pt-6 ${isIOSDevice ? 'ios-scroll-smooth' : ''}`} style={{ paddingLeft: isMobile ? '0' : (isWizardActive ? '0' : '1rem'), paddingRight: isMobile ? '0' : (isWizardActive ? '0' : '1rem'), paddingBottom: isMobile ? '0' : '1.5rem', minHeight: 0, height: isMobile ? 'calc(100dvh - 64px)' : 'auto', overflow: 'visible' }}>
+        {/* Hide sidebar when trip planner is active */}
+        {!isWizardActive && (
+          <div className="hidden lg:flex lg:flex-shrink-0 lg:sticky lg:top-6" style={{ alignSelf: 'flex-start' }}>
+            <AISidebar
+              flights={updatedFlights}
+              hotels={updatedHotels}
+              restaurants={updatedRestaurants}
+              onFlightHeartToggle={toggleFlightHeart}
+              onHotelHeartToggle={toggleHotelHeart}
+              onRestaurantHeartToggle={toggleRestaurantHeart}
+              onNewTrip={handleNewTrip}
+              onSectionReset={handleSectionReset}
+              onPreferencesOpen={handlePreferencesOpen}
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+              recentConversations={recentConversations}
+              onConversationSelect={handleConversationSelect}
+              variant="desktop"
+            />
+          </div>
+        )}
         <main className="relative flex-1 flex flex-col" style={{ minHeight: 0, height: isMobile ? '100%' : 'auto' }}>
           <AIInterface
             key={resetKey}
@@ -303,7 +348,7 @@ export default function AiPage() {
             suggestedPrompts={SUGGESTED_PROMPTS}
             placeholderText={PLACEHOLDER_TEXT}
             onSubmit={handleSubmit}
-            preferences={preferences}
+            preferences={null}
             activeTab={activeTab}
             registerClearChat={registerClearChat}
             onFirstMessage={handleFirstMessage}
@@ -312,13 +357,26 @@ export default function AiPage() {
             isMobile={isMobile}
             isIOSDevice={isIOSDevice}
             isSidebarOpen={isSidebarOpen}
+            onWizardStepComplete={handleWizardStepComplete}
+            onTripConfirm={handleTripConfirm}
           />
         </main>
+
+        {/* Live Itinerary Panel - Shows when wizard is active */}
+        {isWizardActive && !isMobile && (
+          <div className="hidden xl:block xl:w-96 xl:flex-shrink-0 xl:pr-8">
+            <div className="sticky top-6" style={{ height: 'calc(100vh - 12rem)' }}>
+              <LiveItineraryPanel itinerary={itinerary} isVisible={isWizardActive} />
+            </div>
+          </div>
+        )}
       </div>
 
-      <AIMobileNav activeTab={activeTab} onTabChange={setActiveTab} />
+      {/* Hide mobile nav when trip planner is active */}
+      {!isWizardActive && <AIMobileNav activeTab={activeTab} onTabChange={setActiveTab} />}
 
-      {isSidebarOpen && (
+      {/* Hide mobile sidebar when trip planner is active */}
+      {isSidebarOpen && !isWizardActive && (
         <div className="fixed inset-0 z-50 flex flex-col justify-end lg:hidden" role="dialog" aria-modal="true">
           <div
             className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
@@ -353,12 +411,16 @@ export default function AiPage() {
         </div>
       )}
 
-      <AIPreferencesModal
-        isOpen={isPreferencesModalOpen}
-        onClose={() => setIsPreferencesModalOpen(false)}
-        onSave={handlePreferencesSave}
-      />
       </div>
     </ProtectedRoute>
+  );
+}
+
+// Main page component wrapped with TripPlanningProvider
+export default function AiPage() {
+  return (
+    <TripPlanningProvider>
+      <AiPageContent />
+    </TripPlanningProvider>
   );
 }
