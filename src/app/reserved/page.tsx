@@ -7,6 +7,7 @@ import Calendar from '@/components/Calendar';
 import NextUp from '@/components/NextUp';
 import { CalendarEvent } from '@/types/calendar';
 import { EVENT_TYPE_CONFIG } from '@/config/eventTypes';
+import ProtectedRoute from '@/components/Auth/ProtectedRoute';
 
 // Empty initial events - user will add their own
 const initialEvents: CalendarEvent[] = [];
@@ -37,7 +38,8 @@ export default function ReservedPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <ProtectedRoute>
+      <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
         <h1 className="text-2xl sm:text-3xl font-bold text-center mb-6 sm:mb-8 text-gray-800">Reserved Trips</h1>
         
@@ -166,6 +168,7 @@ export default function ReservedPage() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </ProtectedRoute>
   );
 }

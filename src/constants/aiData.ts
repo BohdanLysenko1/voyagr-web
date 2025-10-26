@@ -1,8 +1,7 @@
-import { Flight, Hotel, Package, Restaurant } from '@/types/ai';
+import { Flight, Hotel, Restaurant } from '@/types/ai';
 import { 
   Plane,
   Building,
-  Map,
   UtensilsCrossed
 } from 'lucide-react';
 
@@ -19,13 +18,6 @@ export const SAMPLE_HOTELS: Hotel[] = [
   { id: 4, name: 'Aurora Haven Lodge', location: 'Norway', hearted: false },
 ];
 
-export const SAMPLE_PACKAGES: Package[] = [
-  { id: 1, name: 'Soul of Japan', duration: 'Jan 1 - Jan 8', hearted: true },
-  { id: 2, name: 'Soul of Japan', duration: 'Jun 16 - Jun 27', hearted: false },
-  { id: 3, name: 'Tokyo Drift', duration: 'Mar 21 - Mar 25', hearted: false },
-  { id: 4, name: 'Midnight in Paris', duration: 'Sep 1 - Sep 8', hearted: false },
-];
-
 export const SAMPLE_RESTAURANTS: Restaurant[] = [
   { id: 1, name: 'Le Bernardin', cuisine: 'French Seafood', location: 'New York, NY', hearted: true },
   { id: 2, name: 'Osteria Francescana', cuisine: 'Italian', location: 'Modena, Italy', hearted: false },
@@ -34,12 +26,12 @@ export const SAMPLE_RESTAURANTS: Restaurant[] = [
 ];
 
 export const SUGGESTED_PROMPTS = [
-  { text: "Relaxing honeymoon in October", emoji: "💕" },
-  { text: "Nature retreat, camping, and hiking", emoji: "🏕️" },
-  { text: "Affordable solo trip to South America", emoji: "💰" },
-  { text: "10-day Italy excursion with food", emoji: "🍝" },
-  { text: "Cultural exploration in Japan", emoji: "🏯" },
-  { text: "Safari adventure in Kenya", emoji: "🦁" }
+  { text: "Plan a 2-week honeymoon in the Maldives with $5,000 budget", emoji: "💕" },
+  { text: "Best time to visit Japan? I want cherry blossoms and good weather", emoji: "🌸" },
+  { text: "Family trip to Europe - 3 kids under 10, which cities are best?", emoji: "👨‍👩‍👧‍👦" },
+  { text: "Solo backpacking Southeast Asia for 3 months on $15/day", emoji: "🎒" },
+  { text: "Luxury safari in Tanzania or Kenya? Need hotel recommendations", emoji: "🦁" },
+  { text: "Weekend getaway from NYC - somewhere unique under $1,000", emoji: "✈️" }
 ];
 
 export const PLACEHOLDER_TEXT = "";
@@ -58,13 +50,6 @@ export const SIDEBAR_SECTIONS = {
     gradientFrom: 'from-emerald-100',
     gradientTo: 'to-green-100',
     iconColor: 'text-emerald-600'
-  },
-  packages: {
-    title: 'Packages',
-    icon: Map,
-    gradientFrom: 'from-purple-100',
-    gradientTo: 'to-pink-100',
-    iconColor: 'text-purple-600'
   },
   restaurants: {
     title: 'Find Restaurants',

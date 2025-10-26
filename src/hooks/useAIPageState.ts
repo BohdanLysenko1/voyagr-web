@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { Flight, Hotel, Package } from '@/types/ai';
 
 interface UseAIPageStateReturn {
   inputValue: string;

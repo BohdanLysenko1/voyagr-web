@@ -2,12 +2,12 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useId } from 'react';
 import { useNavbarVisibility } from '@/contexts/NavbarVisibilityContext';
-import NotificationButton from '@/components/Notifications/NotificationButton';
+import NotificationModal from '@/components/Notifications/NotificationModal';
+import type { NotificationItem } from '@/components/Notifications/NotificationModal';
 import { 
   UserIcon, 
-  HomeIcon, 
   MenuIcon, 
   XIcon,
   ChevronDownIcon,
@@ -17,6 +17,7 @@ import {
   BookmarkIcon,
   SparklesIcon,
   SearchIcon,
+  BellIcon,
   SettingsIcon
 } from 'lucide-react';
 
@@ -25,8 +26,11 @@ export default function Navbar() {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
   const [isContinentsExpanded, setIsContinentsExpanded] = useState(false);
   const navRef = useRef<HTMLDivElement>(null);
+  const notificationButtonRef = useRef<HTMLButtonElement>(null);
+  const notificationModalId = useId();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -47,11 +51,13 @@ export default function Navbar() {
     if (activeDropdown) {
       document.addEventListener('mousedown', handleClickOutside);
     }
+
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [activeDropdown]);
 
+  // Close notification modal when clicking outside
   const continents = [
     { label: 'Africa', href: '/continents/africa' },
     { label: 'Antarctica', href: '/continents/antarctica' },
@@ -62,14 +68,43 @@ export default function Navbar() {
     { label: 'South America', href: '/continents/south-america' },
   ];
 
+/*   const deals = [
+    { label: 'All Deals', href: '/deals' },
+  ]; */
+
+  // Sample notification data
+  const notifications: NotificationItem[] = [
+    {
+      id: 1,
+      title: 'New Deal Alert!',
+      message: 'Amazing 50% off flights to Europe this weekend only',
+      time: '2 minutes ago',
+      type: 'deal',
+      unread: true
+    },
+    {
+      id: 2,
+      title: 'Trip Reminder',
+      message: 'Your flight to Tokyo departs in 3 days',
+      time: '1 hour ago',
+      type: 'reminder',
+      unread: true
+    },
+    {
+      id: 3,
+      title: 'Welcome to Voyagr!',
+      message: 'Complete your profile to get personalized recommendations',
+      time: '1 day ago',
+      type: 'welcome',
+      unread: false
+    }
+  ];
+
   const visibilityClasses = isNavbarVisible
     ? 'opacity-100 pointer-events-auto transform translate-y-0'
     : 'opacity-0 pointer-events-none transform -translate-y-full';
 
   return (
-    <nav
-      aria-hidden={!isNavbarVisible}
-      className={`
     <>
       <nav
         aria-hidden={!isNavbarVisible}
@@ -245,10 +280,36 @@ export default function Navbar() {
               </button>
 
               {/* Notifications */}
-              <NotificationButton 
-                isScrolled={isScrolled}
-                position="right"
-              />
+              <div className="relative">
+                <button 
+                  ref={notificationButtonRef}
+                  onClick={() => setIsNotificationModalOpen(!isNotificationModalOpen)}
+                  className={`
+                    p-3 rounded-xl transition-all duration-300 group relative
+                    ${isScrolled 
+                      ? 'text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/10 hover:to-purple-500/10' 
+                      : 'text-white/90 hover:text-white hover:bg-white/10'
+                    }
+                    ${isNotificationModalOpen ? (isScrolled ? 'text-primary bg-gradient-to-r from-primary/10 to-purple-500/10' : 'text-white bg-white/15') : ''}
+                  `}
+                  aria-haspopup="dialog"
+                  aria-expanded={isNotificationModalOpen}
+                  aria-controls={isNotificationModalOpen ? notificationModalId : undefined}
+                >
+                  <BellIcon className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
+                  {/* Notification badge */}
+                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
+                    <span className="text-xs font-bold text-white">2</span>
+                  </div>
+                </button>
+                <NotificationModal
+                  id={notificationModalId}
+                  open={isNotificationModalOpen}
+                  notifications={notifications}
+                  onClose={() => setIsNotificationModalOpen(false)}
+                  anchorRef={notificationButtonRef}
+                />
+              </div>
 
               {/* User Menu */}
               <div className="relative">

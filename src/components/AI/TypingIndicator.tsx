@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bot } from 'lucide-react';
+import Image from 'next/image';
 
 interface TypingIndicatorProps {
   isMobile?: boolean;
@@ -24,7 +24,13 @@ const TypingIndicator: React.FC<TypingIndicatorProps> = ({
       <div
         className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br ${gradientColors} border-2 border-white/40`}
       >
-        <Bot className={`h-5 w-5 ${accentColor}`} />
+        <Image
+          src="/images/AIPage/Osunset.png"
+          alt="AI Avatar"
+          width={34}
+          height={34}
+          className="object-contain"
+        />
       </div>
       <div
         className={`w-fit overflow-hidden ${

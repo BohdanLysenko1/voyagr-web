@@ -1,11 +1,27 @@
 import React from 'react';
-import { Bot, User } from 'lucide-react';
+import { User } from 'lucide-react';
+import Image from 'next/image';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import TripPlanningWizard from './TripPlanningWizard';
+import FlightCarousel from './FlightCarousel';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { WizardStep, TripItinerary } from '@/types/tripPlanning';
+import { FlightOption } from '@/types/flights';
+import { useTripPlanningContext } from '@/contexts/TripPlanningContext';
 
 export interface ChatMessageData {
   id: string;
   content: string;
   sender: 'user' | 'ai';
   timestamp: Date;
+  interactive?: {
+    type: 'trip-wizard' | 'flight-results';
+    currentStep?: WizardStep;
+    itinerary?: Partial<TripItinerary>;
+    flights?: FlightOption[];
+    onSelectFlight?: (flight: FlightOption) => void;
+  };
 }
 
 interface ChatMessageProps {
@@ -14,6 +30,9 @@ interface ChatMessageProps {
   isSidebarOpen?: boolean;
   gradientColors: string;
   accentColor: string;
+  onWizardStepComplete?: (step: WizardStep, data: Partial<TripItinerary>) => void;
+  onTripConfirm?: (itinerary: TripItinerary) => void;
+  onAddUserMessage?: (message: string) => void;
 }
 
 const ChatMessage: React.FC<ChatMessageProps> = ({
@@ -22,7 +41,13 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
   isSidebarOpen = false,
   gradientColors,
   accentColor,
+  onWizardStepComplete,
+  onTripConfirm,
+  onAddUserMessage,
 }) => {
+  // Use context for live wizard state
+  const { currentStep, itinerary } = useTripPlanningContext();
+  
   const bubbleWidth = isMobile
     ? 'max-w-[calc(100%_-_5rem)]'
     : 'max-w-[calc(100%_-_4rem)] sm:max-w-[70ch] lg:max-w-[80ch]';
@@ -57,14 +82,121 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
         {message.sender === 'user' ? (
           <User className="h-5 w-5 text-primary" />
         ) : (
-          <Bot className={`h-5 w-5 ${accentColor}`} />
+          <Image
+            src="/images/AIPage/Osunset.png"
+            alt="AI Avatar"
+            width={34}
+            height={34}
+            className="object-contain"
+          />
         )}
       </div>
 
-      <div className={`w-fit overflow-hidden ${bubbleWidth} ${bubbleTone} ${bubbleRadius} ${bubblePadding}`}>
-        <p className="text-sm font-medium leading-relaxed text-gray-900 whitespace-pre-wrap break-words">
-          {message.content}
-        </p>
+      <div className={`w-fit ${message.interactive ? 'overflow-visible' : 'overflow-hidden'} ${bubbleWidth} ${bubbleTone} ${bubbleRadius} ${bubblePadding}`}>
+        <div className="prose prose-sm max-w-none text-gray-900">
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={{
+              // Paragraphs
+              p: ({ children }) => (
+                <p className="mb-3 last:mb-0 text-sm font-medium leading-relaxed">
+                  {children}
+                </p>
+              ),
+              // Headings
+              h1: ({ children }) => (
+                <h1 className="text-xl font-bold mb-3 mt-4 first:mt-0">{children}</h1>
+              ),
+              h2: ({ children }) => (
+                <h2 className="text-lg font-bold mb-2 mt-3 first:mt-0">{children}</h2>
+              ),
+              h3: ({ children }) => (
+                <h3 className="text-base font-semibold mb-2 mt-3 first:mt-0">{children}</h3>
+              ),
+              // Lists
+              ul: ({ children }) => (
+                <ul className="list-disc list-outside ml-5 mb-3 space-y-1.5">
+                  {children}
+                </ul>
+              ),
+              ol: ({ children }) => (
+                <ol className="list-decimal list-outside ml-5 mb-3 space-y-1.5">
+                  {children}
+                </ol>
+              ),
+              li: ({ children }) => (
+                <li className="text-sm leading-relaxed pl-1">{children}</li>
+              ),
+              // Strong/Bold
+              strong: ({ children }) => (
+                <strong className="font-bold text-gray-900">{children}</strong>
+              ),
+              // Emphasis/Italic
+              em: ({ children }) => (
+                <em className="italic text-gray-800">{children}</em>
+              ),
+              // Code
+              code: ({ children, className }) => {
+                const isInline = !className;
+                return isInline ? (
+                  <code className="bg-gray-100 text-primary px-1.5 py-0.5 rounded text-xs font-mono">
+                    {children}
+                  </code>
+                ) : (
+                  <code className="block bg-gray-100 text-gray-900 p-3 rounded-lg text-xs font-mono overflow-x-auto">
+                    {children}
+                  </code>
+                );
+              },
+              // Links
+              a: ({ children, href }) => (
+                <a
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:text-primary/80 underline font-medium"
+                >
+                  {children}
+                </a>
+              ),
+              // Blockquote
+              blockquote: ({ children }) => (
+                <blockquote className="border-l-4 border-primary/30 pl-4 italic text-gray-700 my-3">
+                  {children}
+                </blockquote>
+              ),
+            }}
+          >
+            {message.content}
+          </ReactMarkdown>
+        </div>
+
+        {/* Interactive Elements */}
+        {message.interactive && message.interactive.type === 'trip-wizard' && (
+          <div className="mt-4">
+            <ErrorBoundary>
+              <TripPlanningWizard
+                currentStep={currentStep}
+                itinerary={itinerary}
+                onStepComplete={(step, data) => onWizardStepComplete?.(step, data)}
+                onTripConfirm={(itinerary) => onTripConfirm?.(itinerary)}
+                onAddUserMessage={onAddUserMessage}
+              />
+            </ErrorBoundary>
+          </div>
+        )}
+
+        {message.interactive && message.interactive.type === 'flight-results' && message.interactive.flights && (
+          <div className="mt-4">
+            <ErrorBoundary>
+              <FlightCarousel
+                flights={message.interactive.flights}
+                onSelectFlight={message.interactive.onSelectFlight}
+              />
+            </ErrorBoundary>
+          </div>
+        )}
+
         <div className="mt-3 flex items-center justify-end gap-3 text-xs text-gray-600">
           <span>
             {message.timestamp.toLocaleTimeString([], {

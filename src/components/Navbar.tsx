@@ -4,11 +4,14 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect, useRef, useId } from 'react';
 import { useNavbarVisibility } from '@/contexts/NavbarVisibilityContext';
+import { useAuth } from '@/contexts/AuthContext';
 import NotificationModal from '@/components/Notifications/NotificationModal';
 import type { NotificationItem } from '@/components/Notifications/NotificationModal';
-import { 
-  UserIcon, 
-  MenuIcon, 
+import LoginModal from '@/components/Auth/LoginModal';
+import SignUpModal from '@/components/Auth/SignUpModal';
+import {
+  UserIcon,
+  MenuIcon,
   XIcon,
   ChevronDownIcon,
   GlobeIcon,
@@ -18,16 +21,21 @@ import {
   SparklesIcon,
   SearchIcon,
   BellIcon,
-  SettingsIcon
+  SettingsIcon,
+  LogOut,
+  MessageSquare
 } from 'lucide-react';
 
 export default function Navbar() {
   const { isNavbarVisible } = useNavbarVisibility();
+  const { user, logout } = useAuth();
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
   const [isContinentsExpanded, setIsContinentsExpanded] = useState(false);
+  const [showLogin, setShowLogin] = useState(false);
+  const [showSignUp, setShowSignUp] = useState(false);
   const navRef = useRef<HTMLDivElement>(null);
   const notificationButtonRef = useRef<HTMLButtonElement>(null);
   const notificationModalId = useId();
@@ -126,8 +134,8 @@ export default function Navbar() {
                 <Image
                   src="/images/UpdateLogo.svg"
                   alt="Voyagr"
-                  width={100}
-                  height={20}
+                  width={200}
+                  height={34}
                   className={`
                     object-contain transition-all duration-300
                     group-hover:scale-105 group-active:scale-95
@@ -220,8 +228,8 @@ export default function Navbar() {
               {/* Direct Links */}
               <Link href="/deals" className={`
                 flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm transition-all duration-300 group
-                ${isScrolled 
-                  ? 'text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/10 hover:to-purple-500/10' 
+                ${isScrolled
+                  ? 'text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/10 hover:to-purple-500/10'
                   : 'text-white/90 hover:text-white hover:bg-white/10'
                 }
               `}>
@@ -231,8 +239,8 @@ export default function Navbar() {
 
               <Link href="/favorites" className={`
                 flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm transition-all duration-300 group
-                ${isScrolled 
-                  ? 'text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/10 hover:to-purple-500/10' 
+                ${isScrolled
+                  ? 'text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/10 hover:to-purple-500/10'
                   : 'text-white/90 hover:text-white hover:bg-white/10'
                 }
               `}>
@@ -242,8 +250,8 @@ export default function Navbar() {
 
               <Link href="/reserved" className={`
                 flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm transition-all duration-300 group
-                ${isScrolled 
-                  ? 'text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/10 hover:to-purple-500/10' 
+                ${isScrolled
+                  ? 'text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/10 hover:to-purple-500/10'
                   : 'text-white/90 hover:text-white hover:bg-white/10'
                 }
               `}>
@@ -253,8 +261,8 @@ export default function Navbar() {
 
               <Link href="/ai" className={`
                 flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm transition-all duration-300 group
-                ${isScrolled 
-                  ? 'text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/10 hover:to-purple-500/10' 
+                ${isScrolled
+                  ? 'text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/10 hover:to-purple-500/10'
                   : 'text-white/90 hover:text-white hover:bg-white/10'
                 }
               `}>
@@ -311,43 +319,88 @@ export default function Navbar() {
                 />
               </div>
 
-              {/* User Menu */}
-              <div className="relative">
-                <button
-                  onClick={() => setActiveDropdown(activeDropdown === 'user' ? null : 'user')}
-                  className={`
-                    p-3 rounded-xl transition-all duration-300 group
-                    ${isScrolled 
-                      ? 'text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/10 hover:to-purple-500/10' 
-                      : 'text-white/90 hover:text-white hover:bg-white/10'
-                    }
-                    ${activeDropdown === 'user' ? (isScrolled ? 'text-primary bg-gradient-to-r from-primary/10 to-purple-500/10' : 'text-white bg-white/15') : ''}
-                  `}
-                >
-                  <UserIcon className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
-                </button>
-                
-                {activeDropdown === 'user' && (
-                  <div className="absolute right-0 top-full mt-3 w-64 bg-white/95 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl p-2">
-                    <Link
-                      href="/profile"
-                      className="flex items-center gap-4 p-4 rounded-xl text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 transition-all duration-300"
-                      onClick={() => setActiveDropdown(null)}
-                    >
-                      <UserIcon className="w-4 h-4 text-gray-400" />
-                      <span className="font-semibold">Profile</span>
-                    </Link>
-                    <Link
-                      href="/settings"
-                      className="flex items-center gap-4 p-4 rounded-xl text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 transition-all duration-300"
-                      onClick={() => setActiveDropdown(null)}
-                    >
-                      <SettingsIcon className="w-4 h-4 text-gray-400" />
-                      <span className="font-semibold">Settings</span>
-                    </Link>
-                  </div>
-                )}
-              </div>
+              {/* Auth Section */}
+              {user ? (
+                // Logged in user menu
+                <div className="relative">
+                  <button
+                    onClick={() => setActiveDropdown(activeDropdown === 'user' ? null : 'user')}
+                    className={`
+                      p-3 rounded-xl transition-all duration-300 group
+                      ${isScrolled
+                        ? 'text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/10 hover:to-purple-500/10'
+                        : 'text-white/90 hover:text-white hover:bg-white/10'
+                      }
+                      ${activeDropdown === 'user' ? (isScrolled ? 'text-primary bg-gradient-to-r from-primary/10 to-purple-500/10' : 'text-white bg-white/15') : ''}
+                    `}
+                  >
+                    <UserIcon className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
+                  </button>
+
+                  {activeDropdown === 'user' && (
+                    <div className="absolute right-0 top-full mt-3 w-64 bg-white/95 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl p-2">
+                      <div className="px-4 py-3 border-b border-gray-200">
+                        <p className="text-sm font-semibold text-gray-900">{user.displayName || 'User'}</p>
+                        <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                      </div>
+                      <Link
+                        href="/profile"
+                        className="flex items-center gap-4 p-4 rounded-xl text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 transition-all duration-300"
+                        onClick={() => setActiveDropdown(null)}
+                      >
+                        <UserIcon className="w-4 h-4 text-gray-400" />
+                        <span className="font-semibold">Profile</span>
+                      </Link>
+                      <Link
+                        href="/chat"
+                        className="flex items-center gap-4 p-4 rounded-xl text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 transition-all duration-300"
+                        onClick={() => setActiveDropdown(null)}
+                      >
+                        <MessageSquare className="w-4 h-4 text-gray-400" />
+                        <span className="font-semibold">Quick Chat</span>
+                      </Link>
+                      <button
+                        onClick={() => {
+                          logout();
+                          setActiveDropdown(null);
+                        }}
+                        className="w-full flex items-center gap-4 p-4 rounded-xl text-red-600 hover:bg-red-50 transition-all duration-300"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        <span className="font-semibold">Logout</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                // Not logged in - show sign in/up buttons
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setShowLogin(true)}
+                    className={`
+                      px-4 py-2 rounded-xl font-semibold text-sm transition-all duration-300
+                      ${isScrolled
+                        ? 'text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/10 hover:to-purple-500/10'
+                        : 'text-white/90 hover:text-white hover:bg-white/10'
+                      }
+                    `}
+                  >
+                    Sign In
+                  </button>
+                  <button
+                    onClick={() => setShowSignUp(true)}
+                    className={`
+                      px-4 py-2 rounded-xl font-semibold text-sm transition-all duration-300 shadow-lg
+                      ${isScrolled
+                        ? 'bg-primary text-white hover:bg-primary/90'
+                        : 'bg-white text-primary hover:bg-white/90'
+                      }
+                    `}
+                  >
+                    Sign Up
+                  </button>
+                </div>
+              )}
 
               {/* Mobile Menu Button */}
               <button
@@ -427,7 +480,7 @@ export default function Navbar() {
 
             {/* Mobile Direct Links */}
             <div className="space-y-1">
-            <Link
+              <Link
                 href="/deals"
                 className="flex items-center gap-3 p-4 text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 rounded-xl transition-all duration-300"
                 onClick={() => setIsMobileMenuOpen(false)}
@@ -473,17 +526,36 @@ export default function Navbar() {
               </Link>
 
               <Link
-                href="/settings"
+                href="/chat"
                 className="flex items-center gap-3 p-4 text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 rounded-xl transition-all duration-300"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
-                <SettingsIcon className="w-5 h-5" />
-                <span className="font-semibold">Settings</span>
+                <MessageSquare className="w-5 h-5" />
+                <span className="font-semibold">Quick Chat</span>
               </Link>
             </div>
           </div>
         </div>
       )}
+
+      {/* Auth Modals */}
+      <LoginModal
+        isOpen={showLogin}
+        onClose={() => setShowLogin(false)}
+        onSwitchToSignUp={() => {
+          setShowLogin(false);
+          setShowSignUp(true);
+        }}
+      />
+
+      <SignUpModal
+        isOpen={showSignUp}
+        onClose={() => setShowSignUp(false)}
+        onSwitchToLogin={() => {
+          setShowSignUp(false);
+          setShowLogin(true);
+        }}
+      />
     </>
   );
 }

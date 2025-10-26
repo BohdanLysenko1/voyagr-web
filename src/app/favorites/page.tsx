@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import SearchDealCard, { SearchDeal } from '@/components/DealsPage/SearchDeals';
 import { useFavorites } from '@/contexts/FavoritesContext';
 import DealModal from '@/components/DealsPage/DealModal';
+import ProtectedRoute from '@/components/Auth/ProtectedRoute';
 
 const locationToContinentMap: { [key: string]: string } = {
   'Paris, France': 'Europe',
@@ -84,7 +85,8 @@ export default function FavoritesPage() {
 
   if (favorites.length === 0) {
     return (
-      <main className="bg-gray-50 min-h-screen">
+      <ProtectedRoute>
+        <main className="bg-gray-50 min-h-screen">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center py-12">
             <div className="mb-4">
@@ -102,12 +104,14 @@ export default function FavoritesPage() {
             </button>
           </div>
         </div>
-      </main>
+        </main>
+      </ProtectedRoute>
     );
   }
 
   return (
-    <main className="bg-gray-50 min-h-screen">
+    <ProtectedRoute>
+      <main className="bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="text-center mb-8">
           <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-2">
@@ -221,6 +225,7 @@ export default function FavoritesPage() {
         onClose={closeModal}
         deal={selectedDeal}
       />
-    </main>
+      </main>
+    </ProtectedRoute>
   );
 }

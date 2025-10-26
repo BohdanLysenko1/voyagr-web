@@ -12,13 +12,6 @@ export interface Hotel {
   hearted: boolean;
 }
 
-export interface Package {
-  id: number;
-  name: string;
-  duration: string;
-  hearted: boolean;
-}
-
 export interface Restaurant {
   id: number;
   name: string;
@@ -35,7 +28,7 @@ export interface SidebarSection {
   iconColor: string;
 }
 
-export type HeartableItem = Flight | Hotel | Package | Restaurant;
+export type HeartableItem = Flight | Hotel | Restaurant;
 export type StarrableItem = HeartableItem; // For backward compatibility
 
 export interface AIPageState {

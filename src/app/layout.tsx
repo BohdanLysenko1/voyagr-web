@@ -4,6 +4,7 @@ import Script from "next/script";
 import 'react-day-picker/style.css';
 import "./globals.css";
 import LayoutWrapper from "@/components/LayoutWrapper";
+import { AuthProvider } from "@/contexts/AuthContext";
 import { FavoritesProvider } from "@/contexts/FavoritesContext";
 import { NavbarVisibilityProvider } from "@/contexts/NavbarVisibilityContext";
 import { FooterVisibilityProvider } from "@/contexts/FooterVisibilityContext";
@@ -60,13 +61,15 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-[100dvh] flex flex-col`}
       >
-        <FavoritesProvider>
-          <NavbarVisibilityProvider>
-            <FooterVisibilityProvider>
-              <LayoutWrapper>{children}</LayoutWrapper>
-            </FooterVisibilityProvider>
-          </NavbarVisibilityProvider>
-        </FavoritesProvider>
+        <AuthProvider>
+          <FavoritesProvider>
+            <NavbarVisibilityProvider>
+              <FooterVisibilityProvider>
+                <LayoutWrapper>{children}</LayoutWrapper>
+              </FooterVisibilityProvider>
+            </NavbarVisibilityProvider>
+          </FavoritesProvider>
+        </AuthProvider>
       </body>
     </html>
   );

@@ -1,17 +1,11 @@
-import React from 'react';
+import Link from 'next/link';
 import { 
   Plane, 
   Building, 
   UtensilsCrossed, 
   MapPin, 
   Search, 
-  Settings, 
-  Calendar, 
-  Heart,
-  Star,
-  Camera,
-  Navigation,
-  Globe
+  MessageSquare
 } from 'lucide-react';
 
 interface ButtonGridItem {
@@ -19,21 +13,16 @@ interface ButtonGridItem {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   ariaLabel: string;
-  onClick: () => void;
+  href?: string;
+  onClick?: () => void;
   color?: string;
 }
 
 interface DrawerButtonGridProps {
-  onTabChange?: (tab: string) => void;
-  onPreferencesOpen?: () => void;
-  onNewTrip?: () => void;
   className?: string;
 }
 
 export default function DrawerButtonGrid({ 
-  onTabChange, 
-  onPreferencesOpen, 
-  onNewTrip,
   className = '' 
 }: DrawerButtonGridProps) {
   
@@ -43,7 +32,7 @@ export default function DrawerButtonGrid({
       icon: Plane,
       label: 'Find Flights',
       ariaLabel: 'Search for flights and airline tickets',
-      onClick: () => onTabChange?.('flights'),
+      href: '/ai/flights',
       color: 'from-sky-500/20 to-blue-500/20 border-sky-300/40 text-sky-700 hover:from-sky-500/30 hover:to-blue-500/30'
     },
     {
@@ -51,7 +40,7 @@ export default function DrawerButtonGrid({
       icon: Building,
       label: 'Find Hotels',
       ariaLabel: 'Search for hotels and accommodations',
-      onClick: () => onTabChange?.('hotels'),
+      href: '/ai/hotels',
       color: 'from-orange-500/20 to-amber-500/20 border-orange-300/40 text-orange-700 hover:from-orange-500/30 hover:to-amber-500/30'
     },
     {
@@ -59,7 +48,7 @@ export default function DrawerButtonGrid({
       icon: UtensilsCrossed,
       label: 'Restaurants',
       ariaLabel: 'Find amazing dining experiences',
-      onClick: () => onTabChange?.('restaurants'),
+      href: '/ai/restaurants',
       color: 'from-purple-500/20 to-violet-500/20 border-purple-300/40 text-purple-700 hover:from-purple-500/30 hover:to-violet-500/30'
     },
     {
@@ -67,7 +56,7 @@ export default function DrawerButtonGrid({
       icon: MapPin,
       label: 'Map Out',
       ariaLabel: 'Plan your trip with interactive map',
-      onClick: () => onTabChange?.('mapout'),
+      href: '/ai/itinerary',
       color: 'from-green-500/20 to-lime-500/20 border-green-300/40 text-green-700 hover:from-green-500/30 hover:to-lime-500/30'
     },
     {
@@ -75,15 +64,15 @@ export default function DrawerButtonGrid({
       icon: Search,
       label: 'Plan Trip',
       ariaLabel: 'Start planning a new trip',
-      onClick: () => onTabChange?.('plan'),
+      href: '/ai',
       color: 'from-primary/20 to-purple-500/20 border-primary/40 text-primary hover:from-primary/30 hover:to-purple-500/30'
     },
     {
-      id: 'preferences',
-      icon: Settings,
-      label: 'Settings',
-      ariaLabel: 'Open travel preferences and settings',
-      onClick: () => onPreferencesOpen?.(),
+      id: 'quick-chat',
+      icon: MessageSquare,
+      label: 'Quick Chat',
+      ariaLabel: 'Start a quick chat conversation',
+      href: '/chat',
       color: 'from-gray-500/20 to-slate-500/20 border-gray-300/40 text-gray-700 hover:from-gray-500/30 hover:to-slate-500/30'
     }
   ];
@@ -96,42 +85,61 @@ export default function DrawerButtonGrid({
           Quick Actions
         </h3>
         <div className="grid grid-cols-2 gap-3">
-          {buttonItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={item.onClick}
-              aria-label={item.ariaLabel}
-              className={`
-                group relative overflow-hidden
-                h-14 min-h-[56px] max-h-[64px] rounded-2xl
-                border backdrop-blur-xl backdrop-saturate-150
-                shadow-sm hover:shadow-lg
-                transition-all duration-200 ease-out
-                transform hover:scale-[1.01] active:scale-[0.99]
-                focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-1 focus:ring-offset-white/50
-                bg-gradient-to-br ${item.color || 'from-gray-100/50 to-gray-200/50 border-gray-300/40 text-gray-700'}
-                flex items-center justify-center gap-2.5
-                font-medium
-              `}
-            >
-              {/* Background gradient overlay */}
-              <div className="absolute inset-0 bg-gradient-to-br from-white/40 via-white/10 to-white/5 pointer-events-none" />
-              
-              {/* Content */}
-              <div className="relative z-10 flex items-center gap-2.5">
-                <item.icon className="w-4 h-4 transition-transform duration-200 group-hover:scale-110" />
-                <span className="text-[15px] font-semibold leading-tight">
-                  {item.label}
-                </span>
-              </div>
+          {buttonItems.map((item) => {
+            const sharedClassName = `
+              group relative overflow-hidden
+              h-14 min-h-[56px] max-h-[64px] rounded-2xl
+              border backdrop-blur-xl backdrop-saturate-150
+              shadow-sm hover:shadow-lg
+              transition-all duration-200 ease-out
+              transform hover:scale-[1.01] active:scale-[0.99]
+              focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-1 focus:ring-offset-white/50
+              bg-gradient-to-br ${item.color || 'from-gray-100/50 to-gray-200/50 border-gray-300/40 text-gray-700'}
+              flex items-center justify-center gap-2.5
+              font-medium
+            `;
 
-              {/* Hover effect */}
-              <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-white/10 opacity-0 group-hover:opacity-100 transition-all duration-200 rounded-2xl" />
-              
-              {/* Focus ring enhancement */}
-              <div className="absolute inset-0 ring-1 ring-white/20 rounded-2xl opacity-0 group-hover:opacity-100 transition-all duration-200" />
-            </button>
-          ))}
+            const content = (
+              <>
+                {/* Background gradient overlay */}
+                <div className="absolute inset-0 bg-gradient-to-br from-white/40 via-white/10 to-white/5 pointer-events-none" />
+                
+                {/* Content */}
+                <div className="relative z-10 flex items-center gap-2.5">
+                  <item.icon className="w-4 h-4 transition-transform duration-200 group-hover:scale-110" />
+                  <span className="text-[15px] font-semibold leading-tight">
+                    {item.label}
+                  </span>
+                </div>
+
+                {/* Hover effect */}
+                <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-white/10 opacity-0 group-hover:opacity-100 transition-all duration-200 rounded-2xl" />
+                
+                {/* Focus ring enhancement */}
+                <div className="absolute inset-0 ring-1 ring-white/20 rounded-2xl opacity-0 group-hover:opacity-100 transition-all duration-200" />
+              </>
+            );
+            
+            return item.href ? (
+              <Link
+                key={item.id}
+                href={item.href}
+                aria-label={item.ariaLabel}
+                className={sharedClassName}
+              >
+                {content}
+              </Link>
+            ) : (
+              <button
+                key={item.id}
+                onClick={item.onClick}
+                aria-label={item.ariaLabel}
+                className={sharedClassName}
+              >
+                {content}
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>
