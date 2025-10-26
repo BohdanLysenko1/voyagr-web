@@ -6,6 +6,8 @@ export async function POST(request: NextRequest) {
   try {
     const body: FlightSearchParams = await request.json();
 
+    console.log('Flight search request:', { ...body, timestamp: new Date().toISOString() });
+
     // Validate required parameters
     const { origin, destination, departureDate, adults } = body;
 
@@ -15,6 +17,15 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Check environment variables
+    console.log('Environment check:', {
+      hasApiKey: !!process.env.AMADEUS_API_KEY,
+      hasApiSecret: !!process.env.AMADEUS_API_SECRET,
+      hostname: process.env.AMADEUS_HOSTNAME,
+      apiKeyLength: process.env.AMADEUS_API_KEY?.length,
+      apiSecretLength: process.env.AMADEUS_API_SECRET?.length,
+    });
 
     const amadeus = getAmadeusClient();
 
@@ -74,7 +85,16 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('Amadeus API Error:', error);
+    console.error('Amadeus API Error:', {
+      message: error.message,
+      name: error.name,
+      stack: error.stack,
+      response: error.response ? {
+        statusCode: error.response.statusCode,
+        body: error.response.body,
+        result: error.response.result,
+      } : null,
+    });
 
     // Handle specific Amadeus errors
     if (error.response) {
@@ -85,13 +105,22 @@ export async function POST(request: NextRequest) {
         {
           error: errorMessage,
           details: result?.errors || [],
+          debug: {
+            statusCode,
+            fullError: result,
+          }
         },
         { status: statusCode || 500 }
       );
     }
 
     return NextResponse.json(
-      { error: 'Internal server error', details: error.message },
+      {
+        error: 'Internal server error',
+        details: error.message,
+        errorType: error.name,
+        stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+      },
       { status: 500 }
     );
   }

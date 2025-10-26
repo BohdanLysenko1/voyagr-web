@@ -5,14 +5,26 @@ let amadeusClient: Amadeus | null = null;
 
 export function getAmadeusClient(): Amadeus {
   if (!amadeusClient) {
-    if (!process.env.AMADEUS_API_KEY || !process.env.AMADEUS_API_SECRET) {
+    const apiKey = process.env.AMADEUS_API_KEY?.trim();
+    const apiSecret = process.env.AMADEUS_API_SECRET?.trim();
+    const hostname = process.env.AMADEUS_HOSTNAME?.trim() || 'test';
+
+    if (!apiKey || !apiSecret) {
       throw new Error('Amadeus API credentials are not configured');
     }
 
+    console.log('Initializing Amadeus client:', {
+      hasApiKey: !!apiKey,
+      hasApiSecret: !!apiSecret,
+      hostname,
+      apiKeyLength: apiKey.length,
+      apiSecretLength: apiSecret.length,
+    });
+
     amadeusClient = new Amadeus({
-      clientId: process.env.AMADEUS_API_KEY,
-      clientSecret: process.env.AMADEUS_API_SECRET,
-      hostname: process.env.AMADEUS_HOSTNAME || 'test',
+      clientId: apiKey,
+      clientSecret: apiSecret,
+      hostname,
     });
   }
   return amadeusClient;
