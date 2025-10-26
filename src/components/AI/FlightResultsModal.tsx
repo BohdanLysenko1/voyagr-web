@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { X, ChevronLeft, ChevronRight, Plane, Clock, DollarSign, Users, Calendar } from 'lucide-react';
 import { FlightOption } from '@/types/flights';
+import { DateUtils } from '@/utils/dateUtils';
 
 interface FlightResultsModalProps {
   isOpen: boolean;
@@ -145,7 +146,7 @@ export default function FlightResultsModal({
                 </div>
                 <div className="text-right">
                   <div className="text-3xl font-bold text-sky-600">
-                    ${currentFlight.price.toFixed(2)}
+                    ${Number(currentFlight.price).toFixed(2)}
                   </div>
                   <p className="text-sm text-gray-500 mt-1">{currentFlight.currency}</p>
                 </div>
@@ -159,10 +160,7 @@ export default function FlightResultsModal({
                       {currentFlight.departure}
                     </div>
                     <div className="text-sm text-gray-500 mt-1">
-                      {new Date(currentFlight.departureTime).toLocaleTimeString('en-US', {
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
+                      {DateUtils.formatFlightTime(currentFlight.departureTime)}
                     </div>
                   </div>
 
@@ -182,10 +180,7 @@ export default function FlightResultsModal({
                       {currentFlight.arrival}
                     </div>
                     <div className="text-sm text-gray-500 mt-1">
-                      {new Date(currentFlight.arrivalTime).toLocaleTimeString('en-US', {
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
+                      {DateUtils.formatFlightTime(currentFlight.arrivalTime)}
                     </div>
                   </div>
                 </div>
@@ -194,12 +189,7 @@ export default function FlightResultsModal({
                 <div className="flex items-center justify-center gap-2 text-sm text-gray-600 bg-blue-50 rounded-lg py-2 px-4">
                   <Calendar className="w-4 h-4" />
                   <span>
-                    {new Date(currentFlight.departureTime).toLocaleDateString('en-US', {
-                      weekday: 'short',
-                      month: 'short',
-                      day: 'numeric',
-                      year: 'numeric'
-                    })}
+                    {DateUtils.formatFlightDate(currentFlight.departureTime)}
                   </span>
                 </div>
               </div>

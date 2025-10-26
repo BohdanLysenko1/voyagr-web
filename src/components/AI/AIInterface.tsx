@@ -1,15 +1,17 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { Sparkles, Send, MessageSquare, MapPin, Plane, Clock, DollarSign } from 'lucide-react';
+import { Sparkles, Send, MessageSquare, MapPin, Plane, Clock, DollarSign, Menu } from 'lucide-react';
 import Image from 'next/image';
 import ChatMessage, { type ChatMessageData } from './ChatMessage';
 import TypingIndicator from './TypingIndicator';
+import FlightModal from './FlightModal';
 import { api } from '@/lib/apiClient';
 import { useTripPlanningContext } from '@/contexts/TripPlanningContext';
 import { WizardStep, TripItinerary } from '@/types/tripPlanning';
 import { useFlightSearch } from '@/hooks/useFlightSearch';
 import { FlightOption } from '@/types/flights';
+import { FLIGHT_SEARCH_KEYWORDS, CITY_TO_IATA_MAP, MONTH_NAMES } from '@/constants/flightData';
 
-type TabKey = 'plan' | 'preferences' | 'flights' | 'hotels' | 'restaurants' | 'mapout';
+type TabKey = 'plan' | 'chat' | 'preferences' | 'flights' | 'hotels' | 'restaurants' | 'mapout';
 
 interface Preferences {
   travelStyle?: string;
@@ -28,14 +30,16 @@ interface AIInterfaceProps {
   preferences?: Preferences | null;
   activeTab: TabKey;
   registerClearChat?: (fn: () => void) => void;
+  registerQuickChat?: (fn: () => void) => void;
   onFirstMessage?: (firstMessage: string) => void;
   onMessageSent?: (message: string) => void;
   onPreferencesOpen?: () => void;
   isMobile?: boolean;
-  isIOSDevice?: boolean;
   isSidebarOpen?: boolean;
+  onSidebarOpen?: () => void;
   onWizardStepComplete?: (step: WizardStep, data: any) => void;
   onTripConfirm?: (itinerary: TripItinerary) => void;
+  hideActionButtons?: boolean; // Hide Quick Chat and Trip Planner buttons
 }
 
 export default function AIInterface({
@@ -48,19 +52,23 @@ export default function AIInterface({
   preferences,
   activeTab,
   registerClearChat,
+  registerQuickChat,
   onFirstMessage,
   onMessageSent,
   onPreferencesOpen,
   isMobile = false,
-  isIOSDevice: isIOSDeviceProp = false,
   isSidebarOpen = false,
+  onSidebarOpen,
   onWizardStepComplete,
-  onTripConfirm
+  onTripConfirm,
+  hideActionButtons = false
 }: AIInterfaceProps) {
   const { startWizard, isWizardActive, currentStep, itinerary } = useTripPlanningContext();
   const { flights, loading: flightsLoading, searchFlights } = useFlightSearch();
   const [chatMessages, setChatMessages] = useState<ChatMessageData[]>([]);
   const [isAITyping, setIsAITyping] = useState(false);
+  const [isFlightModalOpen, setIsFlightModalOpen] = useState(false);
+  const [modalFlights, setModalFlights] = useState<FlightOption[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const globeFieldRef = useRef<HTMLDivElement>(null);
@@ -69,6 +77,7 @@ export default function AIInterface({
   const isUserScrollingRef = useRef(false);
   const autoScrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [isMounted, setIsMounted] = useState(false);
+  const wizardInitializedRef = useRef(false);
   const handleScrollContainerRef = useCallback((node: HTMLDivElement | null) => {
     scrollContainerRef.current = node ?? null;
   }, []);
@@ -77,6 +86,36 @@ export default function AIInterface({
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  // Auto-start wizard with initial message if wizard is active but no messages yet
+  useEffect(() => {
+    if (isWizardActive && chatMessages.length === 0 && !wizardInitializedRef.current) {
+      // Use a small delay to ensure component is fully mounted
+      const timer = setTimeout(() => {
+        wizardInitializedRef.current = true;
+        const wizardMessage: ChatMessageData = {
+          id: Date.now().toString(),
+          content: "To help you plan the perfect trip, I'd like to know where you're traveling from. Would you like to share your current location automatically, or would you prefer to type in your city/airport?",
+          sender: 'ai',
+          timestamp: new Date(),
+          interactive: {
+            type: 'trip-wizard',
+            currentStep: 'destination',
+            itinerary: {}
+          }
+        };
+        setChatMessages([wizardMessage]);
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+    
+    // Reset the flag if wizard becomes inactive
+    if (!isWizardActive && wizardInitializedRef.current) {
+      wizardInitializedRef.current = false;
+    }
+  }, [isWizardActive, chatMessages.length]);
+
   // Auto-grow the compact composer
   const adjustTextareaHeight = useCallback(() => {
     const el = textareaRef.current;
@@ -192,7 +231,6 @@ export default function AIInterface({
     });
   }, [registerClearChat, clearChat, isMounted]);
 
-
   useEffect(() => {
     adjustTextareaHeight();
   }, [inputValue, adjustTextareaHeight]);
@@ -292,9 +330,8 @@ export default function AIInterface({
 
   // Helper function to detect if query is a flight search
   const detectFlightSearch = useCallback((query: string): boolean => {
-    const flightKeywords = ['flight', 'fly', 'trip', 'round-trip', 'one-way', 'ticket', 'travel', 'business class', 'economy', 'airline'];
     const queryLower = query.toLowerCase();
-    return flightKeywords.some(keyword => queryLower.includes(keyword));
+    return FLIGHT_SEARCH_KEYWORDS.some(keyword => queryLower.includes(keyword));
   }, []);
 
   // Helper function to parse flight parameters from query
@@ -309,28 +346,18 @@ export default function AIInterface({
     // Detect destinations from common patterns
     const toMatch = query.match(/to\s+([A-Za-z\s]+?)(?:\s+in|\s+for|\s+on|$)/i);
     const fromMatch = query.match(/from\s+([A-Za-z\s]+?)(?:\s+to|\s+in|\s+for|$)/i);
-    
-    // Map city names to IATA codes (extend this as needed)
-    const cityToIATA: Record<string, string> = {
-      'london': 'LHR', 'tokyo': 'NRT', 'paris': 'CDG', 'new york': 'JFK',
-      'los angeles': 'LAX', 'miami': 'MIA', 'chicago': 'ORD', 'sydney': 'SYD',
-      'rome': 'FCO', 'dubai': 'DXB', 'singapore': 'SIN', 'hong kong': 'HKG',
-      'toronto': 'YYZ', 'san francisco': 'SFO', 'seattle': 'SEA', 'boston': 'BOS',
-      'las vegas': 'LAS', 'orlando': 'MCO', 'denver': 'DEN', 'atlanta': 'ATL',
-      'europe': 'LHR', 'australia': 'SYD', 'asia': 'NRT'
-    };
 
     let destination = 'LHR'; // Default
     let origin = 'JFK'; // Default
 
     if (toMatch) {
       const cityName = toMatch[1].trim().toLowerCase();
-      destination = cityToIATA[cityName] || 'LHR';
+      destination = CITY_TO_IATA_MAP[cityName] || 'LHR';
     }
 
     if (fromMatch) {
       const cityName = fromMatch[1].trim().toLowerCase();
-      origin = cityToIATA[cityName] || 'JFK';
+      origin = CITY_TO_IATA_MAP[cityName] || 'JFK';
     }
 
     // Detect cabin class
@@ -343,12 +370,10 @@ export default function AIInterface({
     const isRoundTrip = !queryLower.includes('one-way');
 
     // Parse dates (simple detection)
-    const monthNames = ['january', 'february', 'march', 'april', 'may', 'june', 
-                       'july', 'august', 'september', 'october', 'november', 'december'];
     let departureDate = today.toISOString().split('T')[0];
     let returnDate = nextMonth.toISOString().split('T')[0];
 
-    monthNames.forEach((month, index) => {
+    MONTH_NAMES.forEach((month, index) => {
       if (queryLower.includes(month)) {
         const monthDate = new Date();
         monthDate.setMonth(index);
@@ -379,7 +404,7 @@ export default function AIInterface({
   const handleFlightSelect = useCallback((flight: FlightOption) => {
     const selectionMessage: ChatMessageData = {
       id: Date.now().toString(),
-      content: `✅ Perfect choice! You've selected the ${flight.airline} flight from ${flight.departure} to ${flight.arrival} for $${flight.price.toFixed(2)}. Would you like to proceed with booking or continue planning your trip?`,
+      content: `✅ Perfect choice! You've selected the ${flight.airline} flight from ${flight.departure} to ${flight.arrival} for $${Number(flight.price).toFixed(2)}. Would you like to proceed with booking or continue planning your trip?`,
       sender: 'ai',
       timestamp: new Date()
     };
@@ -391,6 +416,12 @@ export default function AIInterface({
 
   const generateAIResponse = useCallback((userMessage: string): string => {
     const responses: Record<string, string[]> = {
+      chat: [
+        `Thanks for reaching out! I'm here to help answer any travel questions you have. "${userMessage}" - let me provide you with some helpful information.`,
+        `Great question! Regarding "${userMessage}", I'd be happy to share insights and recommendations to help with your travel needs.`,
+        `I appreciate you asking about "${userMessage}". I'm here to assist with any travel-related questions or suggestions you might need.`,
+        `Hello! I'm happy to help with "${userMessage}". Feel free to ask me anything about travel, destinations, tips, or planning advice!`
+      ],
       flights: [
         `I'd be happy to help you find the perfect flights! Based on "${userMessage}", I can suggest some great options. Let me search for flights that match your preferences for dates, destinations, and budget.`,
         `Great choice! For your flight search "${userMessage}", I recommend checking both direct and connecting flights to get the best deals. Would you like me to focus on specific airlines or departure times?`,
@@ -418,24 +449,69 @@ export default function AIInterface({
       ]
     };
 
-    const categoryResponses = responses[activeTab] || responses.plan;
+    const categoryResponses = responses[activeTab] || responses.chat;
     const randomResponse = categoryResponses[Math.floor(Math.random() * categoryResponses.length)];
     return randomResponse;
   }, [activeTab]);
 
-  const handleSendMessage = useCallback(async (messageOverride?: string) => {
+  const handleSendMessage = useCallback(async (messageOverride?: string, bypassWizard: boolean = false) => {
     const textToSend = messageOverride ? messageOverride.trim() : inputValue.trim();
     if (!textToSend) return;
 
-    // Handle wizard input for destination step
-    if (isWizardActive && currentStep === 'destination') {
-      console.log('🌍 Destination input received:', textToSend);
-      onWizardStepComplete?.('destination', { 
-        destination: { 
-          city: textToSend,
-          country: '' // Can be parsed from city name or left empty for now
-        } 
-      });
+    // Handle wizard input for destination step (origin or destination based on phase)
+    // Skip wizard handling if this is a quick chat/suggested prompt
+    if (isWizardActive && currentStep === 'destination' && !bypassWizard) {
+      // Check if we already have origin - if so, this is destination input
+      if (itinerary.origin) {
+        // Add user message for destination
+        const userDestMessage: ChatMessageData = {
+          id: Date.now().toString(),
+          content: textToSend,
+          sender: 'user',
+          timestamp: new Date()
+        };
+        setChatMessages(prev => [...prev, userDestMessage]);
+        
+        onWizardStepComplete?.('destination', { 
+          destination: { 
+            city: textToSend,
+            country: ''
+          } 
+        });
+      } else {
+        // This is origin input
+        // Add user message for origin
+        const userOriginMessage: ChatMessageData = {
+          id: Date.now().toString(),
+          content: textToSend,
+          sender: 'user',
+          timestamp: new Date()
+        };
+        setChatMessages(prev => [...prev, userOriginMessage]);
+        
+        onWizardStepComplete?.('destination', { 
+          origin: { 
+            city: textToSend,
+            country: ''
+          } 
+        });
+        
+        // Add AI message asking for destination
+        setTimeout(() => {
+          const destinationMessage: ChatMessageData = {
+            id: Date.now().toString(),
+            content: `Great! Now, where would you like to go? 🌍`,
+            sender: 'ai',
+            timestamp: new Date(),
+            interactive: {
+              type: 'trip-wizard',
+              currentStep: 'destination',
+              itinerary: { origin: { city: textToSend, country: '' } }
+            }
+          };
+          setChatMessages(prev => [...prev, destinationMessage]);
+        }, 300);
+      }
       onInputChange('');
       focusInput();
       requestAnimationFrame(() => adjustTextareaHeight());
@@ -540,15 +616,34 @@ export default function AIInterface({
         content: msg.content
       }));
 
-      // Add context about the current tab
-      const context = activeTab !== 'plan'
-        ? `User is currently on the ${activeTab} tab`
-        : undefined;
+      // Build context from active tab and trip planning state
+      let contextParts: string[] = [];
+      
+      if (activeTab !== 'plan') {
+        contextParts.push(`User is currently on the ${activeTab} tab`);
+      }
+      
+      // Add trip planning context if available
+      if (itinerary) {
+        if (itinerary.destination?.city) {
+          contextParts.push(`Destination: ${itinerary.destination.city}`);
+        }
+        if (itinerary.dates) {
+          const startDate = new Date(itinerary.dates.startDate).toLocaleDateString();
+          const endDate = new Date(itinerary.dates.endDate).toLocaleDateString();
+          contextParts.push(`Dates: ${startDate} - ${endDate}`);
+        }
+        if (itinerary.travelers) {
+          contextParts.push(`Travelers: ${itinerary.travelers}`);
+        }
+      }
+      
+      const context = contextParts.length > 0 ? contextParts.join(', ') : undefined;
 
       // Call the backend API with Genkit
       const response = await api.post<{
         success: boolean;
-        data: { message: string; metadata: any };
+        data: { message: string; flights?: any[]; interactive?: any; metadata: any };
         message: string;
       }>('/api/ai/chat', {
         message: textToSend,
@@ -562,6 +657,24 @@ export default function AIInterface({
         sender: 'ai',
         timestamp: new Date()
       };
+
+      // Check if the AI response includes flight results
+      if (response.data.flights || response.data.interactive?.flights) {
+        const flightData = response.data.flights || response.data.interactive?.flights || [];
+        
+        // Open modal with flights
+        if (flightData.length > 0) {
+          setModalFlights(flightData);
+          setIsFlightModalOpen(true);
+        }
+        
+        // Also add to chat interactive (for carousel fallback)
+        aiResponse.interactive = {
+          type: 'flight-results',
+          flights: flightData,
+          onSelectFlight: handleFlightSelect
+        };
+      }
 
       setChatMessages(prev => [...prev, aiResponse]);
       setIsAITyping(false);
@@ -585,6 +698,20 @@ export default function AIInterface({
 
     onSubmit?.();
   }, [inputValue, chatMessages, activeTab, onInputChange, onFirstMessage, onMessageSent, generateAIResponse, onSubmit, focusInput, adjustTextareaHeight, scrollToBottom, isWizardActive, currentStep, onWizardStepComplete]);
+
+  // Expose quick chat function to parent component
+  useEffect(() => {
+    if (!isMounted) return;
+    
+    const quickChat = () => {
+      const defaultPrompt = "Hello! How can you help me today?";
+      handleSendMessage(defaultPrompt);
+    };
+
+    requestAnimationFrame(() => {
+      registerQuickChat?.(quickChat);
+    });
+  }, [registerQuickChat, isMounted, handleSendMessage]);
 
   const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
     const ke = e as unknown as KeyboardEvent;
@@ -760,6 +887,15 @@ export default function AIInterface({
         const isEditable = target.isContentEditable;
         if (tag === 'input' || tag === 'textarea' || isEditable) return;
       }
+      
+      // Don't interfere with copy/paste/select operations
+      const isCopyPaste = (e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'v' || e.key === 'x' || e.key === 'a');
+      if (isCopyPaste) return;
+      
+      // Don't focus if user is selecting text
+      const selection = window.getSelection();
+      if (selection && selection.toString().length > 0) return;
+      
       const el = textareaRef.current;
       if (!el) return;
       // Focus input on printable characters or editing keys
@@ -831,6 +967,17 @@ export default function AIInterface({
       }}
     >
       
+      {/* Floating Sidebar Toggle Button - Only show on desktop when wizard is active */}
+      {!isMobile && isWizardActive && onSidebarOpen && (
+        <button
+          type="button"
+          onClick={onSidebarOpen}
+          className="fixed left-6 top-6 z-50 inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-white/40 bg-white/80 backdrop-blur-xl backdrop-saturate-150 shadow-[0_8px_32px_rgba(8,112,184,0.12)] transition-all duration-300 hover:scale-105 hover:shadow-[0_12px_40px_rgba(8,112,184,0.18)] hover:bg-white/90 active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          aria-label="Open sidebar menu"
+        >
+          <Menu className="h-5 w-5 text-gray-700" />
+        </button>
+      )}
       
       {/* Animated Globe Background */}
       <div
@@ -893,6 +1040,15 @@ export default function AIInterface({
                     accentColor={content.accentColor}
                     onWizardStepComplete={onWizardStepComplete}
                     onTripConfirm={onTripConfirm}
+                    onAddUserMessage={(text: string) => {
+                      const userMessage: ChatMessageData = {
+                        id: Date.now().toString(),
+                        content: text,
+                        sender: 'user',
+                        timestamp: new Date()
+                      };
+                      setChatMessages(prev => [...prev, userMessage]);
+                    }}
                   />
                 ))}
 
@@ -943,7 +1099,7 @@ export default function AIInterface({
                     value={inputValue}
                     onChange={(e) => onInputChange(e.target.value)}
                     onKeyDown={handleKeyPress}
-                    placeholder={isWizardActive && currentStep === 'destination' ? "Type your destination (e.g., Paris, Tokyo)..." : "Share what you need and press send"}
+                    placeholder={isWizardActive && currentStep === 'destination' ? (itinerary.origin ? "Type your destination (e.g., Paris, Tokyo)..." : "Type your starting location (e.g., New York, London)...") : "Share what you need and press send"}
                     enterKeyHint="send"
                     className="w-full resize-none border-none bg-transparent py-0 text-base leading-6 text-gray-800 placeholder-gray-500 focus:border-none focus:outline-none focus:ring-0 sm:text-lg"
                     rows={1}
@@ -1070,22 +1226,40 @@ export default function AIInterface({
                     activeTab === 'restaurants' ? 'neon-glow-restaurants' :
                     activeTab === 'mapout' ? 'neon-glow-mapout' :
                     'neon-glow'
-                  } rounded-2xl`}>
+                  } rounded-2xl flex items-end gap-3 ${isMobile ? 'p-3' : 'p-4'}`}>
                     <textarea
                       id="ai-welcome-input"
                       value={inputValue}
                       onChange={(e) => onInputChange(e.target.value)}
                       onKeyDown={handleKeyPress}
-                      placeholder={isWizardActive && currentStep === 'destination' ? "Type your destination (e.g., Paris, Tokyo)..." : (placeholderText || 'Tell Voyagr AI about your next adventure')}
-                      className={`relative z-10 w-full resize-none border-0 bg-transparent text-gray-800 placeholder-gray-500 transition-all duration-300 focus:outline-none focus:ring-0 ${isMobile ? 'p-3 text-sm' : 'p-5 text-base sm:text-lg sm:p-6'}`}
+                      placeholder={isWizardActive && currentStep === 'destination' ? (itinerary.origin ? "Type your destination (e.g., Paris, Tokyo)..." : "Type your starting location (e.g., New York, London)...") : (placeholderText || 'Tell Voyagr AI about your next adventure')}
+                      className={`relative z-10 flex-1 resize-none border-0 bg-transparent text-gray-800 placeholder-gray-500 transition-all duration-300 focus:outline-none focus:ring-0 ${isMobile ? 'py-0 text-sm' : 'py-1 text-base sm:text-lg'}`}
                       rows={isMobile ? 2 : 3}
                       style={{ minHeight: isMobile ? '48px' : '90px', maxHeight: isMobile ? '80px' : '140px', fontSize: '16px' }}
                     />
+                    <button
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onTouchStart={(e) => e.preventDefault()}
+                      onClick={() => {
+                        const currentInput = inputValue;
+                        handleSendMessage(currentInput);
+                      }}
+                      disabled={!inputValue.trim() || isAITyping}
+                      className={`inline-flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                        inputValue.trim() && !isAITyping
+                          ? 'bg-gray-900 text-white hover:bg-gray-800'
+                          : 'bg-gray-200 text-gray-400'
+                      }`}
+                      aria-label="Send message"
+                    >
+                      <Send className="h-5 w-5" />
+                    </button>
                   </div>
                   
-                  {/* Typing Indicator */}
-                  {isTyping && (
-                    <div className="absolute bottom-4 right-4 flex items-center text-primary">
+                  {/* Typing Indicator - Hidden when send button is visible */}
+                  {isTyping && !inputValue.trim() && (
+                    <div className="absolute bottom-4 right-4 flex items-center text-primary pointer-events-none">
                       <div className="flex gap-1">
                         <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
                         <div className="w-2 h-2 bg-primary rounded-full animate-pulse delay-150"></div>
@@ -1094,28 +1268,9 @@ export default function AIInterface({
                     </div>
                   )}
                   
-                  {/* Quick Chat and Trip Planner Buttons - Only show on 'plan' tab */}
-                  {activeTab === 'plan' && (
+                  {/* Trip Planner Button - Only show on 'plan' tab */}
+                  {activeTab === 'plan' && !hideActionButtons && (
                     <div className={`flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-center sm:gap-4 ${isMobile ? 'mt-3' : 'mt-6'}`}>
-                      {/* Quick Chat Button */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (inputValue.trim()) {
-                            handleSendMessage(inputValue);
-                          } else {
-                            const defaultPrompt = "Hello! How can you help me today?";
-                            handleSendMessage(defaultPrompt);
-                          }
-                        }}
-                        className={`relative overflow-hidden rounded-2xl border border-white/20 bg-gradient-to-r from-gray-500 to-gray-600 font-semibold text-white shadow-xl transition-all duration-300 hover:from-gray-400 hover:to-gray-500 hover:shadow-2xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${isMobile ? 'px-4 py-2.5 text-sm' : 'px-7 py-3 text-base sm:px-8 sm:py-3.5 sm:text-lg'}`}
-                      >
-                        <span className="relative z-10 flex items-center justify-center gap-2 whitespace-nowrap">
-                          <MessageSquare className={isMobile ? 'h-4 w-4' : 'h-5 w-5 sm:h-6 sm:w-6'} />
-                          Quick Chat
-                        </span>
-                      </button>
-
                       {/* Trip Planner Button */}
                       <button
                         type="button"
@@ -1126,7 +1281,7 @@ export default function AIInterface({
                           // Add initial wizard message
                           const wizardMessage: ChatMessageData = {
                             id: Date.now().toString(),
-                            content: "Perfect! Let's plan your amazing trip together. Where would you like to go? 🌍",
+                            content: "To help you plan the perfect trip, I'd like to know where you're traveling from. Would you like to share your current location automatically, or would you prefer to type in your city/airport?",
                             sender: 'ai',
                             timestamp: new Date(),
                             interactive: {
@@ -1151,17 +1306,17 @@ export default function AIInterface({
                     </div>
                   )}
 
-                  {/* Start Planning Button for other tabs (flights, hotels, restaurants, mapout) */}
-                  {activeTab !== 'plan' && (
+                  {/* Start Planning Button for other tabs (flights, hotels, restaurants, mapout) - Hide in chat mode */}
+                  {activeTab !== 'plan' && activeTab !== 'chat' && (
                     <div className={`flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-center sm:gap-4 ${isMobile ? 'mt-3' : 'mt-6'}`}>
                       <button
                         type="button"
                         onClick={() => {
                           if (inputValue.trim()) {
-                            handleSendMessage(inputValue);
+                            handleSendMessage(inputValue, true);
                           } else {
                             const defaultPrompt = "Help me find the best options";
-                            handleSendMessage(defaultPrompt);
+                            handleSendMessage(defaultPrompt, true);
                           }
                         }}
                         className={`relative overflow-hidden rounded-2xl border border-white/20 bg-gradient-to-r font-semibold text-white shadow-xl transition-all duration-300 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${isMobile ? 'px-4 py-2.5 text-sm' : 'px-7 py-3 text-base sm:px-8 sm:py-3.5 sm:text-lg'} ${
@@ -1207,7 +1362,7 @@ export default function AIInterface({
                     return (
                       <button
                         key={index}
-                        onClick={() => handleSendMessage(promptText)}
+                        onClick={() => handleSendMessage(promptText, true)}
                         className={`group relative overflow-hidden rounded-xl border border-white/40 transition-all duration-300 text-left transform hover:scale-[1.02] hover:-translate-y-1 active:scale-[0.98] bg-white/60 backdrop-blur-xl backdrop-saturate-150 bg-clip-padding shadow-[0_8px_32px_rgba(8,_112,_184,_0.12)] hover:shadow-[0_12px_40px_rgba(8,_112,_184,_0.18)] hover:bg-white/70 before:content-[''] before:absolute before:inset-0 before:rounded-[inherit] before:pointer-events-none before:bg-gradient-to-br before:from-white/40 before:via-white/10 before:to-white/5 ${isMobile ? 'p-2.5' : 'p-3.5'}`}
                       >
                         <div className={`flex items-center relative z-10 ${isMobile ? 'gap-2' : 'gap-3'}`}>
@@ -1229,6 +1384,14 @@ export default function AIInterface({
         </div>
         )}
       </div>
+
+      {/* Flight Search Modal */}
+      <FlightModal
+        flights={modalFlights}
+        isOpen={isFlightModalOpen}
+        onClose={() => setIsFlightModalOpen(false)}
+        onSelectFlight={handleFlightSelect}
+      />
     </div>
   );
 }

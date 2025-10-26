@@ -32,9 +32,9 @@ export const WIZARD_STEP_CONFIG: Record<
   }
 > = {
   destination: {
-    title: 'Choose Destination',
-    description: 'Where would you like to go?',
-    icon: '🌍',
+    title: 'Your Starting Point',
+    description: 'Where are you traveling from?',
+    icon: '📍',
   },
   dates: {
     title: 'Select Dates',

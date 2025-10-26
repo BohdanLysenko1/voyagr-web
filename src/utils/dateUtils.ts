@@ -83,10 +83,61 @@ export class DateUtils {
   static formatShortDate(dateString: string): string {
     const date = this.parseDate(dateString);
     if (!date) return '';
-    
+
     return date.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric'
     });
+  }
+
+  // Flight-specific formatting utilities
+  static formatFlightTime(isoString: string | undefined | null): string {
+    if (!isoString) return '--:--';
+
+    try {
+      const date = new Date(isoString);
+      if (isNaN(date.getTime())) return '--:--';
+
+      return date.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      });
+    } catch {
+      return '--:--';
+    }
+  }
+
+  static formatFlightDate(isoString: string | undefined | null): string {
+    if (!isoString) return 'Invalid Date';
+
+    try {
+      const date = new Date(isoString);
+      if (isNaN(date.getTime())) return 'Invalid Date';
+
+      return date.toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch {
+      return 'Invalid Date';
+    }
+  }
+
+  static formatFlightDateShort(isoString: string | undefined | null): string {
+    if (!isoString) return 'Invalid Date';
+
+    try {
+      const date = new Date(isoString);
+      if (isNaN(date.getTime())) return 'Invalid Date';
+
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch {
+      return 'Invalid Date';
+    }
   }
 }

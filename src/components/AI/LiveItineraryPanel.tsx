@@ -104,18 +104,42 @@ export default function LiveItineraryPanel({ itinerary, isVisible = true }: Live
         className="flex-1 p-6 pt-5 space-y-5 overflow-y-auto scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent hover:scrollbar-thumb-primary/30 pr-4"
         style={{ scrollBehavior: 'smooth', minHeight: 0 }}>
 
-      {/* Destination */}
-      {itinerary.destination && (
+      {/* Route: Origin to Destination */}
+      {(itinerary.origin || itinerary.destination) && (
         <div className="bg-white/60 backdrop-blur-sm border border-white/60 rounded-xl p-4 animate-in fade-in slide-in-from-right duration-300">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-blue-500/10">
-              <MapPin className="w-5 h-5 text-blue-600" />
+              <Plane className="w-5 h-5 text-blue-600" />
             </div>
-            <div>
-              <p className="text-xs text-gray-600 font-medium">Destination</p>
-              <p className="text-base font-bold text-gray-900">
-                {itinerary.destination.city}, {itinerary.destination.country}
-              </p>
+            <div className="flex-1">
+              {itinerary.origin && itinerary.destination ? (
+                <>
+                  <p className="text-xs text-gray-600 font-medium mb-1">Route</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-base font-bold text-gray-900">
+                      {itinerary.origin.city}
+                    </p>
+                    <span className="text-gray-400">→</span>
+                    <p className="text-base font-bold text-gray-900">
+                      {itinerary.destination.city}
+                    </p>
+                  </div>
+                </>
+              ) : itinerary.origin ? (
+                <>
+                  <p className="text-xs text-gray-600 font-medium">Origin</p>
+                  <p className="text-base font-bold text-gray-900">
+                    {itinerary.origin.city}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-xs text-gray-600 font-medium">Destination</p>
+                  <p className="text-base font-bold text-gray-900">
+                    {itinerary.destination?.city}
+                  </p>
+                </>
+              )}
             </div>
           </div>
         </div>

@@ -1,7 +1,9 @@
 export type EventType = 'departure' | 'arrival' | 'event' | 'urgent' | 'meeting';
 
+export type RepeatFrequency = 'never' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom';
+
 export interface RepeatOptions {
-  frequency: 'never' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'custom';
+  frequency: RepeatFrequency;
   interval: number;
   endDate: string;
   count: number;
@@ -9,11 +11,14 @@ export interface RepeatOptions {
 
 export interface CalendarEvent {
   id: string;
+  userId?: string; // Added to match backend
   title: string;
   type: EventType;
   date: string;
   time?: string;
   repeat?: RepeatOptions;
+  createdAt?: string; // Added to match backend
+  updatedAt?: string; // Added to match backend
 }
 
 export interface EventFormState {

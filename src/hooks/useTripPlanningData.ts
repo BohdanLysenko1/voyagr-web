@@ -4,6 +4,40 @@
  */
 
 import { useMemo } from 'react';
+import { 
+  User, 
+  Users, 
+  UsersRound, 
+  Mountain, 
+  Landmark, 
+  Waves, 
+  UtensilsCrossed, 
+  PartyPopper, 
+  ShoppingBag,
+  Umbrella,
+  Trees,
+  Camera,
+  Castle,
+  Dumbbell,
+  Sparkles,
+  Music,
+  Palette,
+  Gem,
+  DollarSign,
+  Footprints,
+  Fish,
+  Snowflake,
+  Wine,
+  Car,
+  Tent,
+  Ship,
+  Building2,
+  Store,
+  Ticket,
+  Leaf,
+  Heart,
+  LucideIcon 
+} from 'lucide-react';
 import { Activity } from '@/components/AI/InteractiveMessages/ActivityGrid';
 import { CarouselCard } from '@/components/AI/InteractiveMessages/CardCarousel';
 
@@ -12,6 +46,7 @@ interface QuickReplyOption {
   label: string;
   value: string;
   emoji?: string;
+  icon?: LucideIcon;
 }
 
 export function useTripPlanningData() {
@@ -35,10 +70,10 @@ export function useTripPlanningData() {
    */
   const travelerOptions = useMemo<QuickReplyOption[]>(
     () => [
-      { id: '1', label: 'Solo', value: '1', emoji: '🧳' },
-      { id: '2', label: 'Couple', value: '2', emoji: '💑' },
-      { id: '3', label: 'Family (3-4)', value: '4', emoji: '👨‍👩‍👧‍👦' },
-      { id: '4', label: 'Group (5+)', value: '5', emoji: '👥' },
+      { id: '1', label: 'Solo', value: '1', icon: User },
+      { id: '2', label: 'Couple', value: '2', icon: Users },
+      { id: '3', label: 'Family (3-4)', value: '4', icon: UsersRound },
+      { id: '4', label: 'Group (5+)', value: '5', icon: UsersRound },
     ],
     []
   );
@@ -48,34 +83,34 @@ export function useTripPlanningData() {
    */
   const preferenceOptions = useMemo<QuickReplyOption[]>(
     () => [
-      { id: '1', label: 'Adventure', value: 'adventure', emoji: '🏔️' },
-      { id: '2', label: 'Culture', value: 'culture', emoji: '🏛️' },
-      { id: '3', label: 'Relaxation', value: 'relaxation', emoji: '🧘' },
-      { id: '4', label: 'Food & Dining', value: 'food', emoji: '🍽️' },
-      { id: '5', label: 'Nightlife', value: 'nightlife', emoji: '🎉' },
-      { id: '6', label: 'Shopping', value: 'shopping', emoji: '🛍️' },
-      { id: '7', label: 'Beach & Water', value: 'beach', emoji: '🏖️' },
-      { id: '8', label: 'Nature & Wildlife', value: 'nature', emoji: '🦁' },
-      { id: '9', label: 'Photography', value: 'photography', emoji: '📸' },
-      { id: '10', label: 'History', value: 'history', emoji: '🏰' },
-      { id: '11', label: 'Sports & Fitness', value: 'sports', emoji: '⚽' },
-      { id: '12', label: 'Wellness & Spa', value: 'wellness', emoji: '💆' },
-      { id: '13', label: 'Music & Festivals', value: 'music', emoji: '🎵' },
-      { id: '14', label: 'Art & Museums', value: 'art', emoji: '🎨' },
-      { id: '15', label: 'Luxury', value: 'luxury', emoji: '💎' },
-      { id: '16', label: 'Budget Travel', value: 'budget', emoji: '💰' },
-      { id: '17', label: 'Hiking & Trekking', value: 'hiking', emoji: '🥾' },
-      { id: '18', label: 'Diving & Snorkeling', value: 'diving', emoji: '🤿' },
-      { id: '19', label: 'Skiing & Snow Sports', value: 'skiing', emoji: '⛷️' },
-      { id: '20', label: 'Wine & Gastronomy', value: 'wine', emoji: '🍷' },
-      { id: '21', label: 'Road Trips', value: 'roadtrip', emoji: '🚗' },
-      { id: '22', label: 'Camping', value: 'camping', emoji: '⛺' },
-      { id: '23', label: 'Cruises', value: 'cruise', emoji: '🚢' },
-      { id: '24', label: 'Architecture', value: 'architecture', emoji: '🏗️' },
-      { id: '25', label: 'Local Markets', value: 'markets', emoji: '🏪' },
-      { id: '26', label: 'Theme Parks', value: 'themepark', emoji: '🎢' },
-      { id: '27', label: 'Eco Tourism', value: 'ecotourism', emoji: '🌱' },
-      { id: '28', label: 'Spiritual & Yoga', value: 'spiritual', emoji: '🕉️' },
+      { id: '1', label: 'Adventure', value: 'adventure', icon: Mountain },
+      { id: '2', label: 'Culture', value: 'culture', icon: Landmark },
+      { id: '3', label: 'Relaxation', value: 'relaxation', icon: Waves },
+      { id: '4', label: 'Food & Dining', value: 'food', icon: UtensilsCrossed },
+      { id: '5', label: 'Nightlife', value: 'nightlife', icon: PartyPopper },
+      { id: '6', label: 'Shopping', value: 'shopping', icon: ShoppingBag },
+      { id: '7', label: 'Beach & Water', value: 'beach', icon: Umbrella },
+      { id: '8', label: 'Nature & Wildlife', value: 'nature', icon: Trees },
+      { id: '9', label: 'Photography', value: 'photography', icon: Camera },
+      { id: '10', label: 'History', value: 'history', icon: Castle },
+      { id: '11', label: 'Sports & Fitness', value: 'sports', icon: Dumbbell },
+      { id: '12', label: 'Wellness & Spa', value: 'wellness', icon: Sparkles },
+      { id: '13', label: 'Music & Festivals', value: 'music', icon: Music },
+      { id: '14', label: 'Art & Museums', value: 'art', icon: Palette },
+      { id: '15', label: 'Luxury', value: 'luxury', icon: Gem },
+      { id: '16', label: 'Budget Travel', value: 'budget', icon: DollarSign },
+      { id: '17', label: 'Hiking & Trekking', value: 'hiking', icon: Footprints },
+      { id: '18', label: 'Diving & Snorkeling', value: 'diving', icon: Fish },
+      { id: '19', label: 'Skiing & Snow Sports', value: 'skiing', icon: Snowflake },
+      { id: '20', label: 'Wine & Gastronomy', value: 'wine', icon: Wine },
+      { id: '21', label: 'Road Trips', value: 'roadtrip', icon: Car },
+      { id: '22', label: 'Camping', value: 'camping', icon: Tent },
+      { id: '23', label: 'Cruises', value: 'cruise', icon: Ship },
+      { id: '24', label: 'Architecture', value: 'architecture', icon: Building2 },
+      { id: '25', label: 'Local Markets', value: 'markets', icon: Store },
+      { id: '26', label: 'Theme Parks', value: 'themepark', icon: Ticket },
+      { id: '27', label: 'Eco Tourism', value: 'ecotourism', icon: Leaf },
+      { id: '28', label: 'Spiritual & Yoga', value: 'spiritual', icon: Heart },
     ],
     []
   );

@@ -22,7 +22,8 @@ import {
   SearchIcon,
   BellIcon,
   SettingsIcon,
-  LogOut
+  LogOut,
+  MessageSquare
 } from 'lucide-react';
 
 export default function Navbar() {
@@ -351,12 +352,12 @@ export default function Navbar() {
                         <span className="font-semibold">Profile</span>
                       </Link>
                       <Link
-                        href="/settings"
+                        href="/chat"
                         className="flex items-center gap-4 p-4 rounded-xl text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 transition-all duration-300"
                         onClick={() => setActiveDropdown(null)}
                       >
-                        <SettingsIcon className="w-4 h-4 text-gray-400" />
-                        <span className="font-semibold">Settings</span>
+                        <MessageSquare className="w-4 h-4 text-gray-400" />
+                        <span className="font-semibold">Quick Chat</span>
                       </Link>
                       <button
                         onClick={() => {
@@ -525,12 +526,12 @@ export default function Navbar() {
               </Link>
 
               <Link
-                href="/settings"
+                href="/chat"
                 className="flex items-center gap-3 p-4 text-gray-700 hover:text-primary hover:bg-gradient-to-r hover:from-primary/5 hover:to-purple-500/5 rounded-xl transition-all duration-300"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
-                <SettingsIcon className="w-5 h-5" />
-                <span className="font-semibold">Settings</span>
+                <MessageSquare className="w-5 h-5" />
+                <span className="font-semibold">Quick Chat</span>
               </Link>
             </div>
           </div>

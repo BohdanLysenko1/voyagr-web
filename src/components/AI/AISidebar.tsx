@@ -32,7 +32,7 @@ const MapOutSection = dynamic<MapOutSectionProps>(() => import('./MapOutSection'
   ssr: false,
 });
 
-type TabKey = 'plan' | 'preferences' | 'flights' | 'hotels' | 'restaurants' | 'mapout';
+type TabKey = 'plan' | 'chat' | 'preferences' | 'flights' | 'hotels' | 'restaurants' | 'mapout';
 
 interface RecentConversation {
   id: string;
@@ -49,13 +49,13 @@ interface AISidebarProps {
   onRestaurantHeartToggle: (id: number) => void;
   onNewTrip?: () => void;
   onSectionReset?: (targetTab: 'flights' | 'hotels' | 'restaurants' | 'mapout') => void;
-  onPreferencesOpen?: () => void;
   activeTab: TabKey;
-  onTabChange: (tab: TabKey) => void;
+  onTabChange?: (tab: TabKey) => void;
   recentConversations?: RecentConversation[];
   onConversationSelect?: (conversation: RecentConversation) => void;
   variant?: 'desktop' | 'mobile';
   onClose?: () => void;
+  hideTabsAndSections?: boolean;
 }
 
 export default function AISidebar({
@@ -67,13 +67,13 @@ export default function AISidebar({
   onRestaurantHeartToggle,
   onNewTrip,
   onSectionReset,
-  onPreferencesOpen,
   activeTab,
   onTabChange,
   recentConversations,
   onConversationSelect,
   variant = 'desktop',
   onClose,
+  hideTabsAndSections = false,
 }: AISidebarProps) {
   const isMobileVariant = variant === 'mobile';
   // Section-specific new trip handlers
@@ -171,32 +171,8 @@ export default function AISidebar({
           </div>
         )}
 
-        {/* Button Grid - Quick Actions */}
-        <DrawerButtonGrid
-          onTabChange={(tab) => {
-            if (tab === 'preferences') {
-              onPreferencesOpen?.();
-            } else {
-              onTabChange(tab as TabKey);
-            }
-            if (isMobileVariant) {
-              onClose?.();
-            }
-          }}
-          onPreferencesOpen={() => {
-            onPreferencesOpen?.();
-            if (isMobileVariant) {
-              onClose?.();
-            }
-          }}
-          onNewTrip={() => {
-            onNewTrip?.();
-            if (isMobileVariant) {
-              onClose?.();
-            }
-          }}
-          className="pt-4"
-        />
+        {/* Button Grid - Quick Actions - Always show */}
+        <DrawerButtonGrid className="pt-4" />
 
 
         {/* Panels */}
@@ -206,11 +182,11 @@ export default function AISidebar({
           role="tabpanel"
           id="panel-plan"
           aria-labelledby="tab-plan"
-          hidden={activeTab !== 'plan'}
+          hidden={!hideTabsAndSections && activeTab !== 'plan'}
           className="outline-none"
         >
-          <SearchTripsSection 
-            onNewTrip={onNewTrip} 
+          <SearchTripsSection
+            onNewTrip={onNewTrip}
             recentConversations={recentConversations}
             onConversationSelect={onConversationSelect}
           />
@@ -218,7 +194,7 @@ export default function AISidebar({
 
 
         {/* Flights */}
-        {activeTab === 'flights' && (
+        {!hideTabsAndSections && activeTab === 'flights' && (
           <div
             role="tabpanel"
             id="panel-flights"
@@ -230,7 +206,7 @@ export default function AISidebar({
         )}
 
         {/* Hotels */}
-        {activeTab === 'hotels' && (
+        {!hideTabsAndSections && activeTab === 'hotels' && (
           <div
             role="tabpanel"
             id="panel-hotels"
@@ -242,7 +218,7 @@ export default function AISidebar({
         )}
 
         {/* Restaurants */}
-        {activeTab === 'restaurants' && (
+        {!hideTabsAndSections && activeTab === 'restaurants' && (
           <div
             role="tabpanel"
             id="panel-restaurants"
@@ -254,7 +230,7 @@ export default function AISidebar({
         )}
 
         {/* Map Out */}
-        {activeTab === 'mapout' && (
+        {!hideTabsAndSections && activeTab === 'mapout' && (
           <div
             role="tabpanel"
             id="panel-mapout"

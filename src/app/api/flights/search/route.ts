@@ -104,7 +104,19 @@ function transformAmadeusFlights(amadeusData: any[]): FlightOption[] {
     const segments = itinerary.segments;
     const firstSegment = segments[0];
     const lastSegment = segments[segments.length - 1];
-    const price = parseFloat(offer.price.total);
+
+    // Parse price safely
+    const priceTotal = offer.price?.total || offer.price?.grandTotal || '0';
+    const price = parseFloat(priceTotal);
+
+    console.log('Transforming flight:', {
+      id: offer.id,
+      priceRaw: offer.price,
+      priceTotal,
+      price,
+      departureTime: firstSegment.departure.at,
+      arrivalTime: lastSegment.arrival.at
+    });
 
     // Calculate stops
     const stops = segments.length - 1;
@@ -123,8 +135,8 @@ function transformAmadeusFlights(amadeusData: any[]): FlightOption[] {
       arrivalTime: lastSegment.arrival.at,
       duration: formatDuration(itinerary.duration),
       stops: stops,
-      price: price,
-      currency: offer.price.currency,
+      price: isNaN(price) ? 0 : price,
+      currency: offer.price?.currency || 'USD',
       cabinClass: firstSegment.cabin || 'ECONOMY',
       segments: segments.map((seg: any) => ({
         departure: {

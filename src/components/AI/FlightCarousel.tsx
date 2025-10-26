@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { ChevronLeft, ChevronRight, Plane, Clock, DollarSign, Users, Calendar, CheckCircle } from 'lucide-react';
 import { FlightOption } from '@/types/flights';
+import { DateUtils } from '@/utils/dateUtils';
 
 interface FlightCarouselProps {
   flights: FlightOption[];
@@ -86,7 +87,7 @@ export default function FlightCarousel({ flights, onSelectFlight }: FlightCarous
             </div>
             <div className="text-right">
               <div className="text-2xl font-bold text-sky-600">
-                ${currentFlight.price.toFixed(2)}
+                ${Number(currentFlight.price).toFixed(2)}
               </div>
               <p className="text-xs text-gray-500">{currentFlight.currency}</p>
             </div>
@@ -100,10 +101,7 @@ export default function FlightCarousel({ flights, onSelectFlight }: FlightCarous
                   {currentFlight.departure}
                 </div>
                 <div className="text-xs text-gray-500 mt-1">
-                  {new Date(currentFlight.departureTime).toLocaleTimeString('en-US', {
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}
+                  {DateUtils.formatFlightTime(currentFlight.departureTime)}
                 </div>
               </div>
 
@@ -123,10 +121,7 @@ export default function FlightCarousel({ flights, onSelectFlight }: FlightCarous
                   {currentFlight.arrival}
                 </div>
                 <div className="text-xs text-gray-500 mt-1">
-                  {new Date(currentFlight.arrivalTime).toLocaleTimeString('en-US', {
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}
+                  {DateUtils.formatFlightTime(currentFlight.arrivalTime)}
                 </div>
               </div>
             </div>
@@ -135,11 +130,7 @@ export default function FlightCarousel({ flights, onSelectFlight }: FlightCarous
             <div className="flex items-center justify-center gap-2 text-xs text-gray-600 bg-blue-50/50 rounded-lg py-2 px-3">
               <Calendar className="w-3.5 h-3.5" />
               <span>
-                {new Date(currentFlight.departureTime).toLocaleDateString('en-US', {
-                  weekday: 'short',
-                  month: 'short',
-                  day: 'numeric'
-                })}
+                {DateUtils.formatFlightDate(currentFlight.departureTime)}
               </span>
             </div>
           </div>
@@ -195,7 +186,7 @@ export default function FlightCarousel({ flights, onSelectFlight }: FlightCarous
                 💼 Business
               </span>
             )}
-            {currentFlight.price < 500 && (
+            {Number(currentFlight.price) < 500 && (
               <span className="px-2.5 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-semibold">
                 💰 Great Deal
               </span>

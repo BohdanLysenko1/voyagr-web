@@ -76,6 +76,7 @@ export interface ItineraryDay {
 }
 
 export interface TripItinerary {
+  origin?: TripDestination;
   destination: TripDestination;
   dates: TripDates;
   travelers: number;

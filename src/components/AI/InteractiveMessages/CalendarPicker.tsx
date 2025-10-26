@@ -47,12 +47,17 @@ export default function CalendarPicker({
     <div className="mt-3 relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="glass-card border border-white/40 rounded-xl px-4 py-3 w-full text-left
-                   hover:border-primary/30 hover:shadow-md transition-all duration-300
-                   flex items-center justify-between group"
+        className="glass-card border border-primary/40 rounded-xl px-4 py-3 w-full text-left
+                   shadow-[0_0_20px_rgba(37,99,235,0.3)] hover:shadow-[0_0_30px_rgba(37,99,235,0.5)]
+                   hover:border-primary/60 transition-all duration-300
+                   flex items-center justify-between group
+                   animate-pulse-subtle"
+        style={{
+          animation: 'pulse-glow 2s ease-in-out infinite'
+        }}
       >
         <span className="flex items-center gap-2 text-sm font-medium text-gray-700">
-          <Calendar className="w-4 h-4 text-primary" />
+          <Calendar className="w-4 h-4 text-primary drop-shadow-[0_0_4px_rgba(37,99,235,0.5)]" />
           {formatDateRange()}
         </span>
         {isOpen && (
@@ -72,6 +77,15 @@ export default function CalendarPicker({
             </p>
           </div>
           <style jsx global>{`
+            @keyframes pulse-glow {
+              0%, 100% {
+                box-shadow: 0 0 20px rgba(37, 99, 235, 0.3);
+              }
+              50% {
+                box-shadow: 0 0 30px rgba(37, 99, 235, 0.6);
+              }
+            }
+            
             .compact-calendar .rdp {
               --rdp-cell-size: 32px;
               font-size: 0.75rem;

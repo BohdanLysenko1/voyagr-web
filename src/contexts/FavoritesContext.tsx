@@ -1,21 +1,34 @@
 "use client"
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { SearchDeal } from '@/components/DealsPage/SearchDeals';
-import { Flight, Hotel, Package, Restaurant } from '@/types/ai';
+import { Flight, Hotel, Restaurant } from '@/types/ai';
+import { api } from '@/lib/apiClient';
+import { auth } from '@/lib/firebase';
 
-type AIItem = Flight | Hotel | Package | Restaurant;
+type AIItem = Flight | Hotel | Restaurant;
+
+// Backend favorite type from API
+interface BackendFavorite {
+  id: string;
+  userId: string;
+  dealId: string;
+  dealType: 'flight' | 'hotel' | 'restaurant';
+  dealData: SearchDeal;
+  createdAt: string;
+}
 
 interface FavoritesContextType {
   favorites: SearchDeal[];
-  addToFavorites: (deal: SearchDeal) => void;
-  removeFromFavorites: (dealId: number) => void;
+  loading: boolean;
+  addToFavorites: (deal: SearchDeal) => Promise<void>;
+  removeFromFavorites: (dealId: number) => Promise<void>;
   isFavorite: (dealId: number) => boolean;
-  toggleFavorite: (deal: SearchDeal) => void;
+  toggleFavorite: (deal: SearchDeal) => Promise<void>;
   // AI page specific methods
-  addAIItemToFavorites: (item: AIItem, type: 'flight' | 'hotel' | 'package' | 'restaurant') => void;
-  removeAIItemFromFavorites: (itemId: number) => void;
+  addAIItemToFavorites: (item: AIItem, type: 'flight' | 'hotel' | 'restaurant') => Promise<void>;
+  removeAIItemFromFavorites: (itemId: number) => Promise<void>;
   isAIItemFavorite: (itemId: number) => boolean;
-  toggleAIItemFavorite: (item: AIItem, type: 'flight' | 'hotel' | 'package' | 'restaurant') => void;
+  toggleAIItemFavorite: (item: AIItem, type: 'flight' | 'hotel' | 'restaurant') => Promise<void>;
 }
 
 const FavoritesContext = createContext<FavoritesContextType | undefined>(undefined);
@@ -34,51 +47,147 @@ interface FavoritesProviderProps {
 
 export const FavoritesProvider: React.FC<FavoritesProviderProps> = ({ children }) => {
   const [favorites, setFavorites] = useState<SearchDeal[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  // Load favorites from localStorage on mount
+  // Load favorites from backend on mount and when auth state changes
   useEffect(() => {
-    const savedFavorites = localStorage.getItem('voyagr-favorites');
-    if (savedFavorites) {
-      try {
-        setFavorites(JSON.parse(savedFavorites));
-      } catch (error) {
-        console.error('Error loading favorites from localStorage:', error);
+    const loadFavorites = async () => {
+      const user = auth.currentUser;
+
+      if (!user) {
+        // User not logged in, load from localStorage
+        const savedFavorites = localStorage.getItem('voyagr-favorites');
+        if (savedFavorites) {
+          try {
+            setFavorites(JSON.parse(savedFavorites));
+          } catch (error) {
+            console.error('Error loading favorites from localStorage:', error);
+          }
+        }
+        return;
       }
-    }
+
+      // User logged in, fetch from backend
+      try {
+        setLoading(true);
+        const response = await api.get<{
+          success: boolean;
+          data: BackendFavorite[];
+        }>('/favorites', true);
+
+        if (response.success && response.data) {
+          // Extract deal data from backend favorites
+          const dealFavorites = response.data.map(fav => fav.dealData);
+          setFavorites(dealFavorites);
+          // Also save to localStorage as backup
+          localStorage.setItem('voyagr-favorites', JSON.stringify(dealFavorites));
+        }
+      } catch (error) {
+        console.error('Error loading favorites from backend:', error);
+        // Fall back to localStorage
+        const savedFavorites = localStorage.getItem('voyagr-favorites');
+        if (savedFavorites) {
+          try {
+            setFavorites(JSON.parse(savedFavorites));
+          } catch (err) {
+            console.error('Error loading favorites from localStorage:', err);
+          }
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadFavorites();
+
+    // Listen for auth state changes
+    const unsubscribe = auth.onAuthStateChanged(() => {
+      loadFavorites();
+    });
+
+    return () => unsubscribe();
   }, []);
 
-  // Save favorites to localStorage whenever they change
+  // Save favorites to localStorage whenever they change (as backup)
   useEffect(() => {
-    localStorage.setItem('voyagr-favorites', JSON.stringify(favorites));
+    if (favorites.length > 0) {
+      localStorage.setItem('voyagr-favorites', JSON.stringify(favorites));
+    }
   }, [favorites]);
 
-  const addToFavorites = (deal: SearchDeal) => {
+  const addToFavorites = async (deal: SearchDeal): Promise<void> => {
+    const user = auth.currentUser;
+
+    // Optimistically update UI
     setFavorites(prev => {
       if (!prev.find(fav => fav.id === deal.id)) {
         return [...prev, deal];
       }
       return prev;
     });
+
+    if (!user) {
+      // Not logged in, just use localStorage
+      return;
+    }
+
+    // Logged in, sync with backend
+    try {
+      await api.post<{
+        success: boolean;
+        data: BackendFavorite;
+      }>('/favorites', {
+        dealId: deal.id.toString(),
+        dealType: deal.type,
+        dealData: deal,
+      }, true);
+    } catch (error) {
+      console.error('Error adding favorite to backend:', error);
+      // Revert optimistic update on error
+      setFavorites(prev => prev.filter(fav => fav.id !== deal.id));
+      throw error;
+    }
   };
 
-  const removeFromFavorites = (dealId: number) => {
+  const removeFromFavorites = async (dealId: number): Promise<void> => {
+    const user = auth.currentUser;
+
+    // Optimistically update UI
+    const previousFavorites = favorites;
     setFavorites(prev => prev.filter(fav => fav.id !== dealId));
+
+    if (!user) {
+      // Not logged in, just use localStorage
+      return;
+    }
+
+    // Logged in, sync with backend
+    try {
+      await api.delete<{
+        success: boolean;
+      }>(`/favorites/deal/${dealId}`, true);
+    } catch (error) {
+      console.error('Error removing favorite from backend:', error);
+      // Revert optimistic update on error
+      setFavorites(previousFavorites);
+      throw error;
+    }
   };
 
-  const isFavorite = (dealId: number) => {
+  const isFavorite = (dealId: number): boolean => {
     return favorites.some(fav => fav.id === dealId);
   };
 
-  const toggleFavorite = (deal: SearchDeal) => {
+  const toggleFavorite = async (deal: SearchDeal): Promise<void> => {
     if (isFavorite(deal.id)) {
-      removeFromFavorites(deal.id);
+      await removeFromFavorites(deal.id);
     } else {
-      addToFavorites(deal);
+      await addToFavorites(deal);
     }
   };
 
   // AI item conversion to SearchDeal format
-  const convertAIItemToSearchDeal = (item: AIItem, type: 'flight' | 'hotel' | 'package' | 'restaurant'): SearchDeal => {
+  const convertAIItemToSearchDeal = (item: AIItem, type: 'flight' | 'hotel' | 'restaurant'): SearchDeal => {
     let title, description, image, price, location;
     
     if (type === 'flight') {
@@ -95,13 +204,6 @@ export const FavoritesProvider: React.FC<FavoritesProviderProps> = ({ children }
       image = '/images/AIPage/hotel-placeholder.jpg';
       price = 150; // Default price since not in type
       location = hotel.location;
-    } else if (type === 'package') {
-      const pkg = item as Package;
-      title = pkg.name;
-      description = pkg.duration;
-      image = '/images/AIPage/package-placeholder.jpg';
-      price = 899; // Default price since not in type
-      location = 'Multiple Destinations';
     } else {
       const restaurant = item as Restaurant;
       title = restaurant.name;
@@ -121,34 +223,35 @@ export const FavoritesProvider: React.FC<FavoritesProviderProps> = ({ children }
       description,
       image,
       rating: undefined,
-      duration: type === 'package' ? (item as Package).duration : undefined,
+      duration: undefined,
       features: []
     };
   };
 
-  const addAIItemToFavorites = (item: AIItem, type: 'flight' | 'hotel' | 'package' | 'restaurant') => {
+  const addAIItemToFavorites = async (item: AIItem, type: 'flight' | 'hotel' | 'restaurant'): Promise<void> => {
     const searchDeal = convertAIItemToSearchDeal(item, type);
-    addToFavorites(searchDeal);
+    await addToFavorites(searchDeal);
   };
 
-  const removeAIItemFromFavorites = (itemId: number) => {
-    removeFromFavorites(itemId);
+  const removeAIItemFromFavorites = async (itemId: number): Promise<void> => {
+    await removeFromFavorites(itemId);
   };
 
-  const isAIItemFavorite = (itemId: number) => {
+  const isAIItemFavorite = (itemId: number): boolean => {
     return isFavorite(itemId);
   };
 
-  const toggleAIItemFavorite = (item: AIItem, type: 'flight' | 'hotel' | 'package' | 'restaurant') => {
+  const toggleAIItemFavorite = async (item: AIItem, type: 'flight' | 'hotel' | 'restaurant'): Promise<void> => {
     if (isAIItemFavorite(item.id)) {
-      removeAIItemFromFavorites(item.id);
+      await removeAIItemFromFavorites(item.id);
     } else {
-      addAIItemToFavorites(item, type);
+      await addAIItemToFavorites(item, type);
     }
   };
 
   const value: FavoritesContextType = {
     favorites,
+    loading,
     addToFavorites,
     removeFromFavorites,
     isFavorite,
