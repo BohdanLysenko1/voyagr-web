@@ -124,7 +124,7 @@ export default function Navbar() {
             <Link href="/" className="flex items-center group">
               <div className="relative">
                 <Image
-                  src="/images/LogoNavBar.png"
+                  src="/images/UpdateLogo.svg"
                   alt="Voyagr"
                   width={100}
                   height={20}
