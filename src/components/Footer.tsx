@@ -123,10 +123,10 @@ export default function Footer() {
         <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-3">
             <Image
-              src="/images/LogoNavBar.png"
+              src="/images/UpdateLogo.svg"
               alt="Voyagr"
-              width={96}
-              height={32}
+              width={100}
+              height={20}
               className={`h-8 w-auto ${light ? 'brightness-50 contrast-125' : 'brightness-100'}`}
               priority
             />
