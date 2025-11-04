@@ -3,7 +3,6 @@ import { FlightSearchParams } from '@/types/flights';
 
 /**
  * AI Chat endpoint for travel planning conversations
- * Detects flight search queries and integrates with Amadeus API
  */
 export async function POST(request: NextRequest) {
   try {

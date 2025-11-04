@@ -52,7 +52,7 @@ export default function TripPlanningWizard({
     getActivityOptions,
   } = useTripPlanningData();
 
-  // Use flight search hook for real-time Amadeus API integration
+  // Use flight search hook for real-time flight search
   const { flights, loading: flightsLoading, error: flightsError, searchFlights } = useFlightSearch();
 
   // Sync state with itinerary when it changes
@@ -332,7 +332,7 @@ export default function TripPlanningWizard({
     setSelectedFlight(flight.id);
     setIsFlightModalOpen(false);
 
-    // Store the selected flight data from Amadeus results
+    // Store the selected flight data
     onStepComplete('flights', {
       flight: {
         id: flight.id,
@@ -574,7 +574,7 @@ export default function TripPlanningWizard({
             {flightsLoading && (
               <div className="flex flex-col items-center justify-center py-16 glass-card rounded-xl border border-primary/20">
                 <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
-                <p className="text-gray-700 font-medium">Searching flights from Amadeus...</p>
+                <p className="text-gray-700 font-medium">Searching flights...</p>
                 <p className="text-sm text-gray-500 mt-1">Finding the best options for your trip</p>
               </div>
             )}

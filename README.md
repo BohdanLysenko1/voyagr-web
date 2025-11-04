@@ -50,8 +50,6 @@ NEXT_PUBLIC_FIREBASE_APP_ID=your-app-id
 
 # Optional
 NEXT_PUBLIC_GEMINI_API_KEY=your-gemini-key
-AMADEUS_API_KEY=your-amadeus-key
-AMADEUS_API_SECRET=your-amadeus-secret
 ```
 
 ### Firebase Setup

@@ -557,7 +557,7 @@ export default function AIInterface({
         // Parse flight parameters from the query
         const flightParams = parseFlightQuery(textToSend);
         
-        // Call Amadeus API
+        // Search for flights
         const foundFlights = await searchFlights(flightParams);
 
         setIsAITyping(false);

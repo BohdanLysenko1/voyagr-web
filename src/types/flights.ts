@@ -52,7 +52,7 @@ export interface FlightOption {
   bookingClass?: string;
   availableSeats?: number;
   selected: boolean;
-  // Original Amadeus data for booking
+  // Original data for booking
   rawData?: any;
 }
 

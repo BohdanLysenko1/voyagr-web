@@ -93,8 +93,7 @@ export async function getDestinationSuggestions(
 
 /**
  * Get flight options using AI
- * Note: For real flight data, use the Amadeus API via /api/flights/search
- * This is just for AI-powered suggestions/recommendations
+ * Note: This is just for AI-powered suggestions/recommendations
  */
 export async function getFlightSuggestions(params: {
   destination: string;
@@ -113,8 +112,7 @@ export async function getFlightSuggestions(params: {
       context: 'flight-suggestions',
     });
 
-    // Return empty array - actual flight search should use Amadeus API
-    // This function is kept for backward compatibility
+    // Return empty array - this function is kept for backward compatibility
     return [];
   } catch (error) {
     console.error('Error getting flight suggestions:', error);
