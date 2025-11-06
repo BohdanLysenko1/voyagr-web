@@ -109,7 +109,11 @@ export default function ActivityGrid({
                 </div>
                 <div className="flex items-center justify-between mt-2 text-xs">
                   <span className="text-gray-600">{activity.duration}</span>
-                  <span className="font-semibold text-primary">${activity.price}</span>
+                  <span className="font-semibold text-primary">
+                    ${typeof activity.price === 'object'
+                      ? (activity.price as any).amount || 0
+                      : activity.price}
+                  </span>
                 </div>
               </div>
             </button>

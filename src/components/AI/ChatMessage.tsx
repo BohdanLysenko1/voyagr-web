@@ -4,7 +4,7 @@ import Image from 'next/image';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import TripPlanningWizard from './TripPlanningWizard';
-import FlightCarousel from './FlightCarousel';
+import FlightList from './FlightList';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { WizardStep, TripItinerary } from '@/types/tripPlanning';
 import { FlightOption } from '@/types/flights';
@@ -187,9 +187,9 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
         )}
 
         {message.interactive && message.interactive.type === 'flight-results' && message.interactive.flights && (
-          <div className="mt-4">
+          <div className="mt-3">
             <ErrorBoundary>
-              <FlightCarousel
+              <FlightList
                 flights={message.interactive.flights}
                 onSelectFlight={message.interactive.onSelectFlight}
               />

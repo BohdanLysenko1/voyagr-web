@@ -54,11 +54,11 @@ export default function PlanPage() {
   const handleWizardStepComplete = useCallback((step: WizardStep, data: any) => {
     updateItinerary(data);
 
-    // For destination step, only advance if we have both origin AND destination
+    // For destination step, only advance if we have both origin AND destination with BOTH city and country
     if (step === 'destination') {
-      // Check if this update includes destination (not just origin)
-      if (data.destination) {
-        // We have destination, so we can advance to next step
+      // Check if this update includes full destination (both city and country)
+      if (data.destination?.city && data.destination?.country) {
+        // We have full destination, so we can advance to next step
         const currentIndex = WIZARD_STEPS.indexOf(step);
         const nextIndex = currentIndex + 1;
         if (nextIndex < WIZARD_STEPS.length) {
@@ -66,7 +66,7 @@ export default function PlanPage() {
           setCurrentStep(nextStep);
         }
       }
-      // If only origin is being set, don't advance - stay on destination step
+      // If only origin or only country is being set, don't advance - stay on destination step
       return;
     }
 

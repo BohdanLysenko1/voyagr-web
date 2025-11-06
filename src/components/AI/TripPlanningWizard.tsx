@@ -6,12 +6,16 @@ import CardCarousel from './InteractiveMessages/CardCarousel';
 import ActivityGrid from './InteractiveMessages/ActivityGrid';
 import BudgetSlider from './InteractiveMessages/BudgetSlider';
 import ConfirmationCard from './InteractiveMessages/ConfirmationCard';
-import FlightModal from './FlightModal';
+import FlightList from './FlightList';
 import { TripItinerary, WizardStep } from '@/types/tripPlanning';
 import { useTripPlanningData } from '@/hooks/useTripPlanningData';
 import { useFlightSearch } from '@/hooks/useFlightSearch';
+import { useHotelSearch } from '@/hooks/useHotelSearch';
+import { useRestaurantSearch } from '@/hooks/useRestaurantSearch';
+import { useAttractionSearch } from '@/hooks/useAttractionSearch';
 import { FlightSearchParams, FlightOption } from '@/types/flights';
 import { BUDGET_LIMITS, WIZARD_STEP_CONFIG } from '@/constants/tripPlanning';
+import { useTripPlanningContext } from '@/contexts/TripPlanningContext';
 
 interface TripPlanningWizardProps {
   onStepComplete: (step: WizardStep, data: Partial<TripItinerary>) => void;
@@ -28,10 +32,17 @@ export default function TripPlanningWizard({
   itinerary,
   onAddUserMessage
 }: TripPlanningWizardProps) {
+  // Get context for sharing destination phase with the page
+  const { destinationPhase, setDestinationPhase } = useTripPlanningContext();
+
   const [locationMethod, setLocationMethod] = useState<'current' | 'manual' | null>(null);
-  const [destinationPhase, setDestinationPhase] = useState<'origin' | 'destination'>('origin');
   const [selectedOrigin, setSelectedOrigin] = useState<string>(itinerary.origin?.city || '');
+  const [selectedCountry, setSelectedCountry] = useState<string>(itinerary.destination?.country || '');
   const [selectedDestination, setSelectedDestination] = useState<string>(itinerary.destination?.city || '');
+  const [popularCities, setPopularCities] = useState<string[]>([]);
+  const [loadingCities, setLoadingCities] = useState(false);
+  const [popularCountries, setPopularCountries] = useState<string[]>([]);
+  const [loadingCountries, setLoadingCountries] = useState(false);
   const [selectedDates, setSelectedDates] = useState<{ from: Date; to?: Date }>();
   const [selectedTravelers, setSelectedTravelers] = useState<string>('');
   const [selectedBudget, setSelectedBudget] = useState<number>(BUDGET_LIMITS.DEFAULT);
@@ -39,8 +50,9 @@ export default function TripPlanningWizard({
   const [selectedFlight, setSelectedFlight] = useState<string>('');
   const [selectedHotel, setSelectedHotel] = useState<string>('');
   const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
-  const [isFlightModalOpen, setIsFlightModalOpen] = useState(false);
   const [hasSearchedFlights, setHasSearchedFlights] = useState(false);
+  const [hasSearchedHotels, setHasSearchedHotels] = useState(false);
+  const [hasSearchedActivities, setHasSearchedActivities] = useState(false);
 
   // Get mock data from custom hook (in production, this would fetch from API)
   const {
@@ -55,6 +67,15 @@ export default function TripPlanningWizard({
   // Use flight search hook for real-time flight search
   const { flights, loading: flightsLoading, error: flightsError, searchFlights } = useFlightSearch();
 
+  // Use hotel search hook for real-time hotel search
+  const { hotels, loading: hotelsLoading, error: hotelsError, searchHotels } = useHotelSearch();
+
+  // Use restaurant search hook
+  const { restaurants, loading: restaurantsLoading, error: restaurantsError, searchRestaurants } = useRestaurantSearch();
+
+  // Use attraction search hook
+  const { attractions, loading: attractionsLoading, error: attractionsError, searchAttractions } = useAttractionSearch();
+
   // Sync state with itinerary when it changes
   useEffect(() => {
     if (itinerary.origin?.city && itinerary.origin.city !== selectedOrigin) {
@@ -65,30 +86,184 @@ export default function TripPlanningWizard({
     }
   }, [itinerary.origin, itinerary.destination, selectedOrigin, selectedDestination]);
 
-  // Automatically transition to destination phase when origin is set
+  // Fetch popular countries
+  const fetchPopularCountries = useCallback(async () => {
+    setLoadingCountries(true);
+    try {
+      const response = await fetch('http://localhost:4000/api/ai/countries', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch countries');
+      }
+
+      const data = await response.json();
+      setPopularCountries(data.data.countries || []);
+    } catch (error) {
+      console.error('Error fetching popular countries:', error);
+      // Fallback to empty array if API fails
+      setPopularCountries([]);
+    } finally {
+      setLoadingCountries(false);
+    }
+  }, []);
+
+  // Automatically transition to country phase when origin is set
   useEffect(() => {
     if (currentStep === 'destination' && itinerary.origin && destinationPhase === 'origin') {
       setTimeout(() => {
-        setDestinationPhase('destination');
+        setDestinationPhase('country');
         setLocationMethod(null);
+        // Fetch popular countries when transitioning to country phase
+        fetchPopularCountries();
       }, 500);
     }
-  }, [currentStep, itinerary.origin, destinationPhase]);
+  }, [currentStep, itinerary.origin, destinationPhase, setDestinationPhase, fetchPopularCountries]);
 
-  // City to IATA code mapping for automatic flight search
+  // Fetch popular cities when country is selected
+  const fetchPopularCities = useCallback(async (country: string) => {
+    setLoadingCities(true);
+    try {
+      const response = await fetch('http://localhost:4000/api/ai/cities', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ country }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch cities');
+      }
+
+      const data = await response.json();
+      setPopularCities(data.data.cities || []);
+    } catch (error) {
+      console.error('Error fetching popular cities:', error);
+      // Fallback to empty array if API fails
+      setPopularCities([]);
+    } finally {
+      setLoadingCities(false);
+    }
+  }, []);
+
+  // When country is selected, fetch cities and move to city phase
+  const handleCountrySelect = useCallback((country: string) => {
+    setSelectedCountry(country);
+    fetchPopularCities(country);
+    setDestinationPhase('city');
+  }, [fetchPopularCities, setDestinationPhase]);
+
+  // Handle user messages during destination phase
+  useEffect(() => {
+    if (!onAddUserMessage) return;
+
+    // Intercept user messages for manual entry during destination step
+    const handleUserInput = (event: CustomEvent<{ message: string }>) => {
+      const message = event.detail.message.trim();
+
+      if (currentStep === 'destination' && message) {
+        // Country phase - user typed a country name
+        if (destinationPhase === 'country') {
+          handleCountrySelect(message);
+        }
+        // City phase - user typed a city name
+        else if (destinationPhase === 'city' && selectedCountry) {
+          setSelectedDestination(message);
+          onStepComplete('destination', {
+            destination: { city: message, country: selectedCountry }
+          });
+        }
+        // Origin phase (manual) - user typed origin
+        else if (destinationPhase === 'origin' && locationMethod === 'manual') {
+          setSelectedOrigin(message);
+          onStepComplete('destination', {
+            origin: { city: message, country: '' }
+          });
+        }
+      }
+    };
+
+    // Listen for user messages
+    window.addEventListener('userMessageSent', handleUserInput as EventListener);
+    return () => {
+      window.removeEventListener('userMessageSent', handleUserInput as EventListener);
+    };
+  }, [currentStep, destinationPhase, selectedCountry, locationMethod, onStepComplete, onAddUserMessage, handleCountrySelect]);
+
+  // City to IATA code mapping for automatic flight search (expanded mapping)
   const cityToIATA: Record<string, string> = {
-    'paris': 'CDG', 'tokyo': 'NRT', 'new-york': 'JFK', 'bali': 'DPS',
-    'rome': 'FCO', 'dubai': 'DXB', 'london': 'LHR', 'barcelona': 'BCN',
-    'amsterdam': 'AMS', 'sydney': 'SYD', 'bangkok': 'BKK', 'singapore': 'SIN',
+    // North America
+    'new york': 'JFK', 'new-york': 'JFK', 'nyc': 'JFK', 'manhattan': 'JFK',
+    'los angeles': 'LAX', 'la': 'LAX', 'chicago': 'ORD', 'miami': 'MIA',
+    'san francisco': 'SFO', 'sf': 'SFO', 'boston': 'BOS', 'seattle': 'SEA',
+    'washington': 'DCA', 'dc': 'DCA', 'atlanta': 'ATL', 'dallas': 'DFW',
+    'houston': 'IAH', 'phoenix': 'PHX', 'philadelphia': 'PHL', 'las vegas': 'LAS',
+    'orlando': 'MCO', 'denver': 'DEN', 'toronto': 'YYZ', 'vancouver': 'YVR',
+    'montreal': 'YUL', 'mexico city': 'MEX',
+
+    // Europe
+    'london': 'LHR', 'paris': 'CDG', 'rome': 'FCO', 'barcelona': 'BCN',
+    'amsterdam': 'AMS', 'berlin': 'BER', 'madrid': 'MAD', 'vienna': 'VIE',
+    'zurich': 'ZRH', 'munich': 'MUC', 'frankfurt': 'FRA', 'milan': 'MXP',
+    'venice': 'VCE', 'athens': 'ATH', 'lisbon': 'LIS', 'dublin': 'DUB',
+    'copenhagen': 'CPH', 'stockholm': 'ARN', 'oslo': 'OSL', 'helsinki': 'HEL',
+    'prague': 'PRG', 'budapest': 'BUD', 'warsaw': 'WAW', 'brussels': 'BRU',
+
+    // Asia
+    'tokyo': 'NRT', 'singapore': 'SIN', 'hong kong': 'HKG', 'bangkok': 'BKK',
+    'dubai': 'DXB', 'seoul': 'ICN', 'beijing': 'PEK', 'shanghai': 'PVG',
+    'delhi': 'DEL', 'mumbai': 'BOM', 'kuala lumpur': 'KUL', 'manila': 'MNL',
+    'ho chi minh': 'SGN', 'hanoi': 'HAN', 'jakarta': 'CGK', 'taipei': 'TPE',
+    'osaka': 'KIX', 'bali': 'DPS',
+
+    // Oceania
+    'sydney': 'SYD', 'melbourne': 'MEL', 'auckland': 'AKL', 'brisbane': 'BNE',
+
+    // South America
+    'sao paulo': 'GRU', 'rio de janeiro': 'GIG', 'buenos aires': 'EZE',
+    'lima': 'LIM', 'bogota': 'BOG', 'santiago': 'SCL',
+
+    // Africa & Middle East
+    'johannesburg': 'JNB', 'cape town': 'CPT', 'cairo': 'CAI', 'nairobi': 'NBO',
+    'tel aviv': 'TLV', 'doha': 'DOH', 'abu dhabi': 'AUH', 'istanbul': 'IST',
+  };
+
+  // Helper function to convert city name to IATA code with fallback to city name
+  const getCityCode = (cityName: string | undefined): string => {
+    if (!cityName) return '';
+
+    // Try exact match (case insensitive)
+    const normalized = cityName.toLowerCase().trim();
+    const iataCode = cityToIATA[normalized];
+
+    if (iataCode) {
+      return iataCode;
+    }
+
+    // If no match found, return the city name itself (SERP API will handle it)
+    return cityName.trim();
   };
 
   // Auto-search flights when flight step is reached
   useEffect(() => {
-    if (currentStep === 'flights' && itinerary.destination && itinerary.dates && itinerary.travelers && !hasSearchedFlights) {
-      const destinationCode = cityToIATA[itinerary.destination.city?.toLowerCase() || ''] || 'CDG';
-      
+    if (currentStep === 'flights' && itinerary.destination && itinerary.origin && itinerary.dates && itinerary.travelers && !hasSearchedFlights) {
+      // Use actual origin and destination from itinerary
+      const originCode = getCityCode(itinerary.origin.city);
+      const destinationCode = getCityCode(itinerary.destination.city);
+
+      // Only search if we have valid codes
+      if (!originCode || !destinationCode) {
+        console.error('Missing origin or destination for flight search');
+        return;
+      }
+
       const searchParams: FlightSearchParams = {
-        origin: 'JFK', // Default origin - could be user's location
+        origin: originCode,
         destination: destinationCode,
         departureDate: itinerary.dates.startDate.toISOString().split('T')[0],
         returnDate: itinerary.dates.endDate.toISOString().split('T')[0],
@@ -97,26 +272,70 @@ export default function TripPlanningWizard({
         currencyCode: 'USD',
       };
 
+      console.log('🔍 Searching flights:', searchParams);
       searchFlights(searchParams);
       setHasSearchedFlights(true);
     }
-  }, [currentStep, itinerary.destination, itinerary.dates, itinerary.travelers, hasSearchedFlights, searchFlights]);
+  }, [currentStep, itinerary.destination, itinerary.origin, itinerary.dates, itinerary.travelers, hasSearchedFlights, searchFlights]);
 
-  // Auto-open modal when flights are loaded
+  // Auto-search hotels when hotel step is reached
   useEffect(() => {
-    if (currentStep === 'flights' && !flightsLoading && flights.length > 0 && !isFlightModalOpen && hasSearchedFlights) {
-      // Slight delay for smoother transition
-      const timer = setTimeout(() => {
-        setIsFlightModalOpen(true);
-      }, 500);
-      return () => clearTimeout(timer);
+    if (currentStep === 'hotels' && itinerary.destination && itinerary.dates && !hasSearchedHotels) {
+      const destinationCity = itinerary.destination.city || 'Paris';
+
+      searchHotels({
+        destination: destinationCity,
+        checkIn: itinerary.dates.startDate.toISOString().split('T')[0],
+        checkOut: itinerary.dates.endDate.toISOString().split('T')[0],
+        budget: itinerary.budget?.total,
+        limit: 10,
+      });
+      setHasSearchedHotels(true);
     }
-    
-    // Reset search state when leaving flights step
+
+    // Reset search state when leaving hotels step
+    if (currentStep !== 'hotels' && hasSearchedHotels) {
+      setHasSearchedHotels(false);
+    }
+  }, [currentStep, itinerary.destination, itinerary.dates, itinerary.budget, hasSearchedHotels, searchHotels]);
+
+  // Auto-search activities (restaurants + attractions) when activities step is reached
+  useEffect(() => {
+    if (currentStep === 'activities' && itinerary.destination && !hasSearchedActivities) {
+      // Format destination as "City, Country" for better SERP API results
+      const destinationCity = itinerary.destination.city || 'Paris';
+      const destinationCountry = itinerary.destination.country || 'France';
+      const fullDestination = `${destinationCity}, ${destinationCountry}`;
+      const interests = itinerary.preferences?.interests || [];
+
+      // Search both restaurants and attractions in parallel
+      Promise.all([
+        searchRestaurants({
+          destination: fullDestination,
+          limit: 5,
+        }),
+        searchAttractions({
+          destination: fullDestination,
+          interests,
+          limit: 10,
+        })
+      ]);
+
+      setHasSearchedActivities(true);
+    }
+
+    // Reset search state when leaving activities step
+    if (currentStep !== 'activities' && hasSearchedActivities) {
+      setHasSearchedActivities(false);
+    }
+  }, [currentStep, itinerary.destination, itinerary.preferences, hasSearchedActivities, searchRestaurants, searchAttractions]);
+
+  // Reset search state when leaving flights step
+  useEffect(() => {
     if (currentStep !== 'flights' && hasSearchedFlights) {
       setHasSearchedFlights(false);
     }
-  }, [currentStep, flightsLoading, flights.length, isFlightModalOpen, hasSearchedFlights]);
+  }, [currentStep, hasSearchedFlights]);
 
   // Location method options
   const locationMethodOptions = useMemo(() => [
@@ -136,8 +355,72 @@ export default function TripPlanningWizard({
 
   // Memoized options based on current selections
   const flightOptions = getFlightOptions(selectedDestination);
-  const hotelOptions = getHotelOptions(selectedDestination);
-  const activityOptions = getActivityOptions(selectedDestination, selectedPreferences);
+  const mockHotelOptions = getHotelOptions(selectedDestination);
+  const mockActivityOptions = getActivityOptions(selectedDestination, selectedPreferences);
+
+  // Transform real activity data (restaurants + attractions) to Activity format
+  const activityOptions = useMemo(() => {
+    const realActivities: Array<{
+      id: string;
+      name: string;
+      category: string;
+      price: number;
+      duration: string;
+      image?: string;
+      emoji: string;
+    }> = [];
+
+    // Add restaurants as activities
+    if (restaurants.length > 0) {
+      restaurants.forEach(restaurant => {
+        realActivities.push({
+          id: restaurant.id,
+          name: restaurant.name,
+          category: 'food',
+          price: 50, // Default price, could be extracted from priceLevel
+          duration: '2h',
+          image: restaurant.imageUrl,
+          emoji: '🍽️',
+        });
+      });
+    }
+
+    // Add attractions as activities
+    if (attractions.length > 0) {
+      attractions.forEach(attraction => {
+        realActivities.push({
+          id: attraction.id,
+          name: attraction.name,
+          category: 'culture',
+          price: 30, // Default price
+          duration: '3h',
+          image: attraction.imageUrl,
+          emoji: '🏛️',
+        });
+      });
+    }
+
+    // Return real data if available, otherwise fallback to mock data
+    return realActivities.length > 0 ? realActivities : mockActivityOptions;
+  }, [restaurants, attractions, mockActivityOptions]);
+
+  // Transform real hotel data to carousel card format
+  const hotelOptions = useMemo(() => {
+    if (hotels.length > 0) {
+      return hotels.map(hotel => ({
+        id: hotel.id,
+        title: hotel.name,
+        subtitle: hotel.address || 'Hotel',
+        price: hotel.pricePerNight,
+        rating: hotel.rating,
+        details: hotel.amenities || [],
+        badge: hotel.rating && hotel.rating >= 4.5 ? 'Top Rated' : undefined,
+        image: hotel.imageUrl,
+      }));
+    }
+    // Fallback to mock data if no real hotels loaded
+    return mockHotelOptions;
+  }, [hotels, mockHotelOptions]);
 
   const handleLocationMethodSelect = useCallback((value: string) => {
     const method = value as 'current' | 'manual';
@@ -198,9 +481,9 @@ export default function TripPlanningWizard({
                 });
               }
               
-              // Move to destination phase after a short delay
+              // Move to country phase after a short delay
               setTimeout(() => {
-                setDestinationPhase('destination');
+                setDestinationPhase('country');
                 setLocationMethod(null);
               }, 500);
             } catch (error) {
@@ -216,7 +499,7 @@ export default function TripPlanningWizard({
                 } 
               });
               setTimeout(() => {
-                setDestinationPhase('destination');
+                setDestinationPhase('country');
                 setLocationMethod(null);
               }, 500);
             }
@@ -242,9 +525,9 @@ export default function TripPlanningWizard({
         country: ''
       } 
     });
-    // Move to destination phase after origin is set
+    // Move to country phase after origin is set
     setTimeout(() => {
-      setDestinationPhase('destination');
+      setDestinationPhase('country');
       setLocationMethod(null);
     }, 500);
   }, [onStepComplete]);
@@ -330,7 +613,6 @@ export default function TripPlanningWizard({
 
   const handleFlightSelect = useCallback((flight: FlightOption) => {
     setSelectedFlight(flight.id);
-    setIsFlightModalOpen(false);
 
     // Store the selected flight data
     onStepComplete('flights', {
@@ -465,11 +747,11 @@ export default function TripPlanningWizard({
               </>
             )}
 
-            {/* DESTINATION PHASE */}
-            {destinationPhase === 'destination' && (
+            {/* COUNTRY PHASE */}
+            {destinationPhase === 'country' && (
               <>
-                <p className="text-gray-700 mb-2">Where would you like to go? 🌍</p>
-                
+                <p className="text-gray-700 mb-2">Which country would you like to visit? 🌍</p>
+
                 {/* Show origin for context */}
                 {selectedOrigin && (
                   <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-xl">
@@ -479,18 +761,104 @@ export default function TripPlanningWizard({
                   </div>
                 )}
 
-                {/* Destination Input */}
-                <div className="mt-3 p-4 glass-card border-2 border-primary/30 rounded-xl">
-                  <p className="text-sm font-medium text-gray-800">
-                    💬 Type your destination in the chat input below and press Enter
-                  </p>
-                  {selectedDestination && (
-                    <div className="mt-3 flex items-center gap-2 text-primary">
-                      <MapPin className="w-4 h-4" />
-                      <span className="text-sm font-semibold">{selectedDestination}</span>
+                {/* Popular Countries */}
+                {loadingCountries ? (
+                  <div className="mt-3 p-4 glass-card border-2 border-primary/30 rounded-xl flex items-center justify-center gap-2">
+                    <Loader2 className="w-5 h-5 text-primary animate-spin" />
+                    <p className="text-sm font-medium text-gray-800">Loading popular countries...</p>
+                  </div>
+                ) : popularCountries.length > 0 ? (
+                  <div className="mt-3">
+                    <p className="text-sm font-medium text-gray-700 mb-3">Top destinations:</p>
+                    <QuickReply
+                      options={popularCountries.map(country => ({ id: country, value: country, label: country }))}
+                      onSelect={handleCountrySelect}
+                      selectedValues={[]}
+                      gradientColors="from-blue-500/30 to-indigo-500/30"
+                    />
+                    <p className="text-xs text-gray-600 mt-3 text-center">
+                      Or type a different country in the chat input below
+                    </p>
+                  </div>
+                ) : (
+                  <div className="mt-3 p-4 glass-card border-2 border-primary/30 rounded-xl">
+                    <p className="text-sm font-medium text-gray-800">
+                      💬 Type the country name in the chat input below and press Enter
+                    </p>
+                    <p className="text-xs text-gray-600 mt-2">
+                      Example: France, Japan, Italy, USA, etc.
+                    </p>
+                    {selectedCountry && (
+                      <div className="mt-3 flex items-center gap-2 text-primary">
+                        <MapPin className="w-4 h-4" />
+                        <span className="text-sm font-semibold">{selectedCountry}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* CITY PHASE */}
+            {destinationPhase === 'city' && (
+              <>
+                <p className="text-gray-700 mb-2">Which city in {selectedCountry} would you like to visit? 🏙️</p>
+
+                {/* Show origin and country for context */}
+                <div className="mb-4 space-y-2">
+                  {selectedOrigin && (
+                    <div className="p-3 bg-green-50 border border-green-200 rounded-xl">
+                      <p className="text-sm text-gray-700">
+                        <span className="font-semibold text-green-800">✅ Traveling from:</span> {selectedOrigin}
+                      </p>
+                    </div>
+                  )}
+                  {selectedCountry && (
+                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl">
+                      <p className="text-sm text-gray-700">
+                        <span className="font-semibold text-blue-800">✅ Visiting:</span> {selectedCountry}
+                      </p>
                     </div>
                   )}
                 </div>
+
+                {/* Popular Cities */}
+                {loadingCities ? (
+                  <div className="mt-3 p-4 glass-card border-2 border-primary/30 rounded-xl flex items-center justify-center gap-2">
+                    <Loader2 className="w-5 h-5 text-primary animate-spin" />
+                    <p className="text-sm font-medium text-gray-800">Loading popular cities...</p>
+                  </div>
+                ) : popularCities.length > 0 ? (
+                  <div className="mt-3">
+                    <p className="text-sm font-medium text-gray-700 mb-3">Popular destinations in {selectedCountry}:</p>
+                    <QuickReply
+                      options={popularCities.map(city => ({ id: city, value: city, label: city }))}
+                      onSelect={(city) => {
+                        setSelectedDestination(city);
+                        onStepComplete('destination', {
+                          destination: { city, country: selectedCountry }
+                        });
+                      }}
+                      selectedValues={[]}
+                      gradientColors="from-primary/30 to-purple-500/30"
+                    />
+                    <p className="text-xs text-gray-600 mt-3 text-center">
+                      Or type a different city in the chat input below
+                    </p>
+                  </div>
+                ) : (
+                  <div className="mt-3 p-4 glass-card border-2 border-primary/30 rounded-xl">
+                    <p className="text-sm font-medium text-gray-800">
+                      💬 Type the city name in the chat input below and press Enter
+                    </p>
+                    {selectedDestination && (
+                      <div className="mt-3 flex items-center gap-2 text-primary">
+                        <MapPin className="w-4 h-4" />
+                        <span className="text-sm font-semibold">{selectedDestination}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </>
             )}
           </div>
@@ -593,25 +961,13 @@ export default function TripPlanningWizard({
               </div>
             )}
 
-            {!flightsLoading && !flightsError && flights.length > 0 && !isFlightModalOpen && (
-              <div className="p-8 glass-card rounded-xl border-2 border-primary/30 text-center">
-                <div className="mb-4">
-                  <Plane className="w-16 h-16 text-primary mx-auto mb-3" />
-                  <p className="text-lg font-semibold text-gray-900 mb-1">
-                    ✈️ {flights.length} Flight{flights.length !== 1 ? 's' : ''} Found!
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    Based on your trip to {itinerary.destination?.city}
-                  </p>
-                </div>
-                <button
-                  onClick={() => setIsFlightModalOpen(true)}
-                  className="px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold
-                    hover:shadow-[0_0_30px_rgba(37,99,235,0.5)] hover:scale-105 active:scale-95 transition-all duration-300
-                    shadow-[0_0_20px_rgba(37,99,235,0.3)]"
-                >
-                  View Flight Options
-                </button>
+            {!flightsLoading && !flightsError && flights.length > 0 && (
+              <div className="glass-card rounded-xl border border-gray-200 p-4">
+                <FlightList 
+                  flights={flights}
+                  onSelectFlight={handleFlightSelect}
+                  selectedFlightId={selectedFlight}
+                />
               </div>
             )}
 
@@ -635,14 +991,44 @@ export default function TripPlanningWizard({
         return (
           <div>
             <p className="text-gray-700 mb-2">{WIZARD_STEP_CONFIG.hotels.description}</p>
-            <CardCarousel
-              cards={hotelOptions}
-              onCardSelect={handleHotelSelect}
-              selectedCardId={selectedHotel}
-              showPrice
-              showRating
-              onConfirm={handleHotelConfirm}
-            />
+
+            {hotelsLoading && (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                <span className="ml-3 text-gray-600">Searching for hotels...</span>
+              </div>
+            )}
+
+            {hotelsError && (
+              <div className="p-6 bg-red-50 border border-red-200 rounded-xl">
+                <p className="text-sm text-red-600">{hotelsError}</p>
+              </div>
+            )}
+
+            {!hotelsLoading && !hotelsError && (
+              <CardCarousel
+                cards={hotelOptions}
+                onCardSelect={handleHotelSelect}
+                selectedCardId={selectedHotel}
+                showPrice
+                showRating
+                onConfirm={handleHotelConfirm}
+              />
+            )}
+
+            {!hotelsLoading && !hotelsError && hotelOptions.length === 0 && hasSearchedHotels && (
+              <div className="p-6 bg-gray-50 border border-gray-200 rounded-xl text-center">
+                <p className="text-sm text-gray-600">No hotels found for this destination. Please try adjusting your dates or budget.</p>
+                <button
+                  onClick={() => {
+                    setHasSearchedHotels(false);
+                  }}
+                  className="mt-3 text-sm text-primary hover:text-primary/80 underline"
+                >
+                  Search again
+                </button>
+              </div>
+            )}
           </div>
         );
 
@@ -650,13 +1036,45 @@ export default function TripPlanningWizard({
         return (
           <div>
             <p className="text-gray-700 mb-2">{WIZARD_STEP_CONFIG.activities.description}</p>
-            <ActivityGrid
-              activities={activityOptions}
-              onActivityToggle={handleActivityToggle}
-              selectedActivityIds={selectedActivities}
-              maxSelections={5}
-              onConfirm={handleActivitiesConfirm}
-            />
+
+            {(restaurantsLoading || attractionsLoading) && (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                <span className="ml-3 text-gray-600">Finding restaurants and attractions...</span>
+              </div>
+            )}
+
+            {(restaurantsError || attractionsError) && (
+              <div className="p-6 bg-red-50 border border-red-200 rounded-xl mb-4">
+                <p className="text-sm text-red-600">
+                  {restaurantsError || attractionsError}
+                </p>
+              </div>
+            )}
+
+            {!restaurantsLoading && !attractionsLoading && (
+              <ActivityGrid
+                activities={activityOptions}
+                onActivityToggle={handleActivityToggle}
+                selectedActivityIds={selectedActivities}
+                maxSelections={5}
+                onConfirm={handleActivitiesConfirm}
+              />
+            )}
+
+            {!restaurantsLoading && !attractionsLoading && activityOptions.length === 0 && hasSearchedActivities && (
+              <div className="p-6 bg-gray-50 border border-gray-200 rounded-xl text-center">
+                <p className="text-sm text-gray-600">No activities found for this destination.</p>
+                <button
+                  onClick={() => {
+                    setHasSearchedActivities(false);
+                  }}
+                  className="mt-3 text-sm text-primary hover:text-primary/80 underline"
+                >
+                  Search again
+                </button>
+              </div>
+            )}
           </div>
         );
 
@@ -681,13 +1099,6 @@ export default function TripPlanningWizard({
     <div className="w-full px-2 sm:px-4">
       {renderStep()}
       
-      {/* Flight Selection Modal */}
-      <FlightModal
-        flights={flights}
-        isOpen={isFlightModalOpen}
-        onClose={() => setIsFlightModalOpen(false)}
-        onSelectFlight={handleFlightSelect}
-      />
     </div>
   );
 }

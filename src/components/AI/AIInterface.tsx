@@ -1,15 +1,19 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { Sparkles, Send, MessageSquare, MapPin, Plane, Clock, DollarSign, Menu } from 'lucide-react';
+import { Sparkles, MapPin, Menu, Send } from 'lucide-react';
 import Image from 'next/image';
 import ChatMessage, { type ChatMessageData } from './ChatMessage';
 import TypingIndicator from './TypingIndicator';
-import FlightModal from './FlightModal';
-import { api } from '@/lib/apiClient';
+import MessageInput from './MessageInput';
+import GlobeBackground from './GlobeBackground';
+import { getTabContent } from './TabContent';
 import { useTripPlanningContext } from '@/contexts/TripPlanningContext';
 import { WizardStep, TripItinerary } from '@/types/tripPlanning';
 import { useFlightSearch } from '@/hooks/useFlightSearch';
 import { FlightOption } from '@/types/flights';
-import { FLIGHT_SEARCH_KEYWORDS, CITY_TO_IATA_MAP, MONTH_NAMES } from '@/constants/flightData';
+import { useChatMessages } from '@/hooks/useChatMessages';
+import { useAutoScroll } from '@/hooks/useAutoScroll';
+import { useFlightParsing } from '@/hooks/useFlightParsing';
+import { useGlobeAnimation } from '@/hooks/useGlobeAnimation';
 
 type TabKey = 'plan' | 'chat' | 'preferences' | 'flights' | 'hotels' | 'restaurants' | 'mapout';
 
@@ -64,23 +68,64 @@ export default function AIInterface({
   hideActionButtons = false
 }: AIInterfaceProps) {
   const { startWizard, isWizardActive, currentStep, itinerary } = useTripPlanningContext();
-  const { flights, loading: flightsLoading, searchFlights } = useFlightSearch();
-  const [chatMessages, setChatMessages] = useState<ChatMessageData[]>([]);
-  const [isAITyping, setIsAITyping] = useState(false);
-  const [isFlightModalOpen, setIsFlightModalOpen] = useState(false);
-  const [modalFlights, setModalFlights] = useState<FlightOption[]>([]);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const globeFieldRef = useRef<HTMLDivElement>(null);
-  const [isFooterVisible, setIsFooterVisible] = useState(false);
-  const scrollContainerRef = useRef<HTMLElement | null>(null);
-  const isUserScrollingRef = useRef(false);
-  const autoScrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const { searchFlights } = useFlightSearch();
   const [isMounted, setIsMounted] = useState(false);
+  const [isFooterVisible, setIsFooterVisible] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const wizardInitializedRef = useRef(false);
-  const handleScrollContainerRef = useCallback((node: HTMLDivElement | null) => {
-    scrollContainerRef.current = node ?? null;
+
+  // Auto-grow the compact composer
+  const adjustTextareaHeight = useCallback(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    const maxHeight = 120;
+    const nextHeight = Math.max(Math.min(el.scrollHeight, maxHeight), 24);
+    el.style.height = `${nextHeight}px`;
   }, []);
+
+  // Keep input focused for quick subsequent typing
+  const focusInput = useCallback(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    try {
+      el.focus({ preventScroll: true });
+    } catch {
+      el.focus();
+    }
+    adjustTextareaHeight();
+    const len = el.value.length;
+    try { el.setSelectionRange(len, len); } catch {}
+  }, [adjustTextareaHeight]);
+
+  // Custom hooks for separated concerns
+  const { detectFlightSearch, parseFlightQuery } = useFlightParsing();
+  const { globeNodes, globeTint, globeFieldRef } = useGlobeAnimation(activeTab, isMounted);
+  const { 
+    scrollToBottom, 
+    messagesEndRef, 
+    handleScrollContainerRef 
+  } = useAutoScroll({ isMobile, onScrollComplete: focusInput });
+
+  const handleFlightSelect = useCallback((flight: FlightOption) => {
+    const message = `✅ Perfect choice! You've selected the ${flight.airline} flight from ${flight.departure} to ${flight.arrival} for $${Number(flight.price).toFixed(2)}. Would you like to proceed with booking or continue planning your trip?`;
+    return message;
+  }, []);
+
+  const {
+    chatMessages,
+    setChatMessages,
+    isAITyping,
+    setIsAITyping,
+    addUserMessage,
+    addAIMessage,
+    clearMessages,
+    sendMessageToAI,
+  } = useChatMessages({
+    onFirstMessage,
+    onMessageSent,
+    onFlightSelect: handleFlightSelect,
+  });
 
   // Track mounted state to prevent hydration mismatch
   useEffect(() => {
@@ -116,99 +161,13 @@ export default function AIInterface({
     }
   }, [isWizardActive, chatMessages.length]);
 
-  // Auto-grow the compact composer
-  const adjustTextareaHeight = useCallback(() => {
-    const el = textareaRef.current;
-    if (!el) return;
-    el.style.height = 'auto';
-    const maxHeight = 120;
-    const nextHeight = Math.max(Math.min(el.scrollHeight, maxHeight), 24);
-    el.style.height = `${nextHeight}px`;
-  }, []);
-
   const showChat = chatMessages.length > 0 || isAITyping;
 
-  // Keep input focused for quick subsequent typing and ensure the height matches content
-  const focusInput = useCallback(() => {
-    const el = textareaRef.current;
-    if (!el) return;
 
-    // Use preventScroll to avoid viewport jumps on both mobile and desktop
-    try {
-      el.focus({ preventScroll: true });
-    } catch {
-      el.focus();
-    }
-
-    adjustTextareaHeight();
-    // Place caret at the end
-    const len = el.value.length;
-    try { el.setSelectionRange(len, len); } catch {}
-    if (process.env.NODE_ENV !== 'production') {
-      setTimeout(() => {
-        const focused = typeof document !== 'undefined' && document.activeElement === el;
-        if (!focused) {
-          // eslint-disable-next-line no-console
-          console.debug('[AIInterface] focusInput: focus attempt did not stick');
-        }
-      }, 0);
-    }
-  }, [adjustTextareaHeight]);
-
-
-  // Animated globe nodes with slight randomization at mount (client-side only)
-  const globeNodes = useMemo(() => {
-    // Only generate on client to prevent hydration mismatch
-    if (!isMounted) return [];
-    
-    const rand = (min: number, max: number) => min + Math.random() * (max - min);
-    type NodeCfg = {
-      pos: { top: string; left?: string; right?: string };
-      xStart: number; yStart: number; xEnd: number; yEnd: number;
-      dur: number; size: number; opacity: number; spin: number;
-    };
-    const base: NodeCfg[] = [
-      { pos: { top: '8%', left: '5%' }, xStart: -6, yStart: -4, xEnd: 10, yEnd: 6, dur: rand(20, 26), size: 140, opacity: 0.08, spin: 120 },
-      { pos: { top: '20%', right: '8%' }, xStart: 5, yStart: -3, xEnd: -8, yEnd: 4, dur: rand(24, 30), size: 120, opacity: 0.07, spin: 110 },
-      { pos: { top: '60%', left: '10%' }, xStart: 0, yStart: 0, xEnd: 12, yEnd: -6, dur: rand(18, 24), size: 90, opacity: 0.09, spin: 90 },
-      { pos: { top: '68%', right: '12%' }, xStart: -10, yStart: 2, xEnd: 8, yEnd: -8, dur: rand(20, 26), size: 100, opacity: 0.06, spin: 95 },
-      { pos: { top: '35%', left: '40%' }, xStart: -6, yStart: 6, xEnd: 6, yEnd: -6, dur: rand(16, 22), size: 60, opacity: 0.08, spin: 70 },
-      { pos: { top: '78%', left: '46%' }, xStart: 4, yStart: -4, xEnd: -6, yEnd: 6, dur: rand(14, 20), size: 50, opacity: 0.07, spin: 60 },
-      { pos: { top: '15%', left: '65%' }, xStart: 2, yStart: 4, xEnd: -8, yEnd: -4, dur: rand(18, 22), size: 70, opacity: 0.07, spin: 80 },
-    ];
-    return base.map((n) => {
-      // small random offsets to path
-      const jitter = (v: number, j: number) => v + rand(-j, j);
-      const xStart = jitter(n.xStart, 2);
-      const yStart = jitter(n.yStart, 2);
-      const xEnd = jitter(n.xEnd, 2);
-      const yEnd = jitter(n.yEnd, 2);
-      return {
-        nodeStyle: {
-          top: n.pos.top,
-          left: n.pos.left,
-          right: n.pos.right,
-          '--xStart': `${xStart}vw`,
-          '--yStart': `${yStart}vh`,
-          '--xEnd': `${xEnd}vw`,
-          '--yEnd': `${yEnd}vh`,
-          animationDuration: `${n.dur}s`,
-        } as React.CSSProperties,
-        spriteStyle: {
-          '--size': `${n.size}px`,
-          '--opacity': `${n.opacity}`,
-          animationDuration: `${n.spin}s`,
-        } as React.CSSProperties,
-      };
-    });
-  }, [isMounted]);
-
-
-  // Clear chat messages to return to welcome screen
+  // Clear chat messages to return to welcome screen (now uses hook's clearMessages)
   const clearChat = useCallback(() => {
-    setChatMessages([]);
-    setIsAITyping(false);
-  }, []);
+    clearMessages();
+  }, [clearMessages]);
   
   // Also clear chat when activeTab changes to ensure clean state
   useEffect(() => {
@@ -236,83 +195,14 @@ export default function AIInterface({
   }, [inputValue, adjustTextareaHeight]);
 
 
-  // Check if user is near the bottom of the scroll container
-  const isNearBottom = useCallback((threshold = 100) => {
-    const container = scrollContainerRef.current;
-    if (!container) return true;
-    const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
-    return distanceFromBottom <= threshold;
-  }, []);
-
-  // Robust scroll to bottom
-  const scrollToBottom = useCallback((force = false) => {
-    if (autoScrollTimeoutRef.current) {
-      clearTimeout(autoScrollTimeoutRef.current);
-    }
-
-    if (!force && !isNearBottom(100)) {
-      return;
-    }
-
-    const performScroll = () => {
-      const container = scrollContainerRef.current;
-
-      if (!container) {
-        if (messagesEndRef.current) {
-          try {
-            messagesEndRef.current.scrollIntoView({
-              behavior: 'smooth',
-              block: 'end',
-              inline: 'nearest',
-            });
-          } catch (error) {
-            if (process.env.NODE_ENV !== 'production') {
-              console.warn('ScrollIntoView fallback failed', error);
-            }
-          }
-        }
-        return;
-      }
-
-      const maxScroll = container.scrollHeight - container.clientHeight;
-
-      try {
-        container.scrollTo({
-          top: maxScroll,
-          behavior: 'smooth',
-        });
-      } catch {
-        container.scrollTop = maxScroll;
-      }
-
-      const focusDelay = isMobile ? 25 : 250;
-      autoScrollTimeoutRef.current = setTimeout(() => {
-        focusInput();
-      }, focusDelay);
-    };
-
-    if (isMobile) {
-      requestAnimationFrame(() => {
-        requestAnimationFrame(performScroll);
-      });
-    } else {
-      requestAnimationFrame(performScroll);
-    }
-  }, [focusInput, isMobile, isNearBottom]);
+  // Scroll functions now come from useAutoScroll hook
 
 
   // Auto-scroll on new messages
   useEffect(() => {
     if (chatMessages.length === 0) return;
-    
-    const scrollTimeout = setTimeout(() => {
-      if (isNearBottom(200)) {
-        scrollToBottom(true);
-      }
-    }, 100);
-    
-    return () => clearTimeout(scrollTimeout);
-  }, [chatMessages, scrollToBottom, isNearBottom]);
+    setTimeout(() => scrollToBottom(true), 100);
+  }, [chatMessages, scrollToBottom]);
 
   // Auto-scroll when AI starts typing
   useEffect(() => {
@@ -328,91 +218,8 @@ export default function AIInterface({
 
 
 
-  // Helper function to detect if query is a flight search
-  const detectFlightSearch = useCallback((query: string): boolean => {
-    const queryLower = query.toLowerCase();
-    return FLIGHT_SEARCH_KEYWORDS.some(keyword => queryLower.includes(keyword));
-  }, []);
-
-  // Helper function to parse flight parameters from query
-  const parseFlightQuery = useCallback((query: string) => {
-    const today = new Date();
-    const nextMonth = new Date();
-    nextMonth.setMonth(nextMonth.getMonth() + 1);
-
-    // Simple parsing - in production, use NLP or more sophisticated parsing
-    const queryLower = query.toLowerCase();
-    
-    // Detect destinations from common patterns
-    const toMatch = query.match(/to\s+([A-Za-z\s]+?)(?:\s+in|\s+for|\s+on|$)/i);
-    const fromMatch = query.match(/from\s+([A-Za-z\s]+?)(?:\s+to|\s+in|\s+for|$)/i);
-
-    let destination = 'LHR'; // Default
-    let origin = 'JFK'; // Default
-
-    if (toMatch) {
-      const cityName = toMatch[1].trim().toLowerCase();
-      destination = CITY_TO_IATA_MAP[cityName] || 'LHR';
-    }
-
-    if (fromMatch) {
-      const cityName = fromMatch[1].trim().toLowerCase();
-      origin = CITY_TO_IATA_MAP[cityName] || 'JFK';
-    }
-
-    // Detect cabin class
-    const cabinClass: 'BUSINESS' | 'FIRST' | 'PREMIUM_ECONOMY' | 'ECONOMY' = 
-      queryLower.includes('business') ? 'BUSINESS' :
-      queryLower.includes('first') ? 'FIRST' :
-      queryLower.includes('premium') ? 'PREMIUM_ECONOMY' : 'ECONOMY';
-
-    // Detect round-trip or one-way
-    const isRoundTrip = !queryLower.includes('one-way');
-
-    // Parse dates (simple detection)
-    let departureDate = today.toISOString().split('T')[0];
-    let returnDate = nextMonth.toISOString().split('T')[0];
-
-    MONTH_NAMES.forEach((month, index) => {
-      if (queryLower.includes(month)) {
-        const monthDate = new Date();
-        monthDate.setMonth(index);
-        if (monthDate < today) monthDate.setFullYear(monthDate.getFullYear() + 1);
-        departureDate = monthDate.toISOString().split('T')[0];
-        const retDate = new Date(monthDate);
-        retDate.setDate(retDate.getDate() + 14);
-        returnDate = retDate.toISOString().split('T')[0];
-      }
-    });
-
-    // Detect number of travelers
-    const adultsMatch = query.match(/(\d+)\s*(?:person|people|passenger|adult)/i);
-    const adults = adultsMatch ? parseInt(adultsMatch[1]) : 1;
-
-    return {
-      origin,
-      destination,
-      departureDate,
-      returnDate: isRoundTrip ? returnDate : undefined,
-      adults,
-      cabinClass,
-      currencyCode: 'USD'
-    };
-  }, []);
-
-  // Handler for when a flight is selected from the carousel
-  const handleFlightSelect = useCallback((flight: FlightOption) => {
-    const selectionMessage: ChatMessageData = {
-      id: Date.now().toString(),
-      content: `✅ Perfect choice! You've selected the ${flight.airline} flight from ${flight.departure} to ${flight.arrival} for $${Number(flight.price).toFixed(2)}. Would you like to proceed with booking or continue planning your trip?`,
-      sender: 'ai',
-      timestamp: new Date()
-    };
-    setChatMessages(prev => [...prev, selectionMessage]);
-    
-    // Scroll to show the confirmation message
-    setTimeout(() => scrollToBottom(true), 100);
-  }, [scrollToBottom]);
+  // Flight search detection and parsing now come from useFlightParsing hook
+  // handleFlightSelect is defined earlier before useChatMessages hook
 
   const generateAIResponse = useCallback((userMessage: string): string => {
     const responses: Record<string, string[]> = {
@@ -458,60 +265,25 @@ export default function AIInterface({
     const textToSend = messageOverride ? messageOverride.trim() : inputValue.trim();
     if (!textToSend) return;
 
-    // Handle wizard input for destination step (origin or destination based on phase)
+    // Handle wizard input for destination step (origin/country/city based on phase)
     // Skip wizard handling if this is a quick chat/suggested prompt
     if (isWizardActive && currentStep === 'destination' && !bypassWizard) {
-      // Check if we already have origin - if so, this is destination input
-      if (itinerary.origin) {
-        // Add user message for destination
-        const userDestMessage: ChatMessageData = {
-          id: Date.now().toString(),
-          content: textToSend,
-          sender: 'user',
-          timestamp: new Date()
-        };
-        setChatMessages(prev => [...prev, userDestMessage]);
-        
-        onWizardStepComplete?.('destination', { 
-          destination: { 
-            city: textToSend,
-            country: ''
-          } 
-        });
-      } else {
-        // This is origin input
-        // Add user message for origin
-        const userOriginMessage: ChatMessageData = {
-          id: Date.now().toString(),
-          content: textToSend,
-          sender: 'user',
-          timestamp: new Date()
-        };
-        setChatMessages(prev => [...prev, userOriginMessage]);
-        
-        onWizardStepComplete?.('destination', { 
-          origin: { 
-            city: textToSend,
-            country: ''
-          } 
-        });
-        
-        // Add AI message asking for destination
-        setTimeout(() => {
-          const destinationMessage: ChatMessageData = {
-            id: Date.now().toString(),
-            content: `Great! Now, where would you like to go? 🌍`,
-            sender: 'ai',
-            timestamp: new Date(),
-            interactive: {
-              type: 'trip-wizard',
-              currentStep: 'destination',
-              itinerary: { origin: { city: textToSend, country: '' } }
-            }
-          };
-          setChatMessages(prev => [...prev, destinationMessage]);
-        }, 300);
-      }
+      // Dispatch event for the wizard to handle based on current phase
+      const event = new CustomEvent('userMessageSent', {
+        detail: { message: textToSend }
+      });
+      window.dispatchEvent(event);
+
+      // Add user message
+      const userMessage: ChatMessageData = {
+        id: Date.now().toString(),
+        content: textToSend,
+        sender: 'user',
+        timestamp: new Date()
+      };
+      setChatMessages(prev => [...prev, userMessage]);
+
+      // Clear input and reset
       onInputChange('');
       focusInput();
       requestAnimationFrame(() => adjustTextareaHeight());
@@ -616,68 +388,12 @@ export default function AIInterface({
         content: msg.content
       }));
 
-      // Build context from active tab and trip planning state
-      let contextParts: string[] = [];
+      // Build context from active tab
+      const context = activeTab !== 'plan' ? `User is currently on the ${activeTab} tab` : undefined;
+
+      // Use the sendMessageToAI hook function instead of calling API directly
+      await sendMessageToAI(textToSend, context, itinerary);
       
-      if (activeTab !== 'plan') {
-        contextParts.push(`User is currently on the ${activeTab} tab`);
-      }
-      
-      // Add trip planning context if available
-      if (itinerary) {
-        if (itinerary.destination?.city) {
-          contextParts.push(`Destination: ${itinerary.destination.city}`);
-        }
-        if (itinerary.dates) {
-          const startDate = new Date(itinerary.dates.startDate).toLocaleDateString();
-          const endDate = new Date(itinerary.dates.endDate).toLocaleDateString();
-          contextParts.push(`Dates: ${startDate} - ${endDate}`);
-        }
-        if (itinerary.travelers) {
-          contextParts.push(`Travelers: ${itinerary.travelers}`);
-        }
-      }
-      
-      const context = contextParts.length > 0 ? contextParts.join(', ') : undefined;
-
-      // Call the backend API with Genkit
-      const response = await api.post<{
-        success: boolean;
-        data: { message: string; flights?: any[]; interactive?: any; metadata: any };
-        message: string;
-      }>('/api/ai/chat', {
-        message: textToSend,
-        chatHistory,
-        context
-      });
-
-      const aiResponse: ChatMessageData = {
-        id: (Date.now() + 1).toString(),
-        content: response.data.message,
-        sender: 'ai',
-        timestamp: new Date()
-      };
-
-      // Check if the AI response includes flight results
-      if (response.data.flights || response.data.interactive?.flights) {
-        const flightData = response.data.flights || response.data.interactive?.flights || [];
-        
-        // Open modal with flights
-        if (flightData.length > 0) {
-          setModalFlights(flightData);
-          setIsFlightModalOpen(true);
-        }
-        
-        // Also add to chat interactive (for carousel fallback)
-        aiResponse.interactive = {
-          type: 'flight-results',
-          flights: flightData,
-          onSelectFlight: handleFlightSelect
-        };
-      }
-
-      setChatMessages(prev => [...prev, aiResponse]);
-      setIsAITyping(false);
       // After AI finishes, refocus the input on the next frame
       requestAnimationFrame(() => focusInput());
     } catch (error) {
@@ -725,8 +441,12 @@ export default function AIInterface({
     }
   }, [handleSendMessage]);
   
-  // Dynamic content based on active tab
-  const getContentByTab = () => {
+  // Get content configuration for the active tab
+  const content = useMemo(() => getTabContent(activeTab, suggestedPrompts), [activeTab, suggestedPrompts]);
+
+  // OLD getContentByTab function removed - now using imported getTabContent
+  // Dynamic content based on active tab (LEGACY - TO BE REMOVED)
+  const getContentByTabOLD = () => {
     switch (activeTab) {
       case 'flights':
         return {
@@ -811,7 +531,7 @@ export default function AIInterface({
     }
   };
 
-  const content = getContentByTab();
+  // OLD: const content = getContentByTab(); - now using getTabContent at top of component
 
   const messageContainerStyle = useMemo(() => {
     return {
@@ -827,46 +547,8 @@ export default function AIInterface({
       ? 'space-y-6 p-8' 
       : 'space-y-5 p-4 sm:p-6';
 
-  useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
-
-    let scrollTimeout: NodeJS.Timeout;
-
-    const handleScroll = () => {
-      isUserScrollingRef.current = true;
-
-      if (scrollTimeout) clearTimeout(scrollTimeout);
-
-      scrollTimeout = setTimeout(() => {
-        if (isNearBottom(50)) {
-          isUserScrollingRef.current = false;
-        }
-      }, 1500);
-    };
-
-    container.addEventListener('scroll', handleScroll, { passive: true });
-
-    return () => {
-      container.removeEventListener('scroll', handleScroll);
-      if (scrollTimeout) clearTimeout(scrollTimeout);
-    };
-  }, [isNearBottom]);
-
-  const globeTint = useMemo(() => {
-    switch (activeTab) {
-      case 'flights':
-        return { from: 'rgba(14,165,233,0.40)', to: 'rgba(56,189,248,0.35)', opacity: '0.32' }; // sky blue
-      case 'hotels':
-        return { from: 'rgba(251,146,60,0.40)', to: 'rgba(245,158,11,0.35)', opacity: '0.32' }; // orange/amber
-      case 'restaurants':
-        return { from: 'rgba(168,85,247,0.40)', to: 'rgba(139,92,246,0.35)', opacity: '0.32' }; // purple/violet
-      case 'mapout':
-        return { from: 'rgba(34,197,94,0.40)', to: 'rgba(132,204,22,0.35)', opacity: '0.32' }; // green/lime
-      default:
-        return { from: 'rgba(82,113,255,0.40)', to: 'rgba(139,92,246,0.35)', opacity: '0.30' }; // primary/violet
-    }
-  }, [activeTab]);
+  // Scroll tracking is now handled in useAutoScroll hook
+  // globeTint is provided by useGlobeAnimation hook
 
   useEffect(() => {
     if (!isMounted) return; // Only run after component is mounted
@@ -1385,13 +1067,6 @@ export default function AIInterface({
         )}
       </div>
 
-      {/* Flight Search Modal */}
-      <FlightModal
-        flights={modalFlights}
-        isOpen={isFlightModalOpen}
-        onClose={() => setIsFlightModalOpen(false)}
-        onSelectFlight={handleFlightSelect}
-      />
     </div>
   );
 }

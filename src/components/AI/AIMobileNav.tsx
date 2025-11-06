@@ -30,7 +30,7 @@ export default function AIMobileNav({
   return (
     <nav
       data-bottom-nav
-      className={`lg:hidden fixed inset-x-0 bottom-0 z-40 border-t border-gray-200/70 bg-white/95 backdrop-blur-xl ${className}`}
+      className={`fixed inset-x-0 bottom-0 z-40 border-t border-gray-200/70 bg-white/95 backdrop-blur-xl ${className}`}
       aria-label="Voyagr AI navigation"
     >
       <div className="mx-auto grid max-w-xl grid-cols-5 items-center gap-1 px-2 pb-[max(env(safe-area-inset-bottom),0px)] pt-2">

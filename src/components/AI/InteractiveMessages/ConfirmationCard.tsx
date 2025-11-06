@@ -73,7 +73,10 @@ export default function ConfirmationCard({
             <span className="text-xs font-medium text-gray-600">Total Budget</span>
           </div>
           <p className="text-lg font-bold text-primary">
-            ${itinerary.budget.total.toLocaleString()} {itinerary.budget.currency}
+            ${(typeof itinerary.budget.total === 'object'
+              ? (itinerary.budget.total as any).amount || 0
+              : itinerary.budget.total
+            ).toLocaleString()} {itinerary.budget.currency}
           </p>
         </div>
       </div>
@@ -94,7 +97,9 @@ export default function ConfirmationCard({
                   </div>
                 </div>
                 <span className="text-sm font-bold text-gray-900">
-                  ${itinerary.flight.price}
+                  ${typeof itinerary.flight.price === 'object'
+                    ? (itinerary.flight.price as any).amount || 0
+                    : itinerary.flight.price}
                 </span>
               </div>
             </div>
@@ -108,7 +113,9 @@ export default function ConfirmationCard({
                   <div>
                     <p className="text-sm font-semibold text-gray-900">{itinerary.hotel.name}</p>
                     <p className="text-xs text-gray-600">
-                      ⭐ {itinerary.hotel.rating} · ${itinerary.hotel.pricePerNight}/night
+                      ⭐ {itinerary.hotel.rating} · ${typeof itinerary.hotel.pricePerNight === 'object'
+                        ? (itinerary.hotel.pricePerNight as any).amount || 0
+                        : itinerary.hotel.pricePerNight}/night
                     </p>
                   </div>
                 </div>

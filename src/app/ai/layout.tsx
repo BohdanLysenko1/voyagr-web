@@ -20,17 +20,14 @@ export default function AILayout({ children }: { children: React.ReactNode }) {
   // Use viewport height hook
   useViewportHeight();
 
-  // Keep navbar and footer visible for AI pages
-  // (Uncomment below to hide them for full-screen experience)
-  // useEffect(() => {
-  //   setNavbarVisible(false);
-  //   setFooterVisible(false);
+  // Hide footer on AI pages to prevent it from covering the mobile nav
+  useEffect(() => {
+    setFooterVisible(false);
 
-  //   return () => {
-  //     setNavbarVisible(true);
-  //     setFooterVisible(true);
-  //   };
-  // }, [setNavbarVisible, setFooterVisible]);
+    return () => {
+      setFooterVisible(true);
+    };
+  }, [setFooterVisible]);
 
   // Lock body scroll on mobile
   useEffect(() => {

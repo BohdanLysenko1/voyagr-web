@@ -143,7 +143,7 @@ export default function AIPageWrapper({
       </div>
 
       {/* Mobile Nav */}
-      {showMobileNav && <AIMobileNav activeTab={activeTab} />}
+      {showMobileNav && isMobile && <AIMobileNav activeTab={activeTab} />}
 
       {/* Mobile Sidebar */}
       {isSidebarOpen && isMobile && (

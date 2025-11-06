@@ -11,37 +11,89 @@ export default function LiveItineraryPanel({ itinerary, isVisible = true }: Live
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const flightRef = useRef<HTMLDivElement>(null);
   const hotelRef = useRef<HTMLDivElement>(null);
-  const totalSpent = useMemo(() => {
-    let total = 0;
-    if (itinerary.flight?.price) total += itinerary.flight.price;
-    if (itinerary.hotel?.pricePerNight && itinerary.dates) {
-      const nights = Math.ceil(
-        (itinerary.dates.endDate.getTime() - itinerary.dates.startDate.getTime()) / (1000 * 60 * 60 * 24)
-      );
-      total += itinerary.hotel.pricePerNight * nights;
+
+  // Validate and normalize itinerary data
+  const normalizedItinerary = useMemo(() => {
+    if (!itinerary) return {};
+
+    const normalized: Partial<TripItinerary> = { ...itinerary };
+
+    // Normalize dates if they exist
+    if (normalized.dates) {
+      try {
+        if (normalized.dates.startDate && !(normalized.dates.startDate instanceof Date)) {
+          normalized.dates = {
+            ...normalized.dates,
+            startDate: new Date(normalized.dates.startDate as any)
+          };
+        }
+        if (normalized.dates.endDate && !(normalized.dates.endDate instanceof Date)) {
+          normalized.dates = {
+            ...normalized.dates,
+            endDate: new Date(normalized.dates.endDate as any)
+          };
+        }
+      } catch (error) {
+        console.error('Error normalizing dates:', error);
+        delete normalized.dates;
+      }
     }
-    if (itinerary.selectedActivities) {
-      total += itinerary.selectedActivities.reduce((sum, act) => sum + act.price, 0);
-    }
-    return total;
+
+    return normalized;
   }, [itinerary]);
 
+  const totalSpent = useMemo(() => {
+    let total = 0;
+    if (normalizedItinerary.flight?.price) {
+      const flightPrice = typeof normalizedItinerary.flight.price === 'object'
+        ? (normalizedItinerary.flight.price as any).amount || 0
+        : normalizedItinerary.flight.price;
+      total += flightPrice;
+    }
+    if (normalizedItinerary.hotel?.pricePerNight && normalizedItinerary.dates?.startDate && normalizedItinerary.dates?.endDate) {
+      const hotelPrice = typeof normalizedItinerary.hotel.pricePerNight === 'object'
+        ? (normalizedItinerary.hotel.pricePerNight as any).amount || 0
+        : normalizedItinerary.hotel.pricePerNight;
+      try {
+        const startTime = normalizedItinerary.dates.startDate.getTime();
+        const endTime = normalizedItinerary.dates.endDate.getTime();
+        const nights = Math.ceil((endTime - startTime) / (1000 * 60 * 60 * 24));
+        total += hotelPrice * nights;
+      } catch (error) {
+        console.error('Error calculating hotel nights:', error);
+      }
+    }
+    if (normalizedItinerary.selectedActivities) {
+      total += normalizedItinerary.selectedActivities.reduce((sum, act) => sum + (act.price || 0), 0);
+    }
+    return total;
+  }, [normalizedItinerary]);
+
   const budgetPercentage = useMemo(() => {
-    if (!itinerary.budget?.total) return 0;
-    return (totalSpent / itinerary.budget.total) * 100;
-  }, [totalSpent, itinerary.budget]);
+    // Handle case where budget might be {amount, currency} or {total, ...}
+    const budgetTotal = typeof normalizedItinerary.budget === 'object'
+      ? (normalizedItinerary.budget as any).total || (normalizedItinerary.budget as any).amount || 0
+      : 0;
+    if (!budgetTotal) return 0;
+    return (totalSpent / budgetTotal) * 100;
+  }, [totalSpent, normalizedItinerary.budget]);
 
   const tripDuration = useMemo(() => {
-    if (!itinerary.dates) return null;
-    const days = Math.ceil(
-      (itinerary.dates.endDate.getTime() - itinerary.dates.startDate.getTime()) / (1000 * 60 * 60 * 24)
-    );
-    return days;
-  }, [itinerary.dates]);
+    if (!normalizedItinerary.dates?.startDate || !normalizedItinerary.dates?.endDate) return null;
+    try {
+      const startTime = normalizedItinerary.dates.startDate.getTime();
+      const endTime = normalizedItinerary.dates.endDate.getTime();
+      const days = Math.ceil((endTime - startTime) / (1000 * 60 * 60 * 24));
+      return days;
+    } catch (error) {
+      console.error('Error calculating trip duration:', error);
+      return null;
+    }
+  }, [normalizedItinerary.dates]);
 
   // Auto-scroll to newly added flight (within container only)
   useEffect(() => {
-    if (itinerary.flight && flightRef.current && scrollContainerRef.current) {
+    if (normalizedItinerary.flight && flightRef.current && scrollContainerRef.current) {
       setTimeout(() => {
         const container = scrollContainerRef.current;
         const element = flightRef.current;
@@ -58,11 +110,11 @@ export default function LiveItineraryPanel({ itinerary, isVisible = true }: Live
         }
       }, 150);
     }
-  }, [itinerary.flight]);
+  }, [normalizedItinerary.flight]);
 
   // Auto-scroll to newly added hotel (within container only)
   useEffect(() => {
-    if (itinerary.hotel && hotelRef.current && scrollContainerRef.current) {
+    if (normalizedItinerary.hotel && hotelRef.current && scrollContainerRef.current) {
       setTimeout(() => {
         const container = scrollContainerRef.current;
         const element = hotelRef.current;
@@ -79,7 +131,7 @@ export default function LiveItineraryPanel({ itinerary, isVisible = true }: Live
         }
       }, 150);
     }
-  }, [itinerary.hotel]);
+  }, [normalizedItinerary.hotel]);
 
   if (!isVisible) return null;
 
@@ -105,38 +157,38 @@ export default function LiveItineraryPanel({ itinerary, isVisible = true }: Live
         style={{ scrollBehavior: 'smooth', minHeight: 0 }}>
 
       {/* Route: Origin to Destination */}
-      {(itinerary.origin || itinerary.destination) && (
+      {(normalizedItinerary.origin || normalizedItinerary.destination) && (
         <div className="bg-white/60 backdrop-blur-sm border border-white/60 rounded-xl p-4 animate-in fade-in slide-in-from-right duration-300">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-lg bg-blue-500/10">
               <Plane className="w-5 h-5 text-blue-600" />
             </div>
             <div className="flex-1">
-              {itinerary.origin && itinerary.destination ? (
+              {normalizedItinerary.origin && normalizedItinerary.destination ? (
                 <>
                   <p className="text-xs text-gray-600 font-medium mb-1">Route</p>
                   <div className="flex items-center gap-2">
                     <p className="text-base font-bold text-gray-900">
-                      {itinerary.origin.city}
+                      {normalizedItinerary.origin.city}
                     </p>
                     <span className="text-gray-400">→</span>
                     <p className="text-base font-bold text-gray-900">
-                      {itinerary.destination.city}
+                      {normalizedItinerary.destination.city}
                     </p>
                   </div>
                 </>
-              ) : itinerary.origin ? (
+              ) : normalizedItinerary.origin ? (
                 <>
                   <p className="text-xs text-gray-600 font-medium">Origin</p>
                   <p className="text-base font-bold text-gray-900">
-                    {itinerary.origin.city}
+                    {normalizedItinerary.origin.city}
                   </p>
                 </>
               ) : (
                 <>
                   <p className="text-xs text-gray-600 font-medium">Destination</p>
                   <p className="text-base font-bold text-gray-900">
-                    {itinerary.destination?.city}
+                    {normalizedItinerary.destination?.city}
                   </p>
                 </>
               )}
@@ -147,15 +199,21 @@ export default function LiveItineraryPanel({ itinerary, isVisible = true }: Live
 
       {/* Trip Overview Grid */}
       <div className="grid grid-cols-2 gap-3">
-        {itinerary.dates && (
+        {normalizedItinerary.dates?.startDate && normalizedItinerary.dates?.endDate && (
           <div className="bg-white/60 backdrop-blur-sm border border-white/60 rounded-xl p-3 animate-in fade-in duration-300 delay-100">
             <div className="flex items-center gap-2 mb-2">
               <Calendar className="w-4 h-4 text-purple-600" />
               <span className="text-xs text-gray-600 font-medium">Dates</span>
             </div>
             <p className="text-sm font-semibold text-gray-900">
-              {itinerary.dates.startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} -{' '}
-              {itinerary.dates.endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+              {(normalizedItinerary.dates.startDate instanceof Date
+                ? normalizedItinerary.dates.startDate
+                : new Date(normalizedItinerary.dates.startDate)
+              ).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} -{' '}
+              {(normalizedItinerary.dates.endDate instanceof Date
+                ? normalizedItinerary.dates.endDate
+                : new Date(normalizedItinerary.dates.endDate)
+              ).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
             </p>
             {tripDuration && (
               <p className="text-xs text-gray-500 mt-1">{tripDuration} days</p>
@@ -163,21 +221,21 @@ export default function LiveItineraryPanel({ itinerary, isVisible = true }: Live
           </div>
         )}
 
-        {itinerary.travelers && (
+        {normalizedItinerary.travelers && (
           <div className="bg-white/60 backdrop-blur-sm border border-white/60 rounded-xl p-3 animate-in fade-in duration-300 delay-150">
             <div className="flex items-center gap-2 mb-2">
               <Users className="w-4 h-4 text-emerald-600" />
               <span className="text-xs text-gray-600 font-medium">Travelers</span>
             </div>
             <p className="text-sm font-semibold text-gray-900">
-              {itinerary.travelers} {itinerary.travelers === 1 ? 'Person' : 'People'}
+              {normalizedItinerary.travelers} {normalizedItinerary.travelers === 1 ? 'Person' : 'People'}
             </p>
           </div>
         )}
       </div>
 
       {/* Budget Tracker */}
-      {itinerary.budget && (
+      {normalizedItinerary.budget && (
         <div className="bg-white/60 backdrop-blur-sm border border-white/60 rounded-xl p-4 animate-in fade-in duration-300 delay-200">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
@@ -205,22 +263,24 @@ export default function LiveItineraryPanel({ itinerary, isVisible = true }: Live
 
           <div className="flex items-center justify-between text-sm">
             <span className="font-bold text-gray-900">${totalSpent.toLocaleString()}</span>
-            <span className="text-gray-600">of ${itinerary.budget.total.toLocaleString()}</span>
+            <span className="text-gray-600">
+              of ${((normalizedItinerary.budget as any).total || (normalizedItinerary.budget as any).amount || 0).toLocaleString()}
+            </span>
           </div>
         </div>
       )}
 
       {/* Travel Preferences/Interests */}
-      {itinerary.preferences?.interests && itinerary.preferences.interests.length > 0 && (
+      {normalizedItinerary.preferences?.interests && normalizedItinerary.preferences.interests.length > 0 && (
         <div className="bg-white/60 backdrop-blur-sm border border-white/60 rounded-xl p-4 animate-in fade-in duration-300 delay-250">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-semibold text-gray-900">Interests</h3>
             <span className="text-xs text-gray-600">
-              {itinerary.preferences.interests.length} selected
+              {normalizedItinerary.preferences.interests.length} selected
             </span>
           </div>
           <div className="flex flex-wrap gap-2">
-            {itinerary.preferences.interests.map((interest, index) => (
+            {normalizedItinerary.preferences.interests.map((interest, index) => (
               <span
                 key={index}
                 className="px-2 py-1 rounded-lg text-xs font-medium
@@ -235,7 +295,7 @@ export default function LiveItineraryPanel({ itinerary, isVisible = true }: Live
 
       {/* Flight & Hotel Summary */}
       <div className="space-y-3">
-        {itinerary.flight && (
+        {normalizedItinerary.flight && (
           <div
             ref={flightRef}
             className="bg-white/60 backdrop-blur-sm border border-white/60 rounded-xl p-3 animate-in fade-in duration-300 delay-300">
@@ -246,15 +306,19 @@ export default function LiveItineraryPanel({ itinerary, isVisible = true }: Live
                 </div>
                 <div>
                   <p className="text-xs text-gray-600">Flight</p>
-                  <p className="text-sm font-semibold text-gray-900">{itinerary.flight.airline}</p>
+                  <p className="text-sm font-semibold text-gray-900">{normalizedItinerary.flight.airline}</p>
                 </div>
               </div>
-              <span className="text-sm font-bold text-gray-900">${itinerary.flight.price}</span>
+              <span className="text-sm font-bold text-gray-900">
+                ${typeof normalizedItinerary.flight.price === 'object'
+                  ? (normalizedItinerary.flight.price as any).amount || 0
+                  : normalizedItinerary.flight.price}
+              </span>
             </div>
           </div>
         )}
 
-        {itinerary.hotel && (
+        {normalizedItinerary.hotel && (
           <div
             ref={hotelRef}
             className="bg-white/60 backdrop-blur-sm border border-white/60 rounded-xl p-3 animate-in fade-in duration-300 delay-350">
@@ -265,11 +329,13 @@ export default function LiveItineraryPanel({ itinerary, isVisible = true }: Live
                 </div>
                 <div>
                   <p className="text-xs text-gray-600">Hotel</p>
-                  <p className="text-sm font-semibold text-gray-900 line-clamp-1">{itinerary.hotel.name}</p>
+                  <p className="text-sm font-semibold text-gray-900 line-clamp-1">{normalizedItinerary.hotel.name}</p>
                 </div>
               </div>
               <span className="text-sm font-bold text-gray-900">
-                ${itinerary.hotel.pricePerNight}/nt
+                ${typeof normalizedItinerary.hotel.pricePerNight === 'object'
+                  ? (normalizedItinerary.hotel.pricePerNight as any).amount || 0
+                  : normalizedItinerary.hotel.pricePerNight}/nt
               </span>
             </div>
           </div>
@@ -277,7 +343,7 @@ export default function LiveItineraryPanel({ itinerary, isVisible = true }: Live
       </div>
 
       {/* Daily Timeline */}
-      {itinerary.dailyPlan && itinerary.dailyPlan.length > 0 && (
+      {normalizedItinerary.dailyPlan && normalizedItinerary.dailyPlan.length > 0 && (
         <div className="space-y-3 animate-in fade-in duration-300 delay-400">
           <div className="flex items-center gap-2">
             <Clock className="w-4 h-4 text-primary" />
@@ -285,13 +351,18 @@ export default function LiveItineraryPanel({ itinerary, isVisible = true }: Live
           </div>
 
           <div className="space-y-2 max-h-64 overflow-y-auto scrollbar-thin scrollbar-thumb-primary/20">
-            {itinerary.dailyPlan.map((day, idx) => (
+            {normalizedItinerary.dailyPlan.map((day, idx) => (
               <div
                 key={idx}
                 className="bg-white/60 backdrop-blur-sm border border-white/60 rounded-xl p-3"
               >
                 <p className="text-xs font-semibold text-primary mb-2">
-                  Day {idx + 1} - {day.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                  Day {idx + 1} - {day.date
+                    ? (day.date instanceof Date
+                        ? day.date
+                        : new Date(day.date)
+                      ).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                    : ''}
                 </p>
                 <div className="space-y-2">
                   {day.activities.slice(0, 3).map((activity, actIdx) => (
@@ -313,16 +384,16 @@ export default function LiveItineraryPanel({ itinerary, isVisible = true }: Live
       )}
 
       {/* Selected Activities */}
-      {itinerary.selectedActivities && itinerary.selectedActivities.length > 0 && (
+      {normalizedItinerary.selectedActivities && normalizedItinerary.selectedActivities.length > 0 && (
         <div className="bg-white/60 backdrop-blur-sm border border-white/60 rounded-xl p-4 animate-in fade-in duration-300 delay-450">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-semibold text-gray-900">Activities</h3>
             <span className="text-xs text-gray-600">
-              {itinerary.selectedActivities.length} selected
+              {normalizedItinerary.selectedActivities.length} selected
             </span>
           </div>
           <div className="flex flex-wrap gap-2">
-            {itinerary.selectedActivities.slice(0, 5).map((activity) => (
+            {normalizedItinerary.selectedActivities.slice(0, 5).map((activity) => (
               <span
                 key={activity.id}
                 className="px-2 py-1 rounded-lg text-xs font-medium
@@ -331,9 +402,9 @@ export default function LiveItineraryPanel({ itinerary, isVisible = true }: Live
                 {activity.name}
               </span>
             ))}
-            {itinerary.selectedActivities.length > 5 && (
+            {normalizedItinerary.selectedActivities.length > 5 && (
               <span className="px-2 py-1 rounded-lg text-xs font-medium text-gray-600">
-                +{itinerary.selectedActivities.length - 5} more
+                +{normalizedItinerary.selectedActivities.length - 5} more
               </span>
             )}
           </div>
@@ -341,7 +412,7 @@ export default function LiveItineraryPanel({ itinerary, isVisible = true }: Live
       )}
 
       {/* Trip Stats */}
-      {(itinerary.budget || itinerary.selectedActivities) && (
+      {(normalizedItinerary.budget || normalizedItinerary.selectedActivities) && (
         <div className="bg-white/60 backdrop-blur-sm border border-white/60 rounded-xl p-3 animate-in fade-in duration-300 delay-500">
           <div className="flex items-center gap-2 mb-2">
             <TrendingUp className="w-4 h-4 text-primary" />
@@ -349,7 +420,7 @@ export default function LiveItineraryPanel({ itinerary, isVisible = true }: Live
           </div>
           <div className="grid grid-cols-2 gap-3 text-center">
             <div>
-              <p className="text-lg font-bold text-gray-900">{itinerary.selectedActivities?.length || 0}</p>
+              <p className="text-lg font-bold text-gray-900">{normalizedItinerary.selectedActivities?.length || 0}</p>
               <p className="text-xs text-gray-600">Activities</p>
             </div>
             <div>

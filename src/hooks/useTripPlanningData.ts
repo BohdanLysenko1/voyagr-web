@@ -167,7 +167,7 @@ export function useTripPlanningData() {
         rating: 4.9,
         details: ['Central Park view', 'Spa & pool', 'Fine dining'],
         badge: 'Premium',
-        image: '/images/hotels/plaza.jpg',
+        image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&h=300&fit=crop',
       },
       {
         id: 'hotel-2',
@@ -177,7 +177,7 @@ export function useTripPlanningData() {
         rating: 4.6,
         details: ['SoHo location', 'Rooftop bar', 'Modern design'],
         badge: 'Popular',
-        image: '/images/hotels/soho.jpg',
+        image: 'https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=400&h=300&fit=crop',
       },
       {
         id: 'hotel-3',
@@ -187,7 +187,7 @@ export function useTripPlanningData() {
         rating: 4.0,
         details: ['Midtown location', 'Free WiFi', 'Clean rooms'],
         badge: 'Best Price',
-        image: '/images/hotels/budget.jpg',
+        image: 'https://images.unsplash.com/photo-1564501049412-61c2a3083791?w=400&h=300&fit=crop',
       },
     ],
     []

@@ -42,6 +42,8 @@ export interface FlightOption {
   arrival: string;
   departureTime: string;
   arrivalTime: string;
+  departureDate: string;
+  arrivalDate: string;
   duration: string;
   stops: number;
   price: number;
@@ -51,9 +53,19 @@ export interface FlightOption {
   validatingAirlineCodes?: string[];
   bookingClass?: string;
   availableSeats?: number;
+  bookingUrl?: string;
+  bookingToken?: string;
   selected: boolean;
   // Original data for booking
   rawData?: any;
+}
+
+export interface BookingOption {
+  provider: string;
+  price: number;
+  bookingUrl: string;
+  agency?: string;
+  agencyLink?: string;
 }
 
 export interface Airport {
